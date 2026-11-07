@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- plan-version: bump on every revision. The hero eyebrow shows the same number. -->
+<meta name="plan-version" content="1">
+<title>Docs Site Migration</title>
+<!--
+  plan-maker template. Copy it, replace every piece of example content, keep the conventions:
+    data-id="…"                 every block a reader can comment on (unique, stable, kebab-case)
+    class="item"                gets Keep / Change / Cut: cards, phases, table rows, key paragraphs
+    <section data-id>           gets a section note
+    .decision[data-decision]    a pick-one question: radio inputs sharing a name, .rec marks the recommendation
+    <main data-plan>            the annotatable area
+  The review server injects the annotation layer; this file stays plain HTML.
+-->
+<style>
+:root {
+  --bg: #f7f7f8; --paper: #ffffff; --ink: #15171c; --muted: #5d6470; --line: #e3e5ea; --chip: #f0f1f4;
+  --accent: #3b5bdb; --accent-soft: #e8edfd; --accent-ink: #ffffff;
+  --good: #2b8a3e; --warn: #a35a00; --bad: #c92a2a;
+  --radius: 12px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111317; --paper: #181b20; --ink: #e8eaee; --muted: #9aa1ad; --line: #2b3039; --chip: #20242b;
+    --accent: #7c94f4; --accent-soft: #232c4a; --accent-ink: #10131a;
+    --good: #51cf66; --warn: #ffa94d; --bad: #ff6b6b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111317; --paper: #181b20; --ink: #e8eaee; --muted: #9aa1ad; --line: #2b3039; --chip: #20242b;
+  --accent: #7c94f4; --accent-soft: #232c4a; --accent-ink: #10131a;
+  --good: #51cf66; --warn: #ffa94d; --bad: #ff6b6b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 24px; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15.5px/1.6 var(--font); }
+h1, h2, h3, h4 { line-height: 1.25; letter-spacing: -0.015em; margin: 0; }
+p { margin: 0 0 12px; }
+a { color: var(--accent); }
+code { font: 0.88em var(--mono); background: var(--chip); padding: 1px 5px; border-radius: 4px; }
+pre { font: 13px/1.55 var(--mono); background: var(--chip); border: 1px solid var(--line); padding: 14px 16px; border-radius: var(--radius); overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+.layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); max-width: 1180px; margin: 0 auto; }
+nav.toc { position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; padding: 36px 12px 24px 20px; font-size: 13.5px; }
+nav.toc .toc-title { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 8px 8px; }
+nav.toc a { display: flex; gap: 8px; color: var(--muted); text-decoration: none; padding: 4px 8px; border-radius: 6px; }
+nav.toc a:hover { background: var(--chip); color: var(--ink); }
+nav.toc .n { color: var(--accent); font-weight: 700; min-width: 16px; }
+main { padding: 28px 40px 80px; min-width: 0; max-width: 900px; }
+
+/* hero */
+.hero { padding: 36px 36px 30px; margin-bottom: 8px; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; border-top: 4px solid var(--accent); }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+.hero h1 { font-size: 38px; margin-bottom: 12px; }
+.hero .lede { font-size: 17.5px; color: var(--muted); max-width: 680px; }
+.howto { margin-top: 18px; padding: 12px 14px; border-radius: 10px; background: var(--accent-soft); font-size: 14px; }
+.meta { margin-top: 14px; font-size: 13px; color: var(--muted); }
+
+/* sections */
+section.sec { padding: 40px 0 8px; }
+section.sec + section.sec { border-top: 1px solid var(--line); }
+section.sec h2 { font-size: 26px; margin-bottom: 6px; }
+section.sec h3 { font-size: 18px; margin: 22px 0 8px; }
+.lede { font-size: 16.5px; color: var(--muted); max-width: 720px; }
+
+/* cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 14px; margin: 16px 0; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 16px 12px; }
+.card .k { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.card h4 { font-size: 16px; margin-bottom: 6px; }
+.card p { font-size: 14.5px; margin-bottom: 6px; }
+.stat { font-size: 30px; font-weight: 700; line-height: 1.1; margin: 2px 0 6px; }
+
+/* tables */
+.table-wrap { overflow-x: auto; margin: 12px 0 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--chip); font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+
+/* callouts and tags */
+.callout { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 14px 0; }
+.tag { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); white-space: nowrap; }
+.tag.good { color: var(--good); } .tag.warn { color: var(--warn); } .tag.bad { color: var(--bad); }
+
+/* phases */
+.phases { display: grid; gap: 12px; margin: 16px 0; }
+.phase { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 14px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+.phase .num { grid-row: span 3; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.phase h4 { font-size: 17px; }
+.phase .when { font-size: 13px; color: var(--muted); }
+.phase ul { margin: 6px 0 2px; padding-left: 20px; }
+.phase > .pm-ctl { grid-column: 1 / -1; }
+
+/* decisions */
+.decision { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; margin: 12px 0; }
+.decision h4 { font-size: 16px; margin-bottom: 4px; }
+.decision .why { font-size: 14px; color: var(--muted); }
+.decision .opts { display: grid; gap: 6px; margin-top: 10px; }
+.decision label { display: flex; gap: 10px; align-items: flex-start; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; font-size: 14px; }
+.decision label:hover { border-color: var(--muted); }
+.decision input { margin-top: 4px; accent-color: var(--accent); flex: none; }
+.rec { display: inline-block; font-size: 10.5px; font-weight: 700; color: var(--good); margin-left: 8px; text-transform: uppercase; letter-spacing: .05em; }
+
+ul.tight { padding-left: 20px; margin: 6px 0 12px; }
+ul.tight li { margin-bottom: 5px; }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  nav.toc { display: none; }
+  main { padding: 16px 16px 60px; }
+  .hero { padding: 24px 18px 20px; }
+  .hero h1 { font-size: 28px; }
+  section.sec { padding-top: 30px; }
+  section.sec h2 { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc" aria-label="Contents">
+  <div class="toc-title">Contents</div>
+  <a href="#summary"><span class="n">1</span>Summary</a>
+  <a href="#context"><span class="n">2</span>Where we are</a>
+  <a href="#approach"><span class="n">3</span>Approach</a>
+  <a href="#phases"><span class="n">4</span>Phases</a>
+  <a href="#risks"><span class="n">5</span>Risks</a>
+  <a href="#decisions"><span class="n">6</span>Decisions for you</a>
+</nav>
+
+<main data-plan>
+
+<header class="hero" data-id="hero">
+  <div class="eyebrow">Plan v1 · for review · 7 Nov 2026</div>
+  <h1>Move the docs site to a static generator</h1>
+  <p class="lede">Replace the hand-maintained docs pages with a static site built from the Markdown already in the repo, so docs ship with the code that they describe.</p>
+  <div class="howto"><b>How to review:</b> select any text and click <b>Add note</b> · mark each card or row <b>Keep / Change / Cut</b> · answer the <a href="#decisions">decisions</a> at the end · press <b>Done reviewing</b>, then tell Claude <b>“process my notes”</b>.</div>
+  <div class="meta">Based on: the current docs folder, last quarter's support tickets, the build pipeline.</div>
+</header>
+
+<section class="sec" id="summary" data-id="summary">
+  <div class="eyebrow">1 · Summary</div>
+  <h2>The short version</h2>
+  <p class="lede">Docs drift because they live apart from the code. Generating them from the repo fixes that and cuts publishing from a day to a merge.</p>
+  <div class="cards">
+    <div class="card item" data-id="sum-goal"><div class="k">Goal</div><h4>Docs ship with the code</h4><p>Every merged change can update its docs in the same pull request.</p></div>
+    <div class="card item" data-id="sum-scope"><div class="k">Scope</div><h4>Guides and reference</h4><p>About 60 pages. The blog and changelog stay where they are.</p></div>
+    <div class="card item" data-id="sum-cost"><div class="k">Effort</div><h4>About three weeks</h4><p>One engineer, with a writer reviewing the migrated pages in week two.</p></div>
+  </div>
+  <div class="callout item" data-id="sum-nongoal"><b>Not in this plan:</b> a redesign. The new site copies today's look; design changes come after.</div>
+</section>
+
+<section class="sec" id="context" data-id="context">
+  <div class="eyebrow">2 · Where we are</div>
+  <h2>What I found</h2>
+  <div class="cards">
+    <div class="card item" data-id="ctx-stale"><div class="k">Stale pages</div><div class="stat">18 of 60</div><p>Pages describing options that have since changed.</p></div>
+    <div class="card item" data-id="ctx-time"><div class="k">Time to publish</div><div class="stat">~1 day</div><p>Edits go through a separate CMS and a manual deploy.</p></div>
+  </div>
+  <h3>Options compared</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Option</th><th>Build time</th><th>Fit</th></tr></thead>
+    <tbody>
+      <tr class="item" data-id="opt-astro"><td><b>Astro</b></td><td>~20 s</td><td>Markdown first, components where needed. <span class="tag good">best fit</span></td></tr>
+      <tr class="item" data-id="opt-docusaurus"><td><b>Docusaurus</b></td><td>~60 s</td><td>Docs features built in, heavier to theme. <span class="tag warn">ok</span></td></tr>
+      <tr class="item" data-id="opt-cms"><td><b>Keep the CMS</b></td><td>n/a</td><td>No migration, but drift continues. <span class="tag bad">poor</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="sec" id="approach" data-id="approach">
+  <div class="eyebrow">3 · Approach</div>
+  <h2>How it works</h2>
+  <ul class="tight">
+    <li class="item" data-id="ap-source"><b>One source.</b> Pages are Markdown files in <code>docs/</code>, next to the code.</li>
+    <li class="item" data-id="ap-preview"><b>Preview on every pull request.</b> Reviewers see the rendered page before merging.</li>
+    <li class="item" data-id="ap-redirects"><b>Every old URL keeps working.</b> A redirect map is generated from the old sitemap.</li>
+  </ul>
+  <pre class="item" data-id="ap-tree"><code>docs/
+  guides/        how-to pages
+  reference/     generated from the API schema
+  redirects.json old URL → new URL</code></pre>
+</section>
+
+<section class="sec" id="phases" data-id="phases">
+  <div class="eyebrow">4 · Phases</div>
+  <h2>Rollout</h2>
+  <div class="phases">
+    <div class="phase item" data-id="ph-1"><div class="num">1</div><h4>Scaffold and import</h4><div class="when">Week 1</div><ul><li>Set up the generator and the preview deploys.</li><li>Convert the existing pages with a script; fix by hand what it misses.</li></ul></div>
+    <div class="phase item" data-id="ph-2"><div class="num">2</div><h4>Review and redirect</h4><div class="when">Week 2</div><ul><li>The writer reviews every page.</li><li>Generate and test the redirect map.</li></ul></div>
+    <div class="phase item" data-id="ph-3"><div class="num">3</div><h4>Switch over</h4><div class="when">Week 3</div><ul><li>Point the domain at the new site; keep the CMS read-only for a month.</li></ul></div>
+  </div>
+</section>
+
+<section class="sec" id="risks" data-id="risks">
+  <div class="eyebrow">5 · Risks</div>
+  <h2>What could go wrong</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Risk</th><th>Likelihood</th><th>Mitigation</th></tr></thead>
+    <tbody>
+      <tr class="item" data-id="risk-seo"><td>Search traffic dips after the switch</td><td><span class="tag warn">medium</span></td><td>Redirect every old URL; submit the new sitemap on day one.</td></tr>
+      <tr class="item" data-id="risk-convert"><td>Converted pages lose formatting</td><td><span class="tag warn">medium</span></td><td>Writer review in phase 2; visual diff of the top 20 pages.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="sec" id="decisions" data-id="decisions">
+  <div class="eyebrow">6 · Decisions for you</div>
+  <h2>Decisions for you</h2>
+  <p class="lede">Pick one in each. Add a note if none fits.</p>
+
+  <div class="decision" data-decision="generator" data-id="d-generator">
+    <h4>Which generator?</h4>
+    <p class="why">Both work; they differ in build speed and how much is built in.</p>
+    <div class="opts">
+      <label><input type="radio" name="generator" value="astro"><span><b>Astro</b><span class="rec">Recommended</span><br>Fastest builds, plain Markdown, easy to match today's look.</span></label>
+      <label><input type="radio" name="generator" value="docusaurus"><span><b>Docusaurus</b><br>Versioning and search built in, heavier to theme.</span></label>
+    </div>
+  </div>
+
+  <div class="decision" data-decision="cutover" data-id="d-cutover">
+    <h4>How do we switch over?</h4>
+    <div class="opts">
+      <label><input type="radio" name="cutover" value="big-bang"><span><b>All at once in week 3</b><span class="rec">Recommended</span><br>Simplest; the redirect map covers old links.</span></label>
+      <label><input type="radio" name="cutover" value="gradual"><span><b>Section by section</b><br>Lower risk, but two sites to maintain for a while.</span></label>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+</body>
+</html>
