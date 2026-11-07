@@ -1,8 +1,10 @@
-// Regenerates docs/screenshot.png: the template plan mid-review.
+// Regenerates docs/screenshot.png (the template plan mid-review) and
+// docs/versions.png (v2 with the version switcher open).
 //   npm run screenshot [-- <extra-dir>]   (extra-dir also gets dark and phone shots)
+import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { launch, newPage, open, planCopy, repo, selectText, startServer } from './helpers.mjs';
+import { launch, newPage, open, planCopy, repo, selectText, startServer, writeV2 } from './helpers.mjs';
 
 const extra = process.argv[2];
 const files = planCopy(join(repo, 'templates/plan.html'));
@@ -30,8 +32,30 @@ try {
   await page.screenshot({ path: join(repo, 'docs/screenshot.png') });
   console.log('wrote docs/screenshot.png');
 
+  // Revise to v2 the way process-plan-notes does, then show the switcher.
+  await page.waitForTimeout(500);
+  execFileSync(process.execPath, [join(repo, 'scripts/snapshot.mjs'), files.plan]);
+  writeV2(files.plan);
+  const v2 = await newPage(browser, errors, { width: 1440, height: 900 });
+  await v2.emulateMedia({ colorScheme: 'light' });
+  await open(v2, server.url);
+  await v2.evaluate(() => document.getElementById('changes').scrollIntoView());
+  await v2.evaluate(() => window.scrollBy(0, -20));
+  await v2.click('#pm-ver');
+  await v2.waitForTimeout(600);
+  await v2.screenshot({ path: join(repo, 'docs/versions.png') });
+  console.log('wrote docs/versions.png');
+
   if (extra) {
     mkdirSync(extra, { recursive: true });
+    const v1 = await newPage(browser, errors, { width: 1440, height: 900 });
+    await open(v1, server.url + 'versions/v1');
+    await v1.evaluate(() => document.getElementById('summary').scrollIntoView());
+    await v1.waitForTimeout(600);
+    await v1.screenshot({ path: join(extra, 'v1-readonly.png') });
+    await v1.evaluate(() => window.scrollTo(0, 0));
+    await v1.waitForTimeout(600);
+    await v1.screenshot({ path: join(extra, 'v1-top.png') });
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: join(extra, 'top.png') });
     const dark = await newPage(browser, errors, { width: 1440, height: 900 });

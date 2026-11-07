@@ -1,20 +1,36 @@
 #!/usr/bin/env node
 // plan-maker review server. Node built-ins only.
 //
-//   node review.mjs <plan.html | plan-dir> [--port 4478] [--no-open]
+//   node review.mjs <plan.html | plan-dir> [--port 4478] [--host 127.0.0.1] [--no-open]
 //
 // Serves the plan with the annotation layer injected and saves the review to
-// notes.json next to the plan as the reader works. Binds to 127.0.0.1 only.
+// notes.json next to the plan as the reader works. Binds to 127.0.0.1 unless
+// --host (or PLAN_MAKER_HOST) names another address, e.g. 0.0.0.0 for every
+// interface or one address such as a VPN's. Beyond loopback, every request
+// must carry this run's random key: the printed network URL has it as ?key=,
+// which is swapped for a cookie on first visit.
 // If the port is taken it tries the next ones. If a plan-maker server is
 // already reviewing the same plan, it reuses that one and exits.
+//
+// Earlier versions (versions/v<N>.html, see lib/versions.mjs) are served
+// read-only at /versions/v<N>, with the notes written on them.
+//
+//   GET  /                 the live plan, annotation layer injected
+//   GET  /versions/v<N>    version N, read-only, its notes shown
+//   GET  /api/versions     every version, newest first
+//   GET  /api/notes        the live plan's notes (a version's, when asked from its page)
+//   PUT  /api/notes        save the live plan's notes
 
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { existsSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createServer, get } from 'node:http';
+import { networkInterfaces, tmpdir } from 'node:os';
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { inject, readLayer } from '../lib/inject.mjs';
+import { currentVersion, isLegacy, listVersions, readJson, readVersion, snapshotNotesPath, snapshotPath } from '../lib/versions.mjs';
 
-const HOST = '127.0.0.1';
+const LOOPBACK = '127.0.0.1';
 const DEFAULT_PORT = 4478;
 const PORT_TRIES = 20;
 const MAX_BODY = 5 * 1024 * 1024;
@@ -28,7 +44,7 @@ const TYPES = {
 
 function usage(msg) {
   if (msg) console.error(`review: ${msg}`);
-  console.error('usage: node review.mjs <plan.html | plan-dir> [--port N] [--no-open]');
+  console.error('usage: node review.mjs <plan.html | plan-dir> [--port N] [--host ADDR] [--no-open]');
   process.exit(2);
 }
 
@@ -36,10 +52,13 @@ const argv = process.argv.slice(2);
 let planArg = null;
 let port = DEFAULT_PORT;
 let open = true;
+let host = process.env.PLAN_MAKER_HOST || LOOPBACK;
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
   if (a === '--port') port = Number(argv[++i]);
   else if (a.startsWith('--port=')) port = Number(a.slice(7));
+  else if (a === '--host') host = argv[++i];
+  else if (a.startsWith('--host=')) host = a.slice(7);
   else if (a === '--no-open') open = false;
   else if (a === '-h' || a === '--help') usage();
   else if (a.startsWith('-')) usage(`unknown option ${a}`);
@@ -48,25 +67,40 @@ for (let i = 0; i < argv.length; i++) {
 }
 if (!planArg) usage('which plan? pass the path to its HTML file');
 if (!Number.isInteger(port) || port < 1 || port > 65535) usage('--port needs a number between 1 and 65535');
+if (!host) usage('--host needs an address, e.g. 0.0.0.0 or 127.0.0.1');
+
+// Network mode: listening beyond loopback. The Host-header check that guards
+// the loopback server can't work there (LAN IPs, VPN names), so a per-run key
+// takes its place. Requests from this machine to 127.0.0.1 still need no key.
+const isLoopback = (a) => a === 'localhost' || a === '::1' || /^127\./.test(a);
+const network = !isLoopback(host);
+const wildcard = host === '0.0.0.0' || host === '::';
+// Probe and open on the address the server actually answers on from here.
+const local = wildcard || !network ? LOOPBACK : host;
+const KEY = network ? randomBytes(18).toString('base64url') : null;
 
 let planPath = resolve(planArg);
 if (existsSync(planPath) && statSync(planPath).isDirectory()) planPath = join(planPath, 'index.html');
 if (!existsSync(planPath)) usage(`no such file: ${planArg}`);
 const planDir = dirname(planPath);
 const notesPath = join(planDir, 'notes.json');
+// Where a network-mode run leaves its URLs, so a second start can print them
+// (outside the plan folder, so it never ends up in a repo).
+const planHash = createHash('sha256').update(planPath).digest('hex').slice(0, 16);
+const runFile = join(tmpdir(), `plan-maker-${planHash}.json`);
 const show = (p) => relative(process.cwd(), p) || '.';
 const config = { mode: 'server', plan: show(planPath).split(sep).join('/'), notesPath: show(notesPath).split(sep).join('/') };
 
 // ---------- an existing server for this plan? ----------
 function probe(p) {
   return new Promise((ok) => {
-    const req = get({ host: HOST, port: p, path: '/api/health', timeout: 400 }, (res) => {
+    const req = get({ host: local, port: p, path: '/api/health', timeout: 400 }, (res) => {
       let body = '';
       res.on('data', (c) => (body += c));
       res.on('end', () => {
         try {
           const j = JSON.parse(body);
-          ok(j.app === 'plan-maker' && j.plan === planPath ? p : null);
+          ok(j.app === 'plan-maker' && (j.planHash === planHash || j.plan === planPath) ? p : null);
         } catch {
           ok(null);
         }
@@ -79,8 +113,10 @@ function probe(p) {
 
 const found = (await Promise.all(Array.from({ length: PORT_TRIES }, (_, i) => probe(port + i)))).find(Boolean);
 if (found) {
-  const url = `http://${HOST}:${found}/`;
+  const url = `http://${local}:${found}/`;
   console.log(`plan-maker: already reviewing ${config.plan}\n  open  → ${url}\n  notes → ${config.notesPath}`);
+  const run = readJson(runFile);
+  if (run && run.port === found) for (const line of run.lines) console.log(line);
   if (open) openBrowser(url);
   process.exit(0);
 }
@@ -88,25 +124,62 @@ if (found) {
 // ---------- server ----------
 const server = createServer(async (req, res) => {
   try {
-    // Only answer requests addressed to this machine (blocks DNS rebinding).
-    const host = (req.headers.host || '').replace(/:\d+$/, '');
-    if (!['127.0.0.1', 'localhost'].includes(host)) return send(res, 403, 'forbidden');
     const url = new URL(req.url, 'http://localhost');
-    const path = decodeURIComponent(url.pathname);
+    // Health is public: the probe from a second start has no key. It names the plan only by a hash.
+    if (url.pathname === '/api/health' && req.method === 'GET') {
+      return send(res, 200, JSON.stringify({ app: 'plan-maker', planHash }), TYPES['.json']);
+    }
+    // Loopback: only requests addressed to this machine by name (blocks DNS rebinding).
+    // Network mode: anything else must carry the key (rebinding pages never have it).
+    const hostName = (req.headers.host || '').replace(/:\d+$/, '').replace(/^\[|\]$/g, '');
+    const fromHere = isLoopback(req.socket.remoteAddress?.replace(/^::ffff:/, '') || '') && ['127.0.0.1', 'localhost'].includes(hostName);
+    if (!fromHere) {
+      if (!network) return send(res, 403, 'forbidden');
+      const cookie = `pm_key_${server.address().port}`;
+      if (url.searchParams.has('key')) {
+        if (!keyMatches(url.searchParams.get('key'))) return send(res, 403, 'wrong key: use the network URL this server printed');
+        // Swap the key for a cookie and drop it from the address bar (and from Referer headers).
+        url.searchParams.delete('key');
+        res.setHeader('set-cookie', `${cookie}=${KEY}; Path=/; HttpOnly; SameSite=Strict`);
+        return redirect(res, url.pathname + url.search);
+      }
+      if (!keyMatches(readCookie(req, cookie))) return send(res, 403, 'forbidden: open the network URL this server printed (it carries ?key=)');
+    }
+    // A relative link from one version page to another ("versions/v1" from
+    // /versions/v2) resolves to /versions/versions/v1: treat it as /versions/v1.
+    const path = decodeURIComponent(url.pathname).replace(/^(\/versions)+\//, '/versions/');
+    // Which version's page made this request (an older page's own script calls /api/notes too).
+    const from = versionOf(req.headers.referer);
 
-    if (path === '/api/health' && req.method === 'GET') {
-      return send(res, 200, JSON.stringify({ app: 'plan-maker', plan: planPath, notes: notesPath }), TYPES['.json']);
+    if (path === '/api/versions' && req.method === 'GET') {
+      const versions = listVersions(planPath).map((v) => ({
+        version: v.version,
+        current: v.current,
+        href: v.current ? '/' : `/versions/v${v.version}`,
+        date: v.date,
+        summary: v.summary,
+      }));
+      return send(res, 200, JSON.stringify({ current: versions[0].version, versions }), TYPES['.json']);
     }
     if (path === '/api/notes') {
       if (req.method === 'GET') {
+        if (from) {
+          const f = snapshotNotesPath(planPath, from);
+          return send(res, 200, f ? readFileSync(f, 'utf8') : 'null', TYPES['.json']);
+        }
         return send(res, 200, existsSync(notesPath) ? readFileSync(notesPath, 'utf8') : 'null', TYPES['.json']);
       }
       if (req.method === 'PUT') {
         // A JSON content type forces a CORS preflight, which other sites fail.
         if (!(req.headers['content-type'] || '').startsWith('application/json')) return send(res, 415, 'expected JSON');
+        if (from) return send(res, 409, `v${from} is read-only`);
         const body = await readBody(req);
         const parsed = JSON.parse(body);
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return send(res, 400, 'expected a JSON object');
+        // Notes from a tab still showing an earlier version must not land on the new one.
+        const live = readVersion(readFileSync(planPath, 'utf8'));
+        const theirs = parsed.planVersion != null ? parseInt(parsed.planVersion, 10) : null;
+        if (live && theirs && live !== theirs) return send(res, 409, `the plan is now v${live}; reload`);
         const tmp = notesPath + '.tmp';
         writeFileSync(tmp, JSON.stringify(parsed, null, 2) + '\n');
         renameSync(tmp, notesPath);
@@ -118,15 +191,41 @@ const server = createServer(async (req, res) => {
 
     if (path === '/' || path === '/' + basename(planPath)) {
       // Read fresh every time so edits to the plan show on reload.
-      const html = inject(readFileSync(planPath, 'utf8'), config, readLayer());
-      return send(res, 200, html, TYPES['.html']);
+      const html = readFileSync(planPath, 'utf8');
+      const html2 = inject(html, { ...config, version: currentVersion(planPath, html) }, readLayer());
+      return send(res, 200, html2, TYPES['.html']);
+    }
+    const snap = path.match(/^\/versions\/v(\d+)(?:\.html)?$/);
+    if (snap) {
+      const n = parseInt(snap[1], 10);
+      const file = snapshotPath(planPath, n);
+      if (!existsSync(file)) return send(res, 404, `no v${n} of this plan`);
+      const html = readFileSync(file, 'utf8');
+      const notesFile = snapshotNotesPath(planPath, n);
+      const legacy = isLegacy(html);
+      const cfg = {
+        ...config,
+        mode: 'snapshot',
+        readOnly: true,
+        legacy,
+        version: n,
+        current: currentVersion(planPath),
+        notes: !legacy && notesFile ? readJson(notesFile) : null,
+      };
+      return send(res, 200, inject(html, cfg, readLayer()), TYPES['.html']);
     }
     // Anything else: a file beside the plan (images, stylesheets…).
-    const file = resolve(planDir, '.' + path);
-    const inside = file.startsWith(planDir + sep);
-    const hidden = relative(planDir, file).split(sep).some((s) => s.startsWith('.'));
-    if (inside && !hidden && existsSync(file) && statSync(file).isFile()) {
-      return send(res, 200, readFileSync(file), TYPES[extname(file).toLowerCase()] || 'application/octet-stream');
+    // A version page's relative links ("img/chart.png") resolve under
+    // /versions/; fall back to the plan's own folder for those.
+    for (const p of path.startsWith('/versions/') ? [path, path.slice('/versions'.length)] : [path]) {
+      const file = resolve(planDir, '.' + p);
+      const inside = file.startsWith(planDir + sep);
+      const hidden = relative(planDir, file).split(sep).some((seg) => seg.startsWith('.'));
+      if (inside && !hidden && existsSync(file) && statSync(file).isFile()) {
+        if (file === planPath) return redirect(res, '/'); // the live plan, from a version page's link
+        if (file === notesPath || /\.notes\.json$|\/notes-v\d+\.json$/.test(file)) break; // notes go through /api
+        return send(res, 200, readFileSync(file), TYPES[extname(file).toLowerCase()] || 'application/octet-stream');
+      }
     }
     if (path === '/favicon.ico') return send(res, 204, ''); // no icon, and no console error about it
     send(res, 404, 'not found');
@@ -135,24 +234,77 @@ const server = createServer(async (req, res) => {
   }
 });
 
+function redirect(res, location) {
+  res.writeHead(302, { location, 'cache-control': 'no-store' });
+  res.end();
+}
+
+function versionOf(referer) {
+  if (!referer) return null;
+  try {
+    const m = new URL(referer).pathname.match(/^(?:\/versions)+\/v(\d+)(?:\.html)?$/);
+    return m ? parseInt(m[1], 10) : null;
+  } catch {
+    return null;
+  }
+}
+
 function listen(p, triesLeft) {
   server.once('error', (err) => {
     if (err.code === 'EADDRINUSE' && triesLeft > 1) return listen(p + 1, triesLeft - 1);
     console.error(`review: could not start the server: ${err.message}`);
     process.exit(1);
   });
-  server.listen(p, HOST, () => {
-    const url = `http://${HOST}:${p}/`;
+  server.listen(p, host, () => {
+    // Bound to one non-loopback address: even this machine must use the key.
+    const url = `http://${local.includes(':') ? `[${local}]` : local}:${p}/${network && !wildcard ? `?key=${KEY}` : ''}`;
     if (p !== port) console.log(`plan-maker: port ${port} is busy, using ${p}`);
-    console.log(`plan-maker: reviewing ${config.plan}\n  open  → ${url}\n  notes → ${config.notesPath}\nCtrl-C to stop.`);
+    console.log(`plan-maker: reviewing ${config.plan}${network ? ' (network mode)' : ''}\n  open  → ${url}\n  notes → ${config.notesPath}`);
+    if (network) {
+      // Bound to every interface: list each address another device could use.
+      const lines = !wildcard ? [] : networkUrls().map(([addr, name], i) => `  ${i ? '       ' : 'net  →'} http://${addr}:${p}/?key=${KEY}   (${name})`);
+      if (wildcard && !lines.length) lines.push('  net  → no network address found on this machine');
+      lines.push('  The key changes every run. Anyone without it gets 403.');
+      for (const line of lines) console.log(line);
+      try { writeFileSync(runFile, JSON.stringify({ port: p, lines }), { mode: 0o600 }); } catch {}
+    }
+    console.log('Ctrl-C to stop.');
     if (open) openBrowser(url);
   });
 }
 listen(port, PORT_TRIES);
 
-for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => server.close(() => process.exit(0)));
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => {
+  if (network) try { unlinkSync(runFile); } catch {}
+  server.close(() => process.exit(0));
+});
 
 // ---------- helpers ----------
+function keyMatches(given) {
+  if (!KEY || typeof given !== 'string') return false;
+  const a = Buffer.from(given), b = Buffer.from(KEY);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function readCookie(req, name) {
+  for (const part of (req.headers.cookie || '').split(';')) {
+    const i = part.indexOf('=');
+    if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim();
+  }
+  return null;
+}
+
+/** [IPv4 address, interface] pairs a browser on another device could use to reach this server. */
+function networkUrls() {
+  const out = [];
+  for (const [name, addrs] of Object.entries(networkInterfaces())) {
+    for (const a of addrs || []) {
+      if (a.internal || a.family !== 'IPv4') continue;
+      out.push([a.address, name]);
+    }
+  }
+  return out;
+}
 function readBody(req) {
   return new Promise((ok, bad) => {
     const chunks = [];

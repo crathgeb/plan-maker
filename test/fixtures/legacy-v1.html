@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Legacy plan v1</title></head>
+<body>
+<main>
+<h1>Plan v1, saved with its own review script</h1>
+<p>Older plans carried their review layer inside the page.</p>
+<p>Notes it loaded: <span id="out">…</span></p>
+<p>Its save attempt: <span id="put">…</span></p>
+</main>
+<script>
+  fetch('/api/notes').then((r) => r.json()).then((n) => { document.getElementById('out').textContent = n ? n.general : 'none'; });
+  fetch('/api/notes', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: '{"general":"overwritten"}' })
+    .then((r) => { document.getElementById('put').textContent = String(r.status); });
+</script>
+</body>
+</html>

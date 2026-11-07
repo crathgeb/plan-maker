@@ -1,5 +1,7 @@
-/* plan-maker annotation layer. Every selector is prefixed pm- so it can sit on any page. */
-:root {
+/* plan-maker annotation layer. Every selector is prefixed pm- so it can sit on any page.
+   The tokens below have zero specificity (:where), so a page can restyle the layer
+   by setting --pm-* on :root, e.g. :root { --pm-accent: var(--brand); } */
+:where(:root) {
   --pm-bg: #ffffff; --pm-bg-2: #f5f6f8; --pm-ink: #16181d; --pm-muted: #5f6672; --pm-line: #dfe2e8;
   --pm-accent: #3b5bdb; --pm-accent-soft: #e6ebfc; --pm-on-accent: #ffffff;
   --pm-keep: #2b8a3e; --pm-change: #b35c00; --pm-cut: #c92a2a;
@@ -9,14 +11,14 @@
   --pm-panel: 360px;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :where(:root:not([data-theme="light"])) {
     --pm-bg: #1b1e24; --pm-bg-2: #23272f; --pm-ink: #e8eaee; --pm-muted: #9aa1ad; --pm-line: #343a45;
     --pm-accent: #7c94f4; --pm-accent-soft: #283152; --pm-on-accent: #10131a;
     --pm-keep: #51cf66; --pm-change: #ffa94d; --pm-cut: #ff6b6b;
     --pm-hl: #5c4d12; --pm-hl-hot: #806a14; --pm-shadow: 0 10px 30px rgba(0, 0, 0, .5);
   }
 }
-:root[data-theme="dark"] {
+:where(:root[data-theme="dark"]) {
   --pm-bg: #1b1e24; --pm-bg-2: #23272f; --pm-ink: #e8eaee; --pm-muted: #9aa1ad; --pm-line: #343a45;
   --pm-accent: #7c94f4; --pm-accent-soft: #283152; --pm-on-accent: #10131a;
   --pm-keep: #51cf66; --pm-change: #ffa94d; --pm-cut: #ff6b6b;
@@ -113,6 +115,25 @@ html.pm-open #pm-panel { display: block; }
 #pm-dialog code { font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--pm-bg-2); padding: 1px 5px; border-radius: 4px; word-break: break-all; }
 .pm-row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 16px; }
 .pm-row button { border: 1px solid var(--pm-line); background: var(--pm-bg-2); color: var(--pm-ink); border-radius: 8px; padding: 6px 14px; }
+
+/* versions: switcher, read-only banner, changed badges */
+.pm-ver { position: relative; display: inline-flex; }
+.pm-ver[hidden] { display: none; }
+#pm-bar #pm-ver { font-weight: 600; }
+#pm-vmenu { position: absolute; bottom: calc(100% + 10px); left: 0; min-width: 250px; max-width: calc(100vw - 32px); max-height: 60vh; overflow-y: auto; padding: 6px; background: var(--pm-bg); border: 1px solid var(--pm-line); border-radius: 12px; box-shadow: var(--pm-shadow); }
+#pm-vmenu[hidden] { display: none; }
+#pm-vmenu a { display: flex; flex-direction: column; gap: 1px; padding: 7px 10px; border-radius: 8px; color: var(--pm-ink); text-decoration: none; font-size: 13px; }
+#pm-vmenu a:hover, #pm-vmenu a:focus-visible { background: var(--pm-bg-2); }
+#pm-vmenu a[aria-current="page"] { background: var(--pm-accent-soft); }
+#pm-vmenu .pm-vmeta { color: var(--pm-muted); font-size: 12px; }
+#pm-banner { position: relative; z-index: 9000; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; justify-content: center; padding: 10px 16px; background: var(--pm-change); color: var(--pm-bg); font-size: 14px; line-height: 1.4; text-align: center; }
+#pm-banner a { color: inherit; font-weight: 700; text-decoration: underline; white-space: nowrap; }
+.pm-changed { display: inline-block; margin: 0 8px; padding: 1px 8px; border-radius: 999px; background: var(--pm-accent-soft); color: var(--pm-accent); font-size: 11px; font-weight: 700; letter-spacing: .02em; line-height: 1.6; vertical-align: middle; white-space: nowrap; }
+td > .pm-changed:first-child, :not(h1, h2, h3, h4, h5, h6) > .pm-changed:first-child { margin-left: 0; }
+html.pm-ro .pm-ctl:not(.pm-active), html.pm-ro .pm-sec-note:not(.pm-has) { display: none; }
+html.pm-ro .pm-ctl, html.pm-ro .pm-sec-note { opacity: 1; }
+.pm-ui button:disabled { cursor: default; }
+html.pm-ro .pm-ctl button:disabled:not(.pm-on) { opacity: .5; }
 
 /* phones: the panel becomes a bottom sheet */
 @media (max-width: 760px) {
