@@ -1,0 +1,10 @@
+{
+  "name": "plan-maker",
+  "version": "0.1.0",
+  "description": "Plans as interactive HTML pages: select text to add notes, mark items Keep / Change / Cut, answer decisions. A local server saves the review to notes.json and Claude revises the plan from it.",
+  "author": { "name": "TechSnack LLC" },
+  "homepage": "https://github.com/crathgeb/plan-maker",
+  "repository": "https://github.com/crathgeb/plan-maker",
+  "license": "MIT",
+  "keywords": ["planning", "review", "annotation", "html"]
+}

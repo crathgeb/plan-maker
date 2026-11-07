@@ -1,0 +1,12 @@
+{
+  "name": "plan-maker",
+  "description": "plan-maker: plans you review in the browser",
+  "owner": { "name": "crathgeb" },
+  "plugins": [
+    {
+      "name": "plan-maker",
+      "source": "./",
+      "description": "Plans as interactive HTML pages you annotate in the browser; Claude revises them from your notes."
+    }
+  ]
+}
