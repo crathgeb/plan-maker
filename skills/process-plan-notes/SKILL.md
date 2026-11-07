@@ -24,6 +24,7 @@ Account for every entry; skipping one silently loses the user's feedback.
 | `items.<id>` | The element with `data-id="<id>"`: a card, row, phase or section (`where` starting `Section:`). `verdict` is `keep`, `change`, `cut` or `null`. Skip entries with no verdict and an empty note. |
 | `highlights[]` | The exact `quote` inside the element with `data-id = blockId`. The note is about that wording. |
 | `decisions.<key>` | The `.decision[data-decision="<key>"]` block. `choice` and `label` are the answer, `recommended` was yours, `note` qualifies it. |
+| `drawings[]` | A mark the user drew: `shape` is `arrow`, `box`, `circle`, `point` or a sticky `note`. It sits on the block `blockId` (`null` = the page) at `x1,y1 → x2,y2`, fractions of that block's box; `where`/`excerpt` name it in words. Work out what it points at from its position in the block (a circle round one row, an arrow from one card to another). A note on it is the feedback; a mark with no note means "look at this": treat it as a question about that spot, or list it under **Needs your call** if you can't tell what it wants. |
 
 `where` and `excerpt` name each spot in words. When `autoIds` is `true`, the ids were assigned in the browser (from headings: `goals`, `goals-1`, `goals-2`…, and `goals--2` for a repeated heading), so locate those elements by `where`, `excerpt` and `quote`.
 

@@ -10,7 +10,7 @@
 // harmless, and it stops with an error if a different v<N> is already saved.
 // Exit codes: 0 saved (or already saved), 1 refused, 2 usage.
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, unlinkSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { currentVersion, readJson, readVersion, snapshotPath, versionsDir } from '../lib/versions.mjs';
 
@@ -71,6 +71,14 @@ if (!src) {
     copyFileSync(src, snapNotes, 1 /* COPYFILE_EXCL */);
     unlinkSync(src);
     console.log(`snapshot: moved ${show(src)} to ${show(snapNotes)}`);
+  }
+  // A guide's progress is not feedback: it carries over, so the regenerated
+  // guide opens with the same steps ticked off. Questions and notes stay with v<N>.
+  const done = Object.fromEntries(Object.entries(notes.steps || {}).filter(([, s]) => s && s.done));
+  if (Object.keys(done).length) {
+    const next = join(dirname(planPath), 'notes.json');
+    writeFileSync(next, JSON.stringify({ version: 1, kind: 'guide', planVersion: String(n + 1), steps: done, general: '', items: {}, highlights: [], decisions: {}, drawings: [] }, null, 2) + '\n');
+    console.log(`snapshot: carried ${Object.keys(done).length} done step(s) into ${show(next)} for v${n + 1}`);
   }
 }
 

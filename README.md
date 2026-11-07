@@ -8,6 +8,7 @@ Ask Claude for a plan and it writes a page instead of a wall of chat. You read i
 - mark each card, step or table row **Keep / Change / Cut**
 - add a note to any item or section
 - answer the pick-one **decisions** (Claude marks its recommendation)
+- **Draw** arrows, boxes, circles, points and sticky notes anywhere on the page, from tools always on screen in the top bar
 - write general notes
 
 A tiny local server saves everything to `notes.json` beside the plan as you type. When you're done, say **"process my notes"** and Claude revises the plan: cuts what you cut, edits what you flagged, keeps what you kept and settles your decisions. The new version opens with a **What changed** section, and every earlier version stays one click away, read-only, with the notes you wrote on it.
@@ -15,6 +16,17 @@ A tiny local server saves everything to `notes.json` beside the plan as you type
 ![A plan mid-review: highlighted text with a numbered note, Keep / Change / Cut on each card, and the notes panel](docs/screenshot.png)
 
 It works for any plan in any project. Plain HTML works too: a page without the conventions below gets stable ids from its headings, so even Markdown converted to HTML can be annotated.
+
+### Guides (guide-me)
+
+Plans are for reviewing; guides are for following. Ask Claude to **guide you through** something ("guide me through moving DNS to Cloudflare") or use `/plan-maker:guide …`, and it writes a step-by-step page instead:
+
+- **Mark done** on each step, with a progress bar in a bar fixed to the top of the page
+- **? Ask** on any step, or select text and choose **? Ask** or **＋ Note**: every note is a question or a note
+- **Draw** arrows, boxes, circles, points and sticky notes, and add section and general notes, as in plans
+- a **Copy** button on every code block
+
+There is no Keep / Change / Cut. When you have questions, press **Regenerate guide** and say **"regenerate my guide"**. Claude answers each question inside the guide, right where you asked it, in a "You asked" box. It adds the terms to a glossary, fills in values you've given it and fixes steps that tripped you up. Your ticked-off steps carry over to the new version, and the old version stays in the version switcher with your questions on it.
 
 ## Install
 
@@ -40,6 +52,8 @@ Just ask for a plan ("plan the migration to the new billing provider", "write up
 | `make-plan` | You ask for a plan, proposal or strategy, or Claude is about to present a big one | Writes the plan to `plans/<slug>/index.html` (or a path you name) from the template, starts the review server and gives you the URL |
 | `review-plan` | You want to reopen a plan, or share one for offline review | Starts the server for an existing plan, or reuses the one already running |
 | `process-plan-notes` | You say "process my notes" or "I've reviewed the plan" | Maps every note and verdict to its element and shows a short table of changes. Then it saves the reviewed version and its notes under `versions/`, writes the next version with a "What changed" section, and lists what still needs your call |
+| `guide-me` | You ask to be guided or walked through something you'll do yourself | Writes the guide to `guides/<slug>/index.html` from `templates/guide.html`, starts the review server and gives you the URL |
+| `regenerate-guide` | You say "regenerate my guide" or "answer my questions" | Answers every question inside the guide where it was asked, updates the glossary and steps, keeps your progress, and saves the previous version under `versions/` |
 
 ### Versions
 
@@ -69,7 +83,7 @@ The scripts work on their own:
 
 ```bash
 # Review any HTML file. Notes go to notes.json beside it.
-node scripts/review.mjs path/to/plan.html [--port 4478] [--no-open]
+node scripts/review.mjs path/to/plan.html [--port 4478] [--host 127.0.0.1] [--trust tailnet] [--no-open]
 
 # Save the live plan as versions/v<N>.html and move its notes beside it.
 # Never overwrites an existing snapshot.
@@ -80,7 +94,11 @@ node scripts/snapshot.mjs path/to/plan.html
 node scripts/bundle.mjs path/to/plan.html [-o out.html] [--with-notes] [--all-versions]
 ```
 
-The server binds to 127.0.0.1 only. If port 4478 is taken it uses the next free one. If a server is already serving the same plan, it prints that URL and exits. It reads the plan fresh on every load, so a reload shows Claude's edits.
+The server binds to 127.0.0.1 by default. If port 4478 is taken it uses the next free one. If a server is already serving the same plan, it prints that URL and exits. It reads the plan fresh on every load, so a reload shows Claude's edits.
+
+**Reviewing from another device.** `--host 0.0.0.0` listens on every interface (Wi-Fi, Ethernet, a VPN such as Tailscale), and `--host <address>` listens on just one. Set `PLAN_MAKER_HOST` in your shell profile to make it the default on that machine. Beyond loopback the server prints a URL for each address with a `?key=` that changes every run. Opening it once stores the key in a cookie. Requests without the key get 403, which also covers DNS rebinding. This machine still reaches `http://127.0.0.1:<port>/` without the key.
+
+`--trust tailnet` (or `PLAN_MAKER_TRUST=tailnet`) lets devices on your Tailscale network in without the key, which is handy on a phone. `tailnet` means Tailscale's ranges, `100.64.0.0/10` and `fd7a:115c:a1e0::/48`. IPv4 CIDRs work too: `--trust tailnet,192.168.1.0/24`. A trusted request must address the server by an IP address, a `*.ts.net` name or this machine's hostname. A DNS rebinding page sends its own domain and is still refused. For example, `PLAN_MAKER_HOST=100.x.y.z PLAN_MAKER_TRUST=tailnet` in your shell profile makes every review reachable only over Tailscale, with no key.
 
 | Route | |
 |---|---|
@@ -115,6 +133,18 @@ Highlights are stored as character offsets within a block, counting only the pla
 | `section#changes` | "What changed in vN", the first section of every revision. See `templates/changes-section.html`. |
 | `data-changed="vN"` | Shows a "changed in vN" badge on that element while viewing vN. |
 | `data-no-annotate` | Leaves an element and its contents alone. |
+
+**Guides** (`templates/guide.html`) add:
+
+| Mark | Effect |
+|---|---|
+| `<meta name="pm-kind" content="guide">` | Guide mode: no Keep / Change / Cut, a progress bar, **Regenerate guide** instead of **Done reviewing**, and a **Copy** button on every `<pre>`. |
+| `.step[data-id]` | A step: **Mark done**, **? Ask** and **＋ note**. Counts toward progress. |
+| `.item[data-id]` | In a guide, **? Ask** and **＋ note** only. |
+| `aside.explain[data-q]` | An answer to the reader's question, written in by `regenerate-guide`. |
+| `section#glossary` | Terms the reader asked about. |
+
+Drawings are anchored to the block under where you start drawing (or the page), stored as fractions of that block's box, so they stay on the same content when the page reflows or is opened on a phone.
 
 **No `data-id`s at all?** The page assigns them from the headings: each heading gets its slug (`risks`), the blocks under it are numbered (`risks-1`, `risks-2`…), and a repeated heading becomes `risks--2`. Paragraphs, list items, table rows, code blocks and quotes get Keep / Change / Cut, and each `<h2>` gets a section note. The same content always gets the same ids. `notes.json` then has `"autoIds": true`, and every entry carries `where` and `excerpt` so it can be matched to the source.
 
@@ -151,8 +181,10 @@ Highlights are stored as character offsets within a block, counting only the pla
 | `items.<data-id>` | A card, row, phase or section: `verdict` is `keep`, `change`, `cut` or `null`; `note`; `where` (a readable location); `excerpt` (its text). `noteOpen` is UI state. |
 | `highlights[]` | A note on selected text: `quote` is the exact text inside the element whose `data-id` is `blockId`, at characters `start`–`end` of that element's text. `n` is the number shown on the page. `orphaned` is set when the text can no longer be found. |
 | `decisions.<key>` | `question`, the `choice` (radio value), its `label`, Claude's `recommended` value, and an optional `note` |
+| `drawings[]` | A mark drawn on the page: `shape` (`arrow`, `box`, `circle`, `point`, `note` for a sticky note), the block it sits on (`blockId`, `null` for the page, with `where` and `excerpt`), `x1, y1, x2, y2` as fractions of that block's box (an arrow points from 1 to 2), `n` (shared numbering with highlights) and `note` |
+| `kind`, `steps` | Guides only: `kind` is `"guide"`; `steps.<data-id>` is `{ done, doneAt, where }` for each step marked done. Each note-bearing entry (item, highlight, drawing) also has `kind`: `question` or `note`. |
 | `autoIds` | `true` when the ids were assigned in the browser |
-| `doneAt` | When **Done reviewing** was last pressed |
+| `doneAt` | When **Done reviewing** (or **Regenerate guide**) was last pressed |
 
 After a revision, the notes move to `versions/v<N>.notes.json` (plan-maker 0.1 archived them as `notes-v<N>.json` beside the plan; that name is still read).
 

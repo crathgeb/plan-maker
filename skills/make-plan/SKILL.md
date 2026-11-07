@@ -1,6 +1,6 @@
 ---
 name: make-plan
-description: Use when the user asks for a plan, proposal, strategy or roadmap to review, or when you are about to present a large multi-part plan in chat. Writes the plan as an HTML page the user annotates in the browser.
+description: Use when the user asks for a plan, proposal, strategy or roadmap to review, or when you are about to present a large multi-part plan in chat. Writes the plan as an HTML page the user annotates in the browser. For step-by-step instructions the user will follow themselves, use guide-me instead.
 argument-hint: "[what to plan]"
 ---
 
@@ -41,7 +41,7 @@ Run it in the background, from the project root, so the conversation stays free:
 node "${CLAUDE_PLUGIN_ROOT}/scripts/review.mjs" plans/<slug>/index.html
 ```
 
-It opens the plan in the browser and prints the URL (`http://127.0.0.1:4478/`, or the next free port). If a server is already serving this plan, it reuses it. Add `--no-open` when the user can't use a browser on this machine.
+It opens the plan in the browser and prints the URL (`http://127.0.0.1:4478/`, or the next free port). If a server is already serving this plan, it reuses it. Add `--no-open` when the user can't use a browser on this machine, and `--host 0.0.0.0` when they'll review from another device (it prints keyed `net →` URLs; see `review-plan`).
 
 ## 5. Hand over
 
@@ -49,7 +49,7 @@ Tell the user, briefly:
 
 - the URL and the plan's path;
 - the plan's gist in three to five lines (they read the page for the rest);
-- how to review: select text → **Add note**, **Keep / Change / Cut** on each item, answer the decisions, notes save to `notes.json` as they go;
+- how to review: select text → **Add note**, **Keep / Change / Cut** on each item, the **draw tools** (top bar) for arrows, boxes, circles, points and sticky notes anywhere, answer the decisions, notes save to `notes.json` as they go;
 - to press **Done reviewing** and say **"process my notes"**.
 
 Done when the plan file exists, follows the conventions, the server is running, and the user has the URL.

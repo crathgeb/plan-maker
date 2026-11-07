@@ -1,7 +1,7 @@
 {
   "name": "plan-maker",
   "version": "0.2.0",
-  "description": "Plans as interactive HTML pages: select text to add notes, mark items Keep / Change / Cut, answer decisions. A local server saves the review to notes.json and Claude revises the plan from it.",
+  "description": "Plans and step-by-step guides as interactive HTML pages. Plans: add notes, mark items Keep / Change / Cut, answer decisions. Guides: tick steps off, ask questions anywhere, and regenerate to get them answered in place. Both: draw arrows, boxes, circles, points and sticky notes. A local server saves to notes.json and Claude revises from it.",
   "author": { "name": "TechSnack LLC" },
   "homepage": "https://github.com/crathgeb/plan-maker",
   "repository": "https://github.com/crathgeb/plan-maker",

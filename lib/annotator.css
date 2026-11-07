@@ -31,7 +31,6 @@
 
 /* layout: on wide screens the open panel takes a column on the right */
 @media (min-width: 1100px) { html.pm-open { padding-right: var(--pm-panel); } }
-.pm-spacer { height: 84px; }
 
 /* Keep / Change / Cut bar on every .item */
 .pm-ctl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--pm-line); font-size: 12px; line-height: 1.4; }
@@ -81,8 +80,11 @@ textarea.pm-dnote { display: block; margin-top: 10px; min-height: 44px; }
 #pm-pop { position: absolute; z-index: 9003; display: none; background: var(--pm-ink); color: var(--pm-bg); border: 0; border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; box-shadow: var(--pm-shadow); white-space: nowrap; }
 
 /* toolbar */
-#pm-bar { position: fixed; z-index: 9002; right: 16px; bottom: 16px; display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 14px; max-width: calc(100vw - 32px); background: var(--pm-bg); color: var(--pm-ink); border: 1px solid var(--pm-line); border-radius: 999px; box-shadow: var(--pm-shadow); font-size: 13px; }
-@media (min-width: 1100px) { html.pm-open #pm-bar { right: calc(var(--pm-panel) + 16px); } }
+/* save status, Notes and the main action: the right end of the top bar */
+#pm-bar { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13px; }
+#pm-rail:not([hidden]) + #pm-bar { padding-left: 14px; border-left: 1px solid var(--pm-line); }
+/* an older page with its own review script gets only a small floating bar */
+html.pm-legacy #pm-bar { position: fixed; z-index: 9002; right: 16px; bottom: 16px; padding: 6px 6px 6px 14px; max-width: calc(100vw - 32px); background: var(--pm-bg); color: var(--pm-ink); border: 1px solid var(--pm-line); border-radius: 999px; box-shadow: var(--pm-shadow); }
 #pm-status { color: var(--pm-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 #pm-bar button { border: 1px solid var(--pm-line); background: var(--pm-bg-2); color: var(--pm-ink); border-radius: 999px; padding: 5px 12px; font-size: 13px; white-space: nowrap; }
 #pm-bar button.pm-primary { background: var(--pm-accent); border-color: var(--pm-accent); color: var(--pm-on-accent); font-weight: 600; }
@@ -120,7 +122,7 @@ html.pm-open #pm-panel { display: block; }
 .pm-ver { position: relative; display: inline-flex; }
 .pm-ver[hidden] { display: none; }
 #pm-bar #pm-ver { font-weight: 600; }
-#pm-vmenu { position: absolute; bottom: calc(100% + 10px); left: 0; min-width: 250px; max-width: calc(100vw - 32px); max-height: 60vh; overflow-y: auto; padding: 6px; background: var(--pm-bg); border: 1px solid var(--pm-line); border-radius: 12px; box-shadow: var(--pm-shadow); }
+#pm-vmenu { position: absolute; top: calc(100% + 10px); right: 0; min-width: 250px; max-width: calc(100vw - 32px); max-height: 60vh; overflow-y: auto; padding: 6px; background: var(--pm-bg); border: 1px solid var(--pm-line); border-radius: 12px; box-shadow: var(--pm-shadow); }
 #pm-vmenu[hidden] { display: none; }
 #pm-vmenu a { display: flex; flex-direction: column; gap: 1px; padding: 7px 10px; border-radius: 8px; color: var(--pm-ink); text-decoration: none; font-size: 13px; }
 #pm-vmenu a:hover, #pm-vmenu a:focus-visible { background: var(--pm-bg-2); }
@@ -135,12 +137,96 @@ html.pm-ro .pm-ctl, html.pm-ro .pm-sec-note { opacity: 1; }
 .pm-ui button:disabled { cursor: default; }
 html.pm-ro .pm-ctl button:disabled:not(.pm-on) { opacity: .5; }
 
+/* drawings: arrows, boxes, circles (SVG), points and sticky notes (HTML) */
+:where(:root) { --pm-draw: #e8590c; --pm-sticky: #fff3bf; --pm-sticky-ink: #3d3200; }
+@media (prefers-color-scheme: dark) { :where(:root:not([data-theme="light"])) { --pm-draw: #ff922b; --pm-sticky: #5c4d12; --pm-sticky-ink: #fff3bf; } }
+:where(:root[data-theme="dark"]) { --pm-draw: #ff922b; --pm-sticky: #5c4d12; --pm-sticky-ink: #fff3bf; }
+#pm-layer { position: absolute; top: 0; left: 0; width: 100%; height: 0; z-index: 8990; pointer-events: none; overflow: clip; }
+.pm-pin.pm-pin-flip { flex-direction: row-reverse; transform: translate(calc(-100% + 11px), -11px); }
+#pm-svg { position: absolute; top: 0; left: 0; overflow: visible; color: var(--pm-draw); pointer-events: none; }
+.pm-shape line, .pm-shape rect, .pm-shape ellipse { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.pm-shape { pointer-events: visiblePainted; cursor: pointer; }
+.pm-shape .pm-hit { stroke: transparent; stroke-width: 16; }
+.pm-shape .pm-hit[marker-end] { marker-end: none; }
+.pm-shape-badge { fill: currentColor; }
+.pm-shape-n { fill: #fff; font: 700 11px var(--pm-font); pointer-events: none; }
+.pm-shape.pm-preview { opacity: .7; pointer-events: none; }
+.pm-shape.pm-hot-d line, .pm-shape.pm-hot-d rect, .pm-shape.pm-hot-d ellipse { stroke-width: 5; }
+#pm-pins { position: absolute; top: 0; left: 0; }
+.pm-pin { position: absolute; transform: translate(-50%, -50%); pointer-events: auto; border: 0; padding: 0; background: none; cursor: pointer; display: flex; align-items: flex-start; gap: 6px; }
+.pm-pin-n { display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 999px; background: var(--pm-draw); color: #fff; font: 700 11px var(--pm-font); box-shadow: 0 0 0 3px color-mix(in srgb, var(--pm-draw) 30%, transparent); }
+.pm-pin-note { transform: translate(-11px, -11px); }
+.pm-pin-text { width: max-content; max-width: min(220px, 60vw); padding: 6px 9px; border-radius: 8px; background: var(--pm-sticky); color: var(--pm-sticky-ink); font: 13px/1.35 var(--pm-font); text-align: left; box-shadow: var(--pm-shadow); white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.pm-pin.pm-hot-d .pm-pin-n { box-shadow: 0 0 0 5px color-mix(in srgb, var(--pm-draw) 45%, transparent); }
+#pm-overlay { position: fixed; inset: 0; z-index: 9000; cursor: crosshair; touch-action: none; background: color-mix(in srgb, var(--pm-draw) 4%, transparent); }
+#pm-overlay[hidden] { display: none; }
+html.pm-drawing #pm-pop { display: none !important; }
+
+/* Top bar, always on screen: a guide's progress on the left, the drawing tools on the
+   right. The page is pushed down by its height, and it sits above the drawing overlay. */
+:where(:root) { --pm-top-h: 46px; }
+html.pm-has-top { padding-top: var(--pm-top-h); scroll-padding-top: calc(var(--pm-top-h) + 12px); }
+#pm-top { position: fixed; z-index: 9003; top: 0; left: 0; right: 0; height: var(--pm-top-h); display: flex; align-items: center; gap: 16px; padding: 0 12px 0 20px; background: var(--pm-bg); color: var(--pm-ink); border-bottom: 1px solid var(--pm-line); box-shadow: 0 1px 8px rgba(16, 24, 40, .06); font-size: 13px; }
+#pm-top[hidden] { display: none; }
+.pm-top-sp { flex: 1; }
+@media (min-width: 1100px) { html.pm-has-top #pm-panel { top: var(--pm-top-h); } }
+#pm-rail { display: flex; align-items: center; gap: 2px; }
+#pm-rail[hidden] { display: none; }
+.pm-rail-lbl { margin-right: 6px; color: var(--pm-muted); font-weight: 600; }
+#pm-rail button { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--pm-draw); }
+#pm-rail button:hover { background: var(--pm-bg-2); }
+#pm-rail button.pm-on { background: var(--pm-draw); color: #fff; }
+#pm-rail button.pm-on .pm-ico { color: #fff; }
+.pm-ico { width: 18px; height: 14px; flex: none; color: var(--pm-draw); }
+.pm-ico-arrow { background: linear-gradient(currentColor, currentColor) center / 100% 2px no-repeat; position: relative; }
+.pm-ico-arrow::after { content: ""; position: absolute; right: -1px; top: 3px; border: 4px solid transparent; border-left: 6px solid currentColor; border-right: 0; }
+.pm-ico-box { border: 2px solid currentColor; border-radius: 3px; }
+.pm-ico-circle { border: 2px solid currentColor; border-radius: 50%; }
+.pm-ico-point { width: 12px; height: 12px; margin: 0 3px; border-radius: 50%; background: currentColor; }
+.pm-ico-note { background: var(--pm-sticky); border: 1px solid color-mix(in srgb, var(--pm-sticky-ink) 30%, transparent); border-radius: 3px; }
+
+/* guide mode: Mark done / Ask, progress, copy buttons, question/note toggle */
+@media (hover: hover) { .pm-ctl.pm-gctl { opacity: 1; } } /* a guide's controls are its main actions: always visible */
+.pm-gctl .pm-done-btn { border-color: var(--pm-keep); color: var(--pm-keep); font-weight: 600; }
+.pm-gctl .pm-done-btn.pm-on { background: var(--pm-keep); border-color: var(--pm-keep); color: var(--pm-bg); }
+.pm-gctl .pm-ask-btn.pm-has { color: var(--pm-accent); border-color: var(--pm-accent); }
+.pm-step.pm-step-done { box-shadow: inset 4px 0 0 var(--pm-keep); }
+.pm-step.pm-step-done > :not(.pm-ctl):not(.pm-ui) { opacity: .62; }
+.pm-prog { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pm-prog-txt { color: var(--pm-muted); }
+.pm-prog-txt b { color: var(--pm-ink); }
+.pm-prog-track { flex: 1; max-width: 420px; min-width: 40px; height: 8px; border-radius: 4px; background: var(--pm-line); overflow: hidden; }
+.pm-prog-fill { display: block; height: 100%; width: 0; background: var(--pm-keep); transition: width .25s; }
+pre.pm-has-copy { position: relative; }
+.pm-copy { position: absolute; top: 8px; right: 8px; z-index: 1; border: 1px solid var(--pm-line); background: var(--pm-bg); color: var(--pm-ink); border-radius: 6px; padding: 3px 10px; font: 600 12px var(--pm-font); }
+.pm-copy:hover { border-color: var(--pm-accent); }
+.pm-copy.pm-ok { color: var(--pm-keep); border-color: var(--pm-keep); }
+.pm-kinds { display: flex; gap: 4px; margin-bottom: 6px; }
+.pm-kinds button { border: 1px solid var(--pm-line); background: var(--pm-bg-2); color: var(--pm-muted); border-radius: 999px; padding: 1px 10px; font-size: 12px; }
+.pm-kinds button.pm-on { background: var(--pm-accent); border-color: var(--pm-accent); color: var(--pm-on-accent); }
+div#pm-pop { padding: 3px; gap: 2px; }
+div#pm-pop button { border: 0; background: none; color: inherit; padding: 3px 10px; border-radius: 6px; font: inherit; }
+div#pm-pop button:hover { background: color-mix(in srgb, var(--pm-bg) 18%, transparent); }
+@media (prefers-reduced-motion: reduce) { .pm-prog-fill { transition: none; } }
+
 /* phones: the panel becomes a bottom sheet */
 @media (max-width: 760px) {
   #pm-panel { top: auto; left: 0; width: auto; height: 60vh; border-left: 0; border-top: 1px solid var(--pm-line); border-radius: 14px 14px 0 0; }
-  html.pm-open #pm-bar { bottom: calc(60vh + 10px); }
-  #pm-bar { left: 16px; right: 16px; justify-content: flex-end; }
-  #pm-status { flex: 1; }
-  .pm-spacer { height: 72px; }
+  /* two rows: progress and the buttons, then the draw tools */
+  :where(:root) { --pm-top-h: 88px; }
+  :where(html.pm-ro) { --pm-top-h: 44px; }
+  #pm-top { flex-wrap: wrap; align-content: flex-start; gap: 0 8px; padding: 0 8px 0 14px; }
+  #pm-top > * { height: 44px; }
+  #pm-rail { order: 2; flex: 1 0 100%; margin-left: -14px; padding-left: 10px; border-top: 1px solid var(--pm-line); }
+  #pm-rail:not([hidden]) + #pm-bar { padding-left: 0; border-left: 0; }
+  #pm-top #pm-status { display: none; } /* the notes panel shows it */
+  #pm-bar { gap: 6px; }
+  #pm-bar button { padding: 5px 10px; }
+  html.pm-legacy #pm-bar { left: 16px; justify-content: flex-end; }
+}
+@media (max-width: 379px) {
+  .pm-wide { display: none; }
+  #pm-bar { gap: 4px; }
+  #pm-bar button { padding: 5px 8px; }
 }
 @media print { .pm-ui, .pm-ctl, .pm-sec-note { display: none !important; } mark.pm-hl { background: none; } }

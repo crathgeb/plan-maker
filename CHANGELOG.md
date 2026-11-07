@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- **guide-me**: step-by-step guides you follow rather than review. New skills `guide-me` and `regenerate-guide`, command `/plan-maker:guide`, template `templates/guide.html`. `<meta name="pm-kind" content="guide">` turns on guide mode:
+  - **Mark done** on steps, with a progress bar in a bar fixed to the top of the page, beside the draw tools.
+  - **? Ask** on steps and items, and **? Ask / ＋ Note** on selected text; every note is a question or a note.
+  - A **Copy** button on every code block.
+  - No Keep / Change / Cut.
+  - `regenerate-guide` answers each question in place (`aside.explain`), and `snapshot.mjs` carries the done steps into the next version's `notes.json`.
+- **Drawing**, in plans and guides: Draw tools, always on screen in a bar at the top of the page, add arrows, boxes, circles, points and sticky notes anywhere on the page in one click. They're anchored to the block under them, saved in `notes.json` as `drawings[]`, shown in the notes panel and numbered with the highlights. `process-plan-notes` reads them.
+- The toolbar is now a bar fixed to the top of the page: a guide's progress, the draw tools, the save status, **Notes** and the main action. On phones it takes two rows. The floating bar at the bottom is gone.
+
+- `review.mjs --host <address>` (or `PLAN_MAKER_HOST`) to review from another device: `0.0.0.0` for every interface, or one address such as a VPN's. Beyond loopback, every request needs a per-run key, printed in each `net →` URL and kept in a cookie after the first visit. Loopback stays the default and works as before.
+- `--trust tailnet,<CIDR>` (or `PLAN_MAKER_TRUST`): devices on those networks need no key, provided they address the server by IP, `*.ts.net` or this machine's hostname, so DNS rebinding stays blocked.
+- `/api/health` names the plan by a hash instead of its path, because it now answers without a key.
+
 ## 0.2.0 (2026-11-07)
 
 Versions: every plan you review is kept.
