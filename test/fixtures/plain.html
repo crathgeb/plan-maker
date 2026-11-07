@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Plain plan</title></head>
+<body>
+<h1>Plain plan</h1>
+<p>This page has no data-id attributes at all, like HTML converted from Markdown.</p>
+<h2>Goals</h2>
+<p>Ship the importer before the end of the quarter.</p>
+<ul>
+  <li>Import CSV files up to 50 MB.</li>
+  <li>Show a progress bar while importing.</li>
+</ul>
+<h2>Risks</h2>
+<table>
+  <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>Large files time out</td><td>Stream the upload in chunks.</td></tr>
+    <tr><td>Bad encodings</td><td>Detect and convert to UTF-8.</td></tr>
+  </tbody>
+</table>
+<pre><code>importer --chunk 5MB data.csv</code></pre>
+<h2>Goals</h2>
+<p>A second heading with the same text gets its own ids.</p>
+</body>
+</html>
