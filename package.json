@@ -1,0 +1,18 @@
+{
+  "name": "plan-maker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plans as interactive HTML pages you review in the browser, with notes saved to notes.json for Claude to process.",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "review": "node scripts/review.mjs",
+    "bundle": "node scripts/bundle.mjs",
+    "test": "node --test --test-concurrency=1 test/annotator.test.mjs",
+    "screenshot": "node test/screenshot.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.54.2"
+  }
+}
