@@ -26,6 +26,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/review.mjs" <plan path> [--port N] [--no-ope
 - It saves to `notes.json` in the plan's folder.
 - Default port 4478; if it's taken it uses the next free one and prints the URL.
 - If a server is already serving this plan, it prints that server's URL, opens it and exits. Run the command again whenever you're unsure whether the server is up.
+- Earlier versions (`versions/v<N>.html`) open read-only at `/versions/v<N>`, with the notes written on them. The **v2 ▾** switcher in the page's toolbar lists them all.
 
 ## 3. Tell the user
 
@@ -34,10 +35,10 @@ Give the URL, then: select text → **Add note**, **Keep / Change / Cut** on ite
 ## Sharing without the server
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/bundle.mjs" <plan path> [-o out.html] [--with-notes]
+node "${CLAUDE_PLUGIN_ROOT}/scripts/bundle.mjs" <plan path> [-o out.html] [--with-notes] [--all-versions]
 ```
 
-This writes a single self-contained HTML file (default `<name>.review.html` beside the plan). Opened from disk, it saves in the browser and offers **Download notes.json**; the returned file goes beside the plan as `notes.json`. `--with-notes` starts the copy from the current notes. Images the plan links to are not inlined.
+This writes a single self-contained HTML file (default `<name>.review.html` beside the plan). Opened from disk, it saves in the browser and offers **Download notes.json**; the returned file goes beside the plan as `notes.json`. `--with-notes` starts the copy from the current notes. `--all-versions` also writes each earlier version as `<name>.review.v<N>.html`, read-only with its notes and linked from the switcher. Images the plan links to are not inlined.
 
 ## Stopping
 

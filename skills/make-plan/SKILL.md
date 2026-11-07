@@ -14,7 +14,7 @@ Do the research and thinking first, as you would for any plan. The page is how y
 
 ## 2. Pick the path
 
-Use the path the user names. Otherwise use `plans/<slug>/index.html` from the project root, with a short kebab-case slug (`plans/docs-migration/index.html`). Give each plan its own folder, because `notes.json` and its archives go beside it. If that folder already holds a plan, this is a revision: use `process-plan-notes` or bump the version (step 4).
+Use the path the user names. Otherwise use `plans/<slug>/index.html` from the project root, with a short kebab-case slug (`plans/docs-migration/index.html`). Give each plan its own folder, because `notes.json` and its archives go beside it. If that folder already holds a plan, this is a revision: use `process-plan-notes`, which saves the current version under `versions/` before changing anything. Never write over a plan file without that snapshot.
 
 ## 3. Write the page
 
@@ -28,7 +28,7 @@ Follow these conventions; the annotation layer and `process-plan-notes` rely on 
 | `class="item"` | Each thing the user could accept or reject on its own: cards, phases, steps, options, table rows (`<tr>`), risks, key claims, a code block or a whole table | If you'd want a verdict on it, it's an item. Intro paragraphs, headings and pure background are not. |
 | `<section class="sec" id data-id>` | Each major part of the plan | Gets a section note. One per table-of-contents entry. |
 | `.decision[data-decision="key"]` | Each choice only the user can make | A heading with the question, 2 to 4 radio options sharing `name="key"` with kebab-case `value`s, each option's name in `<b>` and its consequence in one line. Mark your recommendation with `<span class="rec">Recommended</span>`. Gather the decisions in a final "Decisions for you" section. Choices you can make yourself go in the plan as statements, where the user can still Change or Cut them. |
-| `<meta name="plan-version">` and the hero eyebrow | The head and the hero | Start at `1`: `Plan v1 · for review · <date>`. |
+| `<meta name="plan-version">`, `<meta name="plan-date">` and the hero eyebrow | The head and the hero | Start at `1` and today's date (`YYYY-MM-DD`): `Plan v1 · for review · <date>`. Revisions go through `process-plan-notes`, which keeps every earlier version. |
 | The hero's "How to review" line | The hero | Keep it as in the template, so the user knows what to do. |
 
 Write for a reader skimming in a browser: lead each card with its point, keep items to a few lines, and put the reasoning one level down (a row, a sentence) where the user can still mark it.
