@@ -19,12 +19,13 @@ Plain HTML without `data-id`s works too: the page gives every heading and block 
 Run it in the background from the project root:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/review.mjs" <plan path> [--port N] [--no-open]
+node "${CLAUDE_PLUGIN_ROOT}/scripts/review.mjs" <plan path> [--port N] [--host ADDR] [--no-open]
 ```
 
 - It serves the plan with the annotation layer injected and reads the file fresh on every load, so a reload shows edits.
 - It saves to `notes.json` in the plan's folder.
 - Default port 4478; if it's taken it uses the next free one and prints the URL.
+- To review from another device (a phone, a tablet, another computer on the network or a VPN), add `--host 0.0.0.0`, or `--host <one address>` to limit it to one network. The server then prints a `net →` URL per address, each carrying a `?key=` that changes every run. Give the user the URL for the network they're on. Without the key, other devices get 403. If `PLAN_MAKER_HOST` or `PLAN_MAKER_TRUST` is set, the user has chosen defaults; don't override them. `--trust tailnet` (devices on their Tailscale network need no key) is only for users who say they use Tailscale.
 - If a server is already serving this plan, it prints that server's URL, opens it and exits. Run the command again whenever you're unsure whether the server is up.
 - Earlier versions (`versions/v<N>.html`) open read-only at `/versions/v<N>`, with the notes written on them. The **v2 ▾** switcher in the page's toolbar lists them all.
 

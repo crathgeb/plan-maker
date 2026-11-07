@@ -1,14 +1,18 @@
 #!/usr/bin/env node
 // plan-maker review server. Node built-ins only.
 //
-//   node review.mjs <plan.html | plan-dir> [--port 4478] [--host 127.0.0.1] [--no-open]
+//   node review.mjs <plan.html | plan-dir> [--port 4478] [--host 127.0.0.1] [--trust tailnet] [--no-open]
 //
 // Serves the plan with the annotation layer injected and saves the review to
 // notes.json next to the plan as the reader works. Binds to 127.0.0.1 unless
 // --host (or PLAN_MAKER_HOST) names another address, e.g. 0.0.0.0 for every
 // interface or one address such as a VPN's. Beyond loopback, every request
 // must carry this run's random key: the printed network URL has it as ?key=,
-// which is swapped for a cookie on first visit.
+// which is swapped for a cookie on first visit. --trust (or PLAN_MAKER_TRUST)
+// names networks whose devices need no key: "tailnet" (Tailscale's ranges)
+// and/or IPv4 CIDRs, comma-separated. A trusted request must still address the
+// server by an IP, a *.ts.net name or this machine's hostname, so a DNS
+// rebinding page (which sends its own domain as Host) is still refused.
 // If the port is taken it tries the next ones. If a plan-maker server is
 // already reviewing the same plan, it reuses that one and exits.
 //
@@ -25,7 +29,7 @@ import { spawn } from 'node:child_process';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { existsSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createServer, get } from 'node:http';
-import { networkInterfaces, tmpdir } from 'node:os';
+import { hostname, networkInterfaces, tmpdir } from 'node:os';
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { inject, readLayer } from '../lib/inject.mjs';
 import { currentVersion, isLegacy, listVersions, readJson, readVersion, snapshotNotesPath, snapshotPath } from '../lib/versions.mjs';
@@ -44,7 +48,7 @@ const TYPES = {
 
 function usage(msg) {
   if (msg) console.error(`review: ${msg}`);
-  console.error('usage: node review.mjs <plan.html | plan-dir> [--port N] [--host ADDR] [--no-open]');
+  console.error('usage: node review.mjs <plan.html | plan-dir> [--port N] [--host ADDR] [--trust tailnet,CIDR] [--no-open]');
   process.exit(2);
 }
 
@@ -53,12 +57,15 @@ let planArg = null;
 let port = DEFAULT_PORT;
 let open = true;
 let host = process.env.PLAN_MAKER_HOST || LOOPBACK;
+let trustArg = process.env.PLAN_MAKER_TRUST || '';
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
   if (a === '--port') port = Number(argv[++i]);
   else if (a.startsWith('--port=')) port = Number(a.slice(7));
   else if (a === '--host') host = argv[++i];
   else if (a.startsWith('--host=')) host = a.slice(7);
+  else if (a === '--trust') trustArg = argv[++i] || '';
+  else if (a.startsWith('--trust=')) trustArg = a.slice(8);
   else if (a === '--no-open') open = false;
   else if (a === '-h' || a === '--help') usage();
   else if (a.startsWith('-')) usage(`unknown option ${a}`);
@@ -75,9 +82,11 @@ if (!host) usage('--host needs an address, e.g. 0.0.0.0 or 127.0.0.1');
 const isLoopback = (a) => a === 'localhost' || a === '::1' || /^127\./.test(a);
 const network = !isLoopback(host);
 const wildcard = host === '0.0.0.0' || host === '::';
-// Probe and open on the address the server actually answers on from here.
-const local = wildcard || !network ? LOOPBACK : host;
+// Every mode answers on loopback too (a single --host address gets a second
+// listener on 127.0.0.1), so this machine always uses http://127.0.0.1:<port>/.
+const local = LOOPBACK;
 const KEY = network ? randomBytes(18).toString('base64url') : null;
+const trusted = parseTrust(trustArg);
 
 let planPath = resolve(planArg);
 if (existsSync(planPath) && statSync(planPath).isDirectory()) planPath = join(planPath, 'index.html');
@@ -113,16 +122,17 @@ function probe(p) {
 
 const found = (await Promise.all(Array.from({ length: PORT_TRIES }, (_, i) => probe(port + i)))).find(Boolean);
 if (found) {
+  const run = readJson(runFile);
+  const mine = run && run.port === found;
   const url = `http://${local}:${found}/`;
   console.log(`plan-maker: already reviewing ${config.plan}\n  open  → ${url}\n  notes → ${config.notesPath}`);
-  const run = readJson(runFile);
-  if (run && run.port === found) for (const line of run.lines) console.log(line);
+  if (mine) for (const line of run.lines) console.log(line);
   if (open) openBrowser(url);
   process.exit(0);
 }
 
 // ---------- server ----------
-const server = createServer(async (req, res) => {
+async function handle(req, res) {
   try {
     const url = new URL(req.url, 'http://localhost');
     // Health is public: the probe from a second start has no key. It names the plan only by a hash.
@@ -133,9 +143,9 @@ const server = createServer(async (req, res) => {
     // Network mode: anything else must carry the key (rebinding pages never have it).
     const hostName = (req.headers.host || '').replace(/:\d+$/, '').replace(/^\[|\]$/g, '');
     const fromHere = isLoopback(req.socket.remoteAddress?.replace(/^::ffff:/, '') || '') && ['127.0.0.1', 'localhost'].includes(hostName);
-    if (!fromHere) {
+    if (!fromHere && !(network && isTrusted(req.socket.remoteAddress || '', hostName))) {
       if (!network) return send(res, 403, 'forbidden');
-      const cookie = `pm_key_${server.address().port}`;
+      const cookie = `pm_key_${boundPort}`;
       if (url.searchParams.has('key')) {
         if (!keyMatches(url.searchParams.get('key'))) return send(res, 403, 'wrong key: use the network URL this server printed');
         // Swap the key for a cookie and drop it from the address bar (and from Referer headers).
@@ -232,7 +242,10 @@ const server = createServer(async (req, res) => {
   } catch (err) {
     send(res, err instanceof SyntaxError ? 400 : 500, String(err.message || err));
   }
-});
+}
+const server = createServer(handle);
+const loopbackServer = network && !wildcard ? createServer(handle) : null;
+let boundPort = null;
 
 function redirect(res, location) {
   res.writeHead(302, { location, 'cache-control': 'no-store' });
@@ -249,37 +262,95 @@ function versionOf(referer) {
   }
 }
 
-function listen(p, triesLeft) {
-  server.once('error', (err) => {
+function bind(srv, p, addr) {
+  return new Promise((ok, bad) => {
+    srv.once('error', bad);
+    srv.listen(p, addr, () => {
+      srv.off('error', bad);
+      ok();
+    });
+  });
+}
+
+async function listen(p, triesLeft) {
+  try {
+    await bind(server, p, host);
+    if (loopbackServer) {
+      try {
+        await bind(loopbackServer, p, LOOPBACK);
+      } catch (err) {
+        await new Promise((r) => server.close(r));
+        throw err;
+      }
+    }
+  } catch (err) {
     if (err.code === 'EADDRINUSE' && triesLeft > 1) return listen(p + 1, triesLeft - 1);
     console.error(`review: could not start the server: ${err.message}`);
     process.exit(1);
-  });
-  server.listen(p, host, () => {
-    // Bound to one non-loopback address: even this machine must use the key.
-    const url = `http://${local.includes(':') ? `[${local}]` : local}:${p}/${network && !wildcard ? `?key=${KEY}` : ''}`;
-    if (p !== port) console.log(`plan-maker: port ${port} is busy, using ${p}`);
-    console.log(`plan-maker: reviewing ${config.plan}${network ? ' (network mode)' : ''}\n  open  → ${url}\n  notes → ${config.notesPath}`);
-    if (network) {
-      // Bound to every interface: list each address another device could use.
-      const lines = !wildcard ? [] : networkUrls().map(([addr, name], i) => `  ${i ? '       ' : 'net  →'} http://${addr}:${p}/?key=${KEY}   (${name})`);
-      if (wildcard && !lines.length) lines.push('  net  → no network address found on this machine');
-      lines.push('  The key changes every run. Anyone without it gets 403.');
-      for (const line of lines) console.log(line);
-      try { writeFileSync(runFile, JSON.stringify({ port: p, lines }), { mode: 0o600 }); } catch {}
-    }
-    console.log('Ctrl-C to stop.');
-    if (open) openBrowser(url);
-  });
+  }
+  boundPort = p;
+  const url = `http://${local}:${p}/`;
+  if (p !== port) console.log(`plan-maker: port ${port} is busy, using ${p}`);
+  console.log(`plan-maker: reviewing ${config.plan}${network ? ' (network mode)' : ''}\n  open  → ${url}\n  notes → ${config.notesPath}`);
+  if (network) {
+    // Each address another device could use: every interface's, or the one --host named.
+    const addrs = wildcard ? networkUrls() : [[host, '']];
+    const lines = addrs.map(([addr, name], i) => `  ${i ? '       ' : 'net  →'} http://${addr.includes(':') ? `[${addr}]` : addr}:${p}/?key=${KEY}${name ? `   (${name})` : ''}`);
+    if (!lines.length) lines.push('  net  → no network address found on this machine');
+    if (trusted.length) lines.push(`  trust → no key needed from ${trusted.map((t) => t.label).join(', ')}`);
+    lines.push('  The key changes every run. Anyone else without it gets 403.');
+    for (const line of lines) console.log(line);
+    try { writeFileSync(runFile, JSON.stringify({ port: p, lines }), { mode: 0o600 }); } catch {}
+  }
+  console.log('Ctrl-C to stop.');
+  if (open) openBrowser(url);
 }
 listen(port, PORT_TRIES);
 
 for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => {
   if (network) try { unlinkSync(runFile); } catch {}
+  loopbackServer?.close();
   server.close(() => process.exit(0));
 });
 
 // ---------- helpers ----------
+/** "tailnet,192.168.1.0/24" → [{label, test(addr)}]. Exits on anything it can't read. */
+function parseTrust(arg) {
+  const out = [];
+  for (const raw of String(arg).split(',').map((x) => x.trim()).filter(Boolean)) {
+    if (raw === 'tailnet' || raw === 'tailscale') {
+      out.push({ label: 'tailnet', test: (a) => inCidr(a, '100.64.0.0', 10) || /^fd7a:115c:a1e0:/i.test(a) });
+      continue;
+    }
+    const m = raw.match(/^(\d{1,3}(?:\.\d{1,3}){3})\/(\d{1,2})$/);
+    if (!m || Number(m[2]) > 32 || ipv4(m[1]) === null) usage(`--trust: expected "tailnet" or an IPv4 CIDR like 192.168.1.0/24, got "${raw}"`);
+    out.push({ label: raw, test: (a) => inCidr(a, m[1], Number(m[2])) });
+  }
+  return out;
+}
+
+function ipv4(a) {
+  const parts = a.split('.');
+  if (parts.length !== 4 || parts.some((p) => !/^\d{1,3}$/.test(p) || Number(p) > 255)) return null;
+  return parts.reduce((n, p) => n * 256 + Number(p), 0);
+}
+
+function inCidr(addr, base, bits) {
+  const a = ipv4(addr.replace(/^::ffff:/, '')), b = ipv4(base);
+  if (a === null || b === null) return false;
+  const size = 2 ** (32 - bits);
+  return Math.floor(a / size) === Math.floor(b / size);
+}
+
+/** From a trusted network, and addressed by a name a rebinding page can't send. */
+function isTrusted(remote, hostName) {
+  if (!trusted.some((t) => t.test(remote.replace(/^::ffff:/, '')))) return false;
+  const h = hostName.toLowerCase();
+  const me = hostname().toLowerCase().replace(/\.local$/, '');
+  // Never match on a label prefix: a rebinding page could use <hostname>.evil.example.
+  return ipv4(h) !== null || h.includes(':') || h.endsWith('.ts.net') || h === me || h === `${me}.local`;
+}
+
 function keyMatches(given) {
   if (!KEY || typeof given !== 'string') return false;
   const a = Buffer.from(given), b = Buffer.from(KEY);
