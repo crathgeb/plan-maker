@@ -1,13 +1,18 @@
-// Regenerates docs/screenshot.png (the template plan mid-review) and
-// docs/versions.png (v2 with the version switcher open).
+// Regenerates docs/screenshot.png (the template plan mid-review), docs/steps.png
+// (your steps and Claude's, with both lanes) and docs/versions.png (v2 with the
+// version switcher open).
 //   npm run screenshot [-- <extra-dir>]   (extra-dir also gets dark and phone shots)
 import { execFileSync } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { launch, newPage, open, planCopy, repo, selectText, startServer, writeV2 } from './helpers.mjs';
 
 const extra = process.argv[2];
 const files = planCopy(join(repo, 'templates/plan.html'));
+// Claude has done some of its steps, as it would partway through.
+writeFileSync(files.plan, readFileSync(files.plan, 'utf8')
+  .replace('data-id="s2-scaffold" data-who="claude" data-status="todo"', 'data-id="s2-scaffold" data-who="claude" data-status="done"')
+  .replace('data-id="s3-convert" data-who="claude" data-status="todo"', 'data-id="s3-convert" data-who="claude" data-status="doing"'));
 const server = await startServer(files.plan);
 const browser = await launch();
 const errors = [];
@@ -17,13 +22,10 @@ try {
   await page.emulateMedia({ colorScheme: 'light' });
   await open(page, server.url);
   await selectText(page, 'sum-scope', 25, 39); // "About 60 pages"
-  await page.click('#pm-pop');
+  await page.click('#pm-pop button[data-kind="note"]');
   await page.keyboard.type('Include the API reference too');
-  await page.click('[data-id="sum-goal"] .pm-v[data-v="keep"]');
-  await page.click('[data-id="sum-cost"] .pm-v[data-v="change"]');
   await page.click('[data-id="sum-cost"] .pm-note-btn');
   await page.keyboard.type('Plan for four weeks with buffer');
-  await page.click('[data-id="sum-nongoal"] .pm-v[data-v="cut"]');
   await page.fill('#pm-general', 'Direction looks right. Tighten the timeline before we start.');
   await page.click('body', { position: { x: 5, y: 5 } });
   await page.evaluate(() => document.getElementById('summary').scrollIntoView());
@@ -31,6 +33,15 @@ try {
   await page.waitForTimeout(600);
   await page.screenshot({ path: join(repo, 'docs/screenshot.png') });
   console.log('wrote docs/screenshot.png');
+
+  await page.click('[data-id="s1-pages-project"] .pm-done-btn');
+  await page.click('#pm-toggle'); // close the panel
+  await page.evaluate(() => document.getElementById('rollout').scrollIntoView());
+  await page.evaluate(() => window.scrollBy(0, -20));
+  await page.mouse.move(5, 5);
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: join(repo, 'docs/steps.png') });
+  console.log('wrote docs/steps.png');
 
   // Revise to v2 the way process-plan-notes does, then show the switcher.
   await page.waitForTimeout(500);

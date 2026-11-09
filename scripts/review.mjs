@@ -24,6 +24,8 @@
 //   GET  /api/versions     every version, newest first
 //   GET  /api/notes        the live plan's notes (a version's, when asked from its page)
 //   PUT  /api/notes        save the live plan's notes
+//   GET  /api/status       the plan's registry entry: { registered, name, status }
+//   PUT  /api/status       change its status ({ status }); 404 if the plan isn't registered
 
 import { spawn } from 'node:child_process';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -33,6 +35,7 @@ import { hostname, networkInterfaces, tmpdir } from 'node:os';
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { inject, readLayer } from '../lib/inject.mjs';
 import { currentVersion, isLegacy, listVersions, readJson, readVersion, snapshotNotesPath, snapshotPath } from '../lib/versions.mjs';
+import { STATUSES, find, load as loadRegistry, save as saveRegistry, upsert } from '../lib/registry.mjs';
 
 const LOOPBACK = '127.0.0.1';
 const DEFAULT_PORT = 4478;
@@ -170,6 +173,25 @@ async function handle(req, res) {
         summary: v.summary,
       }));
       return send(res, 200, JSON.stringify({ current: versions[0].version, versions }), TYPES['.json']);
+    }
+    // The plan's status in the registry (~/.plan-maker), shown and changed from the top bar.
+    if (path === '/api/status') {
+      if (req.method === 'GET') {
+        const e = find(loadRegistry(), planPath);
+        return send(res, 200, JSON.stringify(e ? { registered: true, name: e.name, status: e.status } : { registered: false }), TYPES['.json']);
+      }
+      if (req.method === 'PUT') {
+        if (!(req.headers['content-type'] || '').startsWith('application/json')) return send(res, 415, 'expected JSON');
+        if (from) return send(res, 409, `v${from} is read-only`);
+        const { status } = JSON.parse(await readBody(req)) || {};
+        if (!STATUSES.includes(status)) return send(res, 400, `status must be one of ${STATUSES.join(', ')}`);
+        const reg = loadRegistry();
+        if (!find(reg, planPath)) return send(res, 404, 'this plan is not registered');
+        const e = upsert(reg, planPath, { status });
+        saveRegistry(reg);
+        return send(res, 200, JSON.stringify({ registered: true, name: e.name, status: e.status }), TYPES['.json']);
+      }
+      return send(res, 405, 'method not allowed');
     }
     if (path === '/api/notes') {
       if (req.method === 'GET') {

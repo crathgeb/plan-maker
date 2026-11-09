@@ -1,10 +1,17 @@
 {
   "name": "plan-maker",
   "version": "0.2.0",
-  "description": "Plans and step-by-step guides as interactive HTML pages. Plans: add notes, mark items Keep / Change / Cut, answer decisions. Guides: tick steps off, ask questions anywhere, and regenerate to get them answered in place. Both: draw arrows, boxes, circles, points and sticky notes. A local server saves to notes.json and Claude revises from it.",
-  "author": { "name": "TechSnack LLC" },
+  "description": "Plans as HTML pages you review and work through in the browser, like a shared doc. Comment and ask questions anywhere, tick off your steps (blue) while Claude keeps its own (gold) up to date, and draw on the page. A local server saves to notes.json and Claude writes the next version from it. A hub lists every plan across your projects, with what's waiting on you first.",
+  "author": {
+    "name": "TechSnack LLC"
+  },
   "homepage": "https://github.com/crathgeb/plan-maker",
   "repository": "https://github.com/crathgeb/plan-maker",
   "license": "MIT",
-  "keywords": ["planning", "review", "annotation", "html"]
+  "keywords": [
+    "planning",
+    "review",
+    "annotation",
+    "html"
+  ]
 }

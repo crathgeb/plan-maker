@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your plans</title>
+<!-- plan-styles -->
+<style>
+/* Hub-only layout. Everything else (tokens, pages, step cards, the timeline, chips,
+   entries, light and dark) comes from templates/plan.html, injected above. */
+/* The sidebar follows the usual app-navigation rules: its own full-height surface, one line
+   per item, text labels, a strong marker on the current item, two levels (project, plan),
+   collapsible groups, and the less-used items (done, archived) collapsed at the bottom. */
+.desk { display: grid; grid-template-columns: 272px minmax(0, 1fr); gap: 0; max-width: none; padding: 0; }
+nav.toc.side { position: sticky; top: 0; align-self: start; height: 100vh; max-height: none; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding: 16px 12px 24px; background: var(--paper); border-right: 1px solid var(--line); font-size: 14px; }
+#sheet { width: 100%; max-width: 860px; margin: 0 auto; padding: 32px 24px 96px; }
+.side .toc-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 2px 8px 12px; font-size: 16px; font-weight: 650; color: var(--ink); }
+.side-toggle { display: none; }
+.find { margin: 0 0 10px; }
+.find input { width: 100%; height: 34px; padding: 0 10px 0 32px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%236e7781' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='4.5'/%3E%3Cpath d='M10.5 10.5 14 14'/%3E%3C/svg%3E") 10px center / 14px no-repeat; color: var(--ink); font: 14px var(--sans); }
+.find input::placeholder { color: var(--muted); }
+.find input:focus { outline: 0; background-color: var(--paper); border-color: var(--ink-2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 12%, transparent); }
+
+/* one line per item: [dot] name ……… [count] */
+.row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 34px; padding: 6px 8px 6px 10px; border: 0; border-radius: 8px; background: none; color: var(--ink-2); font: 14px/1.3 var(--sans); text-align: left; cursor: pointer; }
+.row:hover { background: var(--paper-2); color: var(--ink); }
+.row[aria-current="true"] { background: var(--line-2); color: var(--ink); font-weight: 600; }
+.row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+/* status dots stay out of the ownership colours (blue, gold): grey, green and amber only */
+.row .dot[data-s="draft"] { background: none; box-shadow: inset 0 0 0 1.5px var(--muted); }
+.row .dot[data-s="reviewing"] { background: var(--muted); }
+.row .dot[data-s="approved"] { background: none; box-shadow: inset 0 0 0 2px var(--good); }
+.row .dot[data-s="in-progress"] { background: var(--good); }
+.row .dot[data-s="blocked"] { background: var(--warn); }
+.row .dot[data-s="done"], .row .dot[data-s="archived"] { background: var(--line); }
+.row .ico { flex: none; width: 16px; height: 16px; color: var(--ink-2); }
+.waiting-all { margin-bottom: 8px; }
+.count { flex: none; display: inline-grid; place-items: center; min-width: 22px; height: 20px; padding: 0 7px; border-radius: 999px; background: var(--you-tint); color: var(--you-ink); box-shadow: inset 0 0 0 1px var(--you-line); font: 700 11.5px/1 var(--sans); font-variant-numeric: tabular-nums; }
+.count.zero { background: var(--paper-2); color: var(--muted); box-shadow: inset 0 0 0 1px var(--line-2); }
+/* collapsible project groups */
+.project { margin-top: 6px; }
+.project h2 { margin: 0; font: inherit; }
+.grp { display: flex; align-items: center; gap: 8px; width: 100%; height: 30px; padding: 0 8px; border: 0; border-radius: 8px; background: none; color: var(--ink-2); font: 600 12.5px/1 var(--sans); text-align: left; cursor: pointer; }
+.grp:hover { background: var(--paper-2); color: var(--ink); }
+.grp .chev { flex: none; width: 10px; height: 10px; transition: transform .15s; }
+.grp[aria-expanded="false"] .chev { transform: rotate(-90deg); }
+.grp .grp-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grp .n { font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.nav-list { list-style: none; margin: 0 0 4px; padding: 0 0 0 10px; }
+.nav-list[hidden] { display: none; }
+.side-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line-2); }
+.side-foot:empty { display: none; }
+.empty-side { margin: 12px 10px; font-size: 14px; color: var(--muted); }
+/* a selected plan: its live page fills the area beside the sidebar */
+#sheet.embed { display: flex; flex-direction: column; max-width: none; height: 100vh; padding: 0; gap: 0; }
+.embed-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 16px; background: var(--paper); border-bottom: 1px solid var(--line); }
+.embed-name { margin: 0; font-size: 16px; font-weight: 650; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40ch; }
+.embed-bar .status-wrap { position: relative; display: inline-flex; align-items: center; height: 28px; border-radius: 999px; background: var(--paper-2); border: 1px solid var(--line-2); }
+.embed-project { font-size: 13px; color: var(--muted); }
+.embed-sp { flex: 1; }
+.embed-bar .open-btn { height: 32px; padding: 0 12px; font-size: 13.5px; }
+.plan-frame { flex: 1; width: 100%; min-height: 0; border: 0; background: var(--ground); }
+.embed-notice { margin: 24px; }
+/* collapse: the sidebar shrinks to a rail with the expand button and the waiting count */
+.side-collapse { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--ink-2); cursor: pointer; }
+.side-collapse:hover { background: var(--paper-2); color: var(--ink); }
+.side-collapse svg { width: 16px; height: 16px; }
+html.side-collapsed .side-collapse .arr { transform: translateX(16px) scaleX(-1); transform-origin: 0 0; }
+html.side-collapsed .desk { grid-template-columns: 56px minmax(0, 1fr); }
+html.side-collapsed nav.toc.side { padding: 12px 8px; align-items: center; }
+html.side-collapsed .side .toc-title { justify-content: center; margin: 0 0 10px; }
+html.side-collapsed .side .title-text, html.side-collapsed .find, html.side-collapsed #projects, html.side-collapsed #done, html.side-collapsed .waiting-all .name { display: none; }
+html.side-collapsed .waiting-all { flex-direction: column; gap: 4px; justify-content: center; width: 40px; padding: 6px 0; }
+html.side-collapsed .waiting-all .count { min-width: 20px; height: 18px; padding: 0 5px; font-size: 10.5px; }
+.embed .hero { margin: 24px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.log li { max-width: none; }
+@media (prefers-reduced-motion: reduce) { .grp .chev { transition: none; } }
+
+/* one progress bar for a plan: your done steps in blue, Claude's in gold */
+.bar { display: flex; flex: 1; min-width: 40px; max-width: 120px; height: 4px; border-radius: 999px; background: var(--line-2); overflow: hidden; }
+.bar i { height: 100%; }
+.bar i.y, .prog-track i.y { background: var(--you); }
+.bar i.c, .prog-track i.c { background: var(--claude); }
+.prog { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 22px 0 0; font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.prog-track { display: flex; width: min(320px, 100%); height: 8px; border-radius: 999px; background: var(--line-2); overflow: hidden; }
+.prog-track i { height: 100%; }
+.prog b { color: var(--ink); }
+.lanes-txt { display: flex; flex-wrap: wrap; gap: 4px 16px; width: 100%; font-size: 13px; color: var(--muted); }
+.lane { display: inline-flex; align-items: center; gap: 6px; }
+.lane::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--you); }
+.lane.claude::before { background: var(--claude); }
+
+/* the status, as a slug chip you can change */
+.slug .status-wrap { position: relative; display: inline-flex; align-items: center; height: 26px; padding: 0; border-radius: 999px; background: var(--paper-2); border: 1px solid var(--line-2); }
+.status-wrap::before { content: ""; position: absolute; left: 10px; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); pointer-events: none; }
+.status-wrap[data-s="draft"]::before { background: none; box-shadow: inset 0 0 0 1.5px var(--muted); }
+.status-wrap[data-s="in-progress"]::before { background: var(--good); }
+.status-wrap[data-s="reviewing"]::before { background: var(--muted); }
+.status-wrap[data-s="approved"]::before { background: none; box-shadow: inset 0 0 0 2px var(--good); }
+.status-wrap[data-s="done"]::before, .status-wrap[data-s="archived"]::before { background: var(--line); }
+.status-wrap[data-s="blocked"]::before { background: var(--warn); }
+.status-wrap select { appearance: none; -webkit-appearance: none; height: 24px; padding: 0 26px 0 23px; border: 0; border-radius: 999px; background: none; color: var(--ink); font: 600 13px var(--sans); cursor: pointer; }
+.status-wrap svg { position: absolute; right: 9px; width: 9px; height: 6px; color: var(--ink-2); pointer-events: none; }
+
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 22px 0 0; }
+.open-btn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 8px; background: var(--ink); color: var(--paper); font: 600 14px var(--sans); text-decoration: none; }
+.open-btn:hover { color: var(--paper); background: color-mix(in srgb, var(--ink) 85%, var(--paper)); }
+.open-btn svg { width: 11px; height: 11px; }
+.link-btn { border: 0; background: none; padding: 0; color: var(--claude-ink); font: 500 14px var(--sans); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; cursor: pointer; }
+.link-btn:hover { color: var(--claude); }
+.path { flex-basis: 100%; font: 12.5px var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.notice { margin: 16px 0 0; padding: 12px 14px; border-radius: 10px; background: var(--paper-2); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); font-size: 14.5px; }
+
+/* waiting cards: the plan's name, why it waits, and the two ways on */
+.w-plan { cursor: pointer; }
+.w-plan .why { margin: 4px 0 0; }
+.w-plan .go { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--o-line); }
+.w-plan .go a { display: inline-flex; align-items: center; gap: 6px; font: 600 14px var(--sans); color: var(--o-ink); text-decoration: none; }
+.w-plan .go a:hover { text-decoration: underline; }
+.w-plan .go a svg { width: 10px; height: 10px; }
+/* hub cards are titled with h3 (they sit straight under a page's h2); give them the plan's owner chip */
+.step > h3 { font-size: 16.5px; font-weight: 600; margin: 0 0 2px; }
+.step > h3::before { content: "You"; display: inline-flex; align-items: center; height: 24px; margin: 0 10px 0 0; padding: 0 10px 0 28px; border-radius: 999px; background: var(--paper) var(--o-icon) 9px center / 14px no-repeat; color: var(--o-ink); box-shadow: inset 0 0 0 1px var(--o-line); font: 650 12.5px/1 var(--sans); vertical-align: 2px; }
+.step[data-who="claude"] > h3::before { content: "Claude"; }
+.step.neutral > h3::before { content: none; }
+.step.neutral { --o: var(--muted); --o-ink: var(--ink-2); --o-tint: var(--paper-2); --o-line: var(--line); }
+.step.neutral > h4::before { content: none; }
+.sec .step.neutral::before { background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--line); color: var(--ink-2); }
+.log .date { display: block; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.toast { position: fixed; z-index: 10; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 9px 14px; border-radius: 10px; background: var(--ink); color: var(--paper); font: 500 14px var(--sans); box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: opacity .2s; }
+.toast.show { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+
+@media (max-width: 1199px) { .desk { grid-template-columns: 248px minmax(0, 1fr); } nav.toc.side { display: flex; } }
+@media (max-width: 720px) {
+  .side-collapse { display: none; }
+  html.side-collapsed .desk { grid-template-columns: minmax(0, 1fr); }
+  html.side-collapsed nav.toc.side { padding: 10px 12px; align-items: stretch; }
+  html.side-collapsed .side .toc-title { justify-content: space-between; margin: 0; }
+  html.side-collapsed .side .title-text, html.side-collapsed .waiting-all .name { display: inline; }
+  html.side-collapsed .find, html.side-collapsed #projects { display: block; }
+  html.side-collapsed .waiting-all { flex-direction: row; width: 100%; padding: 6px 8px 6px 10px; }
+  #sheet.embed { height: 82vh; }
+  .desk { grid-template-columns: minmax(0, 1fr); }
+  nav.toc.side { position: static; height: auto; overflow: visible; padding: 10px 12px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .side .toc-title { margin: 0; }
+  #sheet { padding: 12px 8px 56px; }
+  .side-foot { margin-top: 8px; }
+  .side-toggle { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); font: 600 14px var(--sans); cursor: pointer; }
+  .side-toggle svg { width: 10px; height: 6px; }
+  #side-body { display: none; margin-top: 12px; padding: 12px 8px; border-radius: 10px; background: var(--paper); box-shadow: var(--shadow); }
+  .side.open #side-body { display: block; }
+}
+</style>
+</head>
+<body>
+<div class="desk">
+  <nav class="toc side" id="side" aria-label="Plans">
+    <div class="toc-title"><span class="title-text">Your plans</span><button type="button" class="side-collapse" id="side-collapse" aria-expanded="true" aria-controls="side-body" title="Collapse the sidebar" aria-label="Collapse the sidebar"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="2.5"/><path d="M6.5 2.5v11"/><path class="arr" d="M11 6.2 9.2 8l1.8 1.8" stroke-linecap="round"/></svg></button>
+      <button type="button" class="side-toggle" id="side-toggle" aria-expanded="false" aria-controls="side-body">All plans <span class="count zero" id="wcount-m" title="Waiting on you">0</span><svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+    </div>
+    <div id="side-body">
+      <div class="find"><input type="search" id="q" placeholder="Search plans" aria-label="Search plans"></div>
+      <button type="button" class="row waiting-all" data-sel="" aria-current="true"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2 9.5 4 3h8l2 6.5V13H2z"/><path d="M2 9.5h3.5l1 1.5h3l1-1.5H14"/></svg><span class="name">Waiting on you</span><span class="count" id="wcount">0</span></button>
+      <div id="projects"></div>
+      <div class="side-foot" id="done"></div>
+    </div>
+  </nav>
+  <main id="sheet" aria-live="polite"><header class="hero"><p class="lede">Loading…</p></header></main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const STATUSES = ['draft', 'reviewing', 'approved', 'in-progress', 'blocked', 'done', 'archived'];
+const ACTIVE = ['draft', 'reviewing', 'approved', 'in-progress', 'blocked'];
+const LABEL = { draft: 'Draft', reviewing: 'Reviewing', approved: 'Approved', 'in-progress': 'In progress', blocked: 'Blocked', done: 'Done', archived: 'Archived' };
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const OUT = '<svg viewBox="0 0 11 11" aria-hidden="true"><path d="M3 1h7v7M10 1 1 10" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
+const CARET = '<svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
+
+let entries = [];
+const view = { q: '', collapsed: { '__done': true } };
+try { Object.assign(view.collapsed, JSON.parse(localStorage.getItem('pm-hub-collapsed') || '{}')); } catch {}
+const keep = () => { try { localStorage.setItem('pm-hub-collapsed', JSON.stringify(view.collapsed)); } catch {} };
+const CHEV = '<svg class="chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const selected = () => decodeURIComponent(location.hash.slice(1));
+
+const touched = (e) => [e.modified, e.notesUpdated, e.updated].filter(Boolean).sort().pop() || '';
+function ago(iso) {
+  if (!iso) return '';
+  const d = new Date(iso.length === 10 ? iso + 'T12:00:00' : iso);
+  const days = Math.floor((Date.now() - d) / 864e5);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 30) return `${days} days ago`;
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+// "You: check the preview" → owner you, text "check the preview"
+function owned(text) {
+  const m = String(text || '').match(/^\s*(you|claude)\s*:\s*/i);
+  return m ? { who: m[1].toLowerCase(), text: text.slice(m[0].length) } : { who: null, text: text || '' };
+}
+const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+function totals(e) {
+  const y = e.lanes?.you || { done: 0, total: 0 }, c = e.lanes?.claude || { done: 0, total: 0, doing: 0 };
+  return { y, c, total: y.total + c.total, done: y.done + c.done };
+}
+// One bar: your done steps, then Claude's, as shares of every step in the plan.
+function bar(e, cls) {
+  const { y, c, total } = totals(e);
+  if (!total) return '';
+  const w = (n) => ((n / total) * 100).toFixed(1);
+  return `<span class="${cls}" aria-hidden="true"><i class="y" style="width:${w(y.done)}%"></i><i class="c" style="width:${w(c.done)}%"></i></span>`;
+}
+
+// One line per plan: a status dot, the name, and a count only when it's waiting on you.
+function planRow(e, sel) {
+  const status = e.missing ? 'Page missing' : LABEL[e.status] || e.status;
+  const tip = e.waiting.length ? `${status}. ${plural(e.waiting.length, 'thing')} waiting on you.` : status;
+  return `<li><button type="button" class="row" data-sel="${e.id}" aria-current="${e.id === sel}" title="${esc(tip)}">
+    <span class="dot" data-s="${esc(e.status)}" aria-hidden="true"></span><span class="name">${esc(e.name)}</span>
+    ${e.waiting.length ? `<span class="count">${e.waiting.length}</span>` : ''}<span class="sr-only">${esc(status)}</span></button></li>`;
+}
+function group(key, title, list, sel) {
+  const open = !view.collapsed[key];
+  return `<h2><button type="button" class="grp" data-grp="${esc(key)}" aria-expanded="${open}">${CHEV}<span class="grp-name">${esc(title)}</span><span class="n">${list.length}</span></button></h2>
+    <ul class="nav-list"${open ? '' : ' hidden'}>${list.map((e) => planRow(e, sel)).join('')}</ul>`;
+}
+function renderSide() {
+  if ($('#q').value !== view.q) $('#q').value = view.q;
+  const q = view.q.trim().toLowerCase();
+  const match = (e) => !q || [e.name, e.goal, e.description, e.project, e.next].join(' ').toLowerCase().includes(q);
+  const shown = entries.filter((e) => ACTIVE.includes(e.status) && match(e));
+  const finished = entries.filter((e) => !ACTIVE.includes(e.status) && match(e));
+  shown.sort((a, b) => (b.waiting.length > 0) - (a.waiting.length > 0) || touched(b).localeCompare(touched(a)));
+  finished.sort((a, b) => touched(b).localeCompare(touched(a)));
+  const projects = [...new Set(shown.map((e) => e.project))].sort((a, b) => {
+    const wa = shown.some((e) => e.project === a && e.waiting.length), wb = shown.some((e) => e.project === b && e.waiting.length);
+    return wb - wa || a.localeCompare(b);
+  });
+  const sel = selected();
+  // A plan that's selected (or matches a search) shows even inside a collapsed group.
+  const selProject = entries.find((e) => e.id === sel)?.project;
+  if (q || selProject) for (const p of projects) if (q || p === selProject) delete view.collapsed[p];
+  const focusedId = document.activeElement?.closest?.('#side .row, #side .grp')?.dataset;
+  $('#projects').innerHTML = projects.length
+    ? projects.map((p) => `<section class="project">${group(p, p, shown.filter((e) => e.project === p), sel)}</section>`).join('')
+    : `<p class="empty-side">${entries.length ? (q ? 'No plans match.' : 'No active plans.') : 'Nothing registered yet.'}</p>`;
+  $('#done').innerHTML = finished.length ? `<section class="project done-group">${group('__done', 'Done and archived', finished, sel)}</section>` : '';
+  if (focusedId?.sel) $(`#side .row[data-sel="${focusedId.sel}"]`)?.focus();
+  else if (focusedId?.grp) $(`#side .grp[data-grp="${CSS.escape(focusedId.grp)}"]`)?.focus();
+  const waitingTotal = entries.reduce((n, e) => n + e.waiting.length, 0);
+  for (const el of [$('#wcount'), $('#wcount-m')]) {
+    el.textContent = waitingTotal;
+    el.classList.toggle('zero', !waitingTotal);
+  }
+  $('.waiting-all').setAttribute('aria-current', String(!sel || !entries.some((e) => e.id === sel)));
+  if (focusedId) $(`#projects .row[data-sel="${focusedId}"]`)?.focus();
+}
+
+function renderWaiting() {
+  document.title = 'Waiting on you · Your plans';
+  if (!entries.length) {
+    $('#sheet').innerHTML = `<header class="hero"><h1>Your plans</h1><p class="lede">Nothing registered yet. Ask Claude for a plan, or say “register my plans” in a project to add the ones you already have.</p></header>`;
+    return;
+  }
+  const waiting = entries.filter((e) => e.waiting.length);
+  if (!waiting.length) {
+    $('#sheet').innerHTML = `<header class="hero"><h1>Nothing is waiting on you</h1><p class="lede">Every active plan is with Claude or finished. Pick a plan on the left to see where it stands.</p></header>`;
+    return;
+  }
+  const projects = [...new Set(waiting.map((e) => e.project))].sort();
+  const total = waiting.reduce((n, e) => n + e.waiting.length, 0);
+  $('#sheet').innerHTML = `<header class="hero"><h1>Waiting on you</h1>
+      <p class="lede">${plural(total, 'thing')} across ${plural(waiting.length, 'plan')}, in ${plural(projects.length, 'project')}. Open a plan to get on with it.</p></header>
+    ${projects.map((p) => `<section class="sec"><h2>${esc(p)}</h2><div class="steps">${waiting
+      .filter((e) => e.project === p)
+      .sort((a, b) => touched(b).localeCompare(touched(a)))
+      .map((e) => `<div class="step w-plan" data-who="you" data-sel="${e.id}"><h3>${esc(e.name)}</h3>
+          ${e.waiting.map((w) => `<p class="why">${esc(cap(owned(w.text).text))}</p>`).join('')}
+          <div class="go"><button type="button" class="link-btn open-here" data-sel="${e.id}">Open plan</button></div></div>`)
+      .join('')}</div></section>`).join('')}`;
+}
+
+// A selected plan is the plan itself: its live page in a frame, served by its own review
+// server (started on demand by /open). Its name, status and progress are all in the plan.
+function renderPlan(e) {
+  document.title = `${e.name} · Your plans`;
+  const sheet = $("#sheet");
+  sheet.classList.add("embed");
+  // Same plan as before (a refresh): never reload the frame under the reader.
+  if (sheet.dataset.embed === e.id) return;
+  sheet.dataset.embed = e.id;
+  sheet.innerHTML = e.missing
+    ? `<header class="hero"><h1>${esc(e.name)}</h1><p class="notice">The page isn’t there any more: it was moved or deleted.</p><p class="meta">${esc(e.path)}</p></header>`
+    : `<iframe class="plan-frame" src="/open/${e.id}" title="${esc(e.name)}"></iframe>`;
+}
+
+function renderMain() {
+  if (document.activeElement?.matches?.('select.status')) return;
+  const e = entries.find((x) => x.id === selected());
+  if (e) return renderPlan(e);
+  const sheet = $('#sheet');
+  sheet.classList.remove('embed');
+  delete sheet.dataset.embed;
+  renderWaiting();
+}
+
+function render() {
+  renderSide();
+  renderMain();
+}
+
+function select(id) {
+  if (id) location.hash = id;
+  else history.pushState(null, '', location.pathname + location.search);
+  $('#side').classList.remove('open');
+  $('#side-toggle').setAttribute('aria-expanded', 'false');
+  render();
+  scrollTo({ top: 0 });
+}
+
+async function load() {
+  try {
+    const r = await fetch('/api/entries', { cache: 'no-store' });
+    entries = (await r.json()).entries;
+    render();
+  } catch {
+    $('#sheet').innerHTML = `<header class="hero"><h1>The hub isn’t reachable</h1><p class="lede">Start it again with <code>node scripts/hub.mjs</code>.</p></header>`;
+  }
+}
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+document.addEventListener('click', async (ev) => {
+  if (ev.target.closest('a')) return; // Open plan: let the link do its job
+  const sel = ev.target.closest('[data-sel]');
+  if (sel) return select(sel.dataset.sel);
+  const g = ev.target.closest('.grp');
+  if (g) {
+    const key = g.dataset.grp;
+    if (view.collapsed[key]) delete view.collapsed[key];
+    else view.collapsed[key] = true;
+    keep();
+    renderSide();
+    return;
+  }
+  const c = ev.target.closest('button.copy');
+  if (c) {
+    try { await navigator.clipboard.writeText(c.dataset.path); toast('Path copied'); } catch { toast(c.dataset.path); }
+    return;
+  }
+  if (ev.target.closest('#side-toggle')) {
+    const open = $('#side').classList.toggle('open');
+    $('#side-toggle').setAttribute('aria-expanded', String(open));
+  }
+});
+document.addEventListener('change', async (ev) => {
+  if (!ev.target.matches('select.status')) return;
+  const id = ev.target.dataset.id;
+  const r = await fetch(`/api/entries/${id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status: ev.target.value }) });
+  if (!r.ok) return toast('Not saved: ' + (await r.text()));
+  const e = await r.json();
+  entries = entries.map((x) => (x.id === id ? e : x));
+  ev.target.blur();
+  render();
+  toast(`${e.name}: ${LABEL[e.status]}`);
+});
+// Up and down move through the sidebar's rows.
+$('#side').addEventListener('keydown', (ev) => {
+  if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
+  const rows = [...document.querySelectorAll('#side .row, #side .grp')].filter((r) => r.offsetParent);
+  const i = rows.indexOf(document.activeElement);
+  if (i === -1) return;
+  ev.preventDefault();
+  rows[Math.max(0, Math.min(rows.length - 1, i + (ev.key === 'ArrowDown' ? 1 : -1)))].focus();
+});
+$('#q').addEventListener('input', (ev) => { view.q = ev.target.value; renderSide(); });
+addEventListener('hashchange', render);
+// The embedded plan says when its status changes: refresh the sidebar straight away.
+addEventListener('message', (ev) => { if (ev.data?.app === 'plan-maker') load(); });
+// Collapse the sidebar to a thin rail; the choice is remembered.
+function setCollapsed(on) {
+  document.documentElement.classList.toggle('side-collapsed', on);
+  const b = $('#side-collapse');
+  b.setAttribute('aria-expanded', String(!on));
+  b.title = b.ariaLabel = on ? 'Expand the sidebar' : 'Collapse the sidebar';
+  try { localStorage.setItem('pm-hub-side', on ? 'collapsed' : 'open'); } catch {}
+}
+$('#side-collapse').addEventListener('click', () => setCollapsed(!document.documentElement.classList.contains('side-collapsed')));
+try { if (localStorage.getItem('pm-hub-side') === 'collapsed') setCollapsed(true); } catch {}
+addEventListener('popstate', render);
+
+load();
+// Steps get ticked off in other tabs: refresh when this tab comes back, and now and then.
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && load());
+setInterval(() => document.visibilityState === 'visible' && load(), 15000);
+</script>
+</body>
+</html>

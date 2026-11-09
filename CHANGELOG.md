@@ -2,14 +2,24 @@
 
 ## Unreleased
 
-- **guide-me**: step-by-step guides you follow rather than review. New skills `guide-me` and `regenerate-guide`, command `/plan-maker:guide`, template `templates/guide.html`. `<meta name="pm-kind" content="guide">` turns on guide mode:
-  - **Mark done** on steps, with a progress bar in a bar fixed to the top of the page, beside the draw tools.
-  - **? Ask** on steps and items, and **? Ask / ＋ Note** on selected text; every note is a question or a note.
-  - A **Copy** button on every code block.
-  - No Keep / Change / Cut.
-  - `regenerate-guide` answers each question in place (`aside.explain`), and `snapshot.mjs` carries the done steps into the next version's `notes.json`.
-- **Drawing**, in plans and guides: Draw tools, always on screen in a bar at the top of the page, add arrows, boxes, circles, points and sticky notes anywhere on the page in one click. They're anchored to the block under them, saved in `notes.json` as `drawings[]`, shown in the notes panel and numbered with the highlights. `process-plan-notes` reads them.
-- The toolbar is now a bar fixed to the top of the page: a guide's progress, the draw tools, the save status, **Notes** and the main action. On phones it takes two rows. The floating bar at the bottom is gone.
+- **One kind of page, with your steps and Claude's.** Plans and guides are now one thing, a plan.
+  - Steps carry an owner, `data-who="you|claude|both"`. Your steps get **Mark done**; Claude's show the status Claude sets (`data-status="todo|doing|done"`).
+  - The top bar shows both lanes, **You 2/6** and **Claude 7/9**.
+  - **Comments replace Keep / Change / Cut.** Select text to **Comment** or **Ask Claude**, or use the one **Comment** button on any block or section; a comment can be switched to a question. Old notes with verdicts still load and are still processed.
+  - `process-plan-notes` applies your notes, answers your questions in place (`aside.explain`), keeps your ticked steps (`snapshot.mjs` carries them into the next version) and updates Claude's step statuses.
+  - `guide-me`, `regenerate-guide` and `templates/guide.html` are gone. `/plan-maker:guide` now writes a plan made mostly of your steps.
+  - Pages from 0.2 with `<meta name="pm-kind" content="guide">` and `.who` tags still work, and their old notes load.
+- **New design** (DESIGN.md, PRODUCT.md): a calm, rounded page in the manner of Google Docs, in the system sans at 16px.
+  - Every step is its own card: **blue for you**, **gold for Claude**, with an owner chip and icon. The same two colours run through the top-bar lanes and the hub.
+  - Code blocks are dark, with a header showing their label (`<pre data-label="Terminal">`) and **Copy**.
+  - No section or gutter numbers. The comment panel starts closed. "Updated in vN" chips mark revised blocks.
+  - **Breaking for page styling:** the layer's tokens are now `--pm-you`, `--pm-claude`, `--pm-paper`, `--pm-ink` and friends. The old `--pm-accent` and `--pm-bg` are still honoured.
+- **Plan registry and hub**: every plan across all projects in one list (`~/.plan-maker/registry.json`, or `$PLAN_MAKER_HOME`).
+  - `scripts/registry.mjs`: `add`, `update`, `list`, `show`, `remove`, `scan` and `prune`. Each entry has a name, goal, description, status (draft, reviewing, approved, in-progress, blocked, done, archived), next action and a dated progress log. Live facts are read from the page and `notes.json`: each owner's steps done, open decisions, unprocessed notes and why it's waiting on you.
+  - `scripts/hub.mjs` (`lib/hub.html`): projects in a sidebar with their plans nested beneath, waiting-on-you first. Everything waiting on you is the opening view; a selected plan shows its lanes, status (editable), next action and log. **Open** starts or reuses the plan's review server. It listens only on this machine, port 4477.
+  - New skill `plan-registry` and command `/plan-maker:plans`. The other skills register plans and log each version.
+- **Drawing**: draw tools, always in the top bar, add arrows, boxes, circles, points and sticky notes anywhere on the page. They're anchored to the block under them, saved in `notes.json` as `drawings[]` and read by `process-plan-notes`.
+- The toolbar is now a bar fixed to the top of the page; on phones it takes two rows.
 
 - `review.mjs --host <address>` (or `PLAN_MAKER_HOST`) to review from another device: `0.0.0.0` for every interface, or one address such as a VPN's. Beyond loopback, every request needs a per-run key, printed in each `net →` URL and kept in a cookie after the first visit. Loopback stays the default and works as before.
 - `--trust tailnet,<CIDR>` (or `PLAN_MAKER_TRUST`): devices on those networks need no key, provided they address the server by IP, `*.ts.net` or this machine's hostname, so DNS rebinding stays blocked.

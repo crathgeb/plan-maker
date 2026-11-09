@@ -9,6 +9,7 @@
   "scripts": {
     "review": "node scripts/review.mjs",
     "bundle": "node scripts/bundle.mjs",
+    "hub": "node scripts/hub.mjs",
     "test": "node --test --test-concurrency=1 test/*.test.mjs",
     "screenshot": "node test/screenshot.mjs"
   },

@@ -10,7 +10,7 @@ Starts (or restarts) the review server for a plan written by `make-plan`, or any
 
 ## 1. Find the plan
 
-The argument, else the plan discussed in this conversation, else the most recently modified `plans/*/index.html`. If several are equally likely, ask which one.
+The argument, else the plan discussed in this conversation, else one the user names from the registry (`registry.mjs list`), else the most recently modified `plans/*/index.html`. If several are equally likely, ask which one.
 
 Plain HTML without `data-id`s works too: the page gives every heading and block an id from the headings, and those ids are stable while the content stays the same.
 
@@ -27,11 +27,19 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/review.mjs" <plan path> [--port N] [--host A
 - Default port 4478; if it's taken it uses the next free one and prints the URL.
 - To review from another device (a phone, a tablet, another computer on the network or a VPN), add `--host 0.0.0.0`, or `--host <one address>` to limit it to one network. The server then prints a `net →` URL per address, each carrying a `?key=` that changes every run. Give the user the URL for the network they're on. Without the key, other devices get 403. If `PLAN_MAKER_HOST` or `PLAN_MAKER_TRUST` is set, the user has chosen defaults; don't override them. `--trust tailnet` (devices on their Tailscale network need no key) is only for users who say they use Tailscale.
 - If a server is already serving this plan, it prints that server's URL, opens it and exits. Run the command again whenever you're unsure whether the server is up.
-- Earlier versions (`versions/v<N>.html`) open read-only at `/versions/v<N>`, with the notes written on them. The **v2 ▾** switcher in the page's toolbar lists them all.
+- Earlier versions (`versions/v<N>.html`) open read-only at `/versions/v<N>`, with the notes written on them. The version switcher in the top bar lists them all.
 
-## 3. Tell the user
+## 3. Make sure it's registered
 
-Give the URL, then: select text → **Add note**, **Keep / Change / Cut** on items, answer the decisions, **Done reviewing**, then say **"process my notes"**. If `notes.json` already has notes, they reappear on the page.
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/registry.mjs" show <plan path> || node "${CLAUDE_PLUGIN_ROOT}/scripts/registry.mjs" add <plan path> --goal "<one line>"
+```
+
+A page made before the registry existed gets registered here, so it shows in the hub (`plan-registry`). Read the page for the goal.
+
+## 4. Tell the user
+
+Give the URL, then: select text → **Comment** or **Ask Claude**, **Comment** on any block, **Mark done** on their steps, answer the decisions, **Done for now**, then say **"process my notes"**. If `notes.json` already has notes, they reappear on the page.
 
 ## Sharing without the server
 

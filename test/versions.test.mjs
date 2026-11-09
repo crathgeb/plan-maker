@@ -53,9 +53,10 @@ describe('versions of a plan', () => {
 
   test('snapshot saves the plan and moves its notes into versions/', async () => {
     await selectText(page, 'ap-source', 4, 35);
-    await page.click('#pm-pop');
+    await page.click('#pm-pop button[data-kind="note"]');
     await page.keyboard.type('Per package?');
-    await page.click('[data-id="risk-seo"] .pm-v[data-v="cut"]');
+    await page.click('[data-id="risk-seo"] .pm-note-btn');
+    await page.keyboard.type('Cut this risk');
     await page.click('[data-id="d-cutover"] input[value="gradual"]');
     await page.fill('#pm-general', 'v1 general note');
     const saved = await waitForNotes(files.notes, (n) => n.general === 'v1 general note' && n.decisions?.cutover);
@@ -94,15 +95,15 @@ describe('versions of a plan', () => {
   test('the switcher lists every version, and v2 shows what changed', async () => {
     const p = await newPage(browser, errors);
     await open(p, server.url);
-    assert.equal(await p.textContent('#pm-ver'), 'v2 ▾');
+    assert.equal(await p.textContent('#pm-ver'), 'v2');
     await p.click('#pm-ver');
     const rows = await p.$$eval('#pm-vmenu a', (as) => as.map((a) => [a.querySelector('b').textContent, a.querySelector('.pm-vmeta').textContent, a.getAttribute('href')]));
     assert.equal(rows.length, 2);
     assert.deepEqual(rows.map((r) => r[0]), ['v2', 'v1']);
     assert.match(rows[0][1], /^current · (9 Nov|Nov 9)$/); // date format follows the browser's locale
-    assert.match(rows[1][1], /^read-only · (7 Nov|Nov 7) · 1 note · 1 cut · 1 decided$/);
+    assert.match(rows[1][1], /^read-only · (7 Nov|Nov 7) · 2 comments · 1 decided$/);
     assert.equal(rows[1][2], '/versions/v1');
-    assert.equal(await p.textContent('[data-id="ph-2"] .pm-changed'), 'changed in v2');
+    assert.equal(await p.textContent('[data-id="ph-2"] .pm-changed'), 'Updated in v2');
     assert.equal(await p.locator('#changes').isVisible(), true);
     await p.close();
   });
@@ -114,24 +115,23 @@ describe('versions of a plan', () => {
     await p.click('#pm-vmenu a[href="/versions/v1"]');
     await p.waitForURL('**/versions/v1');
     await p.waitForSelector('html[data-pm-ready]');
-    assert.match(await p.textContent('#pm-banner'), /Viewing v1 \(read-only\)\.\s+The notes you wrote on v1 are shown\.\s+Back to current \(v2\)/);
-    assert.equal(await p.textContent('#pm-ver'), 'v1 ▾');
+    assert.match(await p.textContent('#pm-banner'), /Earlier version: v1, read-only\.\s+The comments you wrote on v1 are shown\.\s+Back to the current version \(v2\)/);
+    assert.equal(await p.textContent('#pm-ver'), 'v1');
     assert.equal(await p.$$eval('mark.pm-hl', (ms) => ms.map((m) => m.textContent).join('')), 'source. Pages are Markdown file');
-    assert.equal(await p.locator('[data-id="risk-seo"].pm-cut').count(), 1);
+    assert.equal(await p.locator('[data-id="risk-seo"] .pm-note-btn.pm-has').count(), 1);
     assert.equal(await p.locator('#changes').count(), 0); // v1 had no changes section
     assert.equal(await p.locator('.pm-changed').count(), 0);
     assert.equal(await p.locator('[data-id="d-cutover"] input[value="gradual"]').isChecked(), true);
     assert.equal(await p.inputValue('#pm-general'), 'v1 general note');
-    assert.equal(await p.textContent('#pm-summary'), '1 note · 0 keep · 0 change · 1 cut · 1/2 decisions');
-    // the panel lists the verdict-only item too
+    assert.equal(await p.textContent('#pm-summary'), '2 comments · 1/2 decisions · 0/3 of your steps done');
     assert.equal(await p.locator('.pm-note').count(), 2);
 
     // controls are disabled
-    assert.equal(await p.locator('[data-id="risk-seo"] .pm-v[data-v="cut"]').isDisabled(), true);
+    assert.equal(await p.locator('[data-id="risk-seo"] .pm-note-btn').isDisabled(), true);
     assert.equal(await p.locator('[data-id="d-cutover"] input[value="astro"], [data-id="d-cutover"] input[value="big-bang"]').isDisabled(), true);
     assert.equal(await p.locator('#pm-general').getAttribute('readonly'), '');
     assert.equal(await p.locator('#pm-done').isVisible(), false);
-    assert.equal(await p.locator('[data-id="sum-goal"] .pm-ctl').isVisible(), false); // no verdict there: no controls
+    assert.equal(await p.locator('[data-id="sum-goal"] .pm-ctl').isVisible(), false); // no comment there: no controls
     await selectText(p, 'ap-redirects', 0, 10);
     await p.waitForTimeout(100);
     assert.equal(await p.locator('#pm-pop').isVisible(), false);
@@ -150,8 +150,9 @@ describe('versions of a plan', () => {
   test('the current version still saves', async () => {
     const p = await newPage(browser, errors);
     await open(p, server.url);
-    await p.click('[data-id="sum-goal"] .pm-v[data-v="keep"]');
-    const n = await waitForNotes(files.notes, (x) => x.items?.['sum-goal']?.verdict === 'keep');
+    await p.click('[data-id="sum-goal"] .pm-note-btn');
+    await p.keyboard.type('v2 comment');
+    const n = await waitForNotes(files.notes, (x) => x.items?.['sum-goal']?.note === 'v2 comment');
     assert.equal(n.planVersion, '2');
     assert.equal(n.highlights.length, 0); // v1's notes stayed with v1
     await p.close();
@@ -184,7 +185,7 @@ describe('versions of a plan', () => {
     await p.click('#pm-ver');
     await p.click('#pm-vmenu a[href="plan.v1.html"]');
     await p.waitForSelector('html[data-pm-ready]');
-    assert.match(await p.textContent('#pm-banner'), /Viewing v1 \(read-only\)/);
+    assert.match(await p.textContent('#pm-banner'), /Earlier version: v1, read-only/);
     assert.equal(await p.$$eval('mark.pm-hl', (ms) => ms.map((m) => m.textContent).join('')), 'source. Pages are Markdown file');
     await p.click('#pm-banner a');
     await p.waitForURL('**/share/plan.html');
@@ -210,9 +211,9 @@ describe('an earlier version that carries its own review script', () => {
     await p.waitForFunction(() => document.getElementById('put').textContent !== '…');
     assert.equal(await p.textContent('#out'), 'notes from round one');
     assert.equal(await p.textContent('#put'), '409');
-    assert.match(await p.textContent('#pm-banner'), /Viewing v1 \(read-only\)\.\s+This is the page as it was reviewed\./);
+    assert.match(await p.textContent('#pm-banner'), /Earlier version: v1, read-only\.\s+This is the page as it was reviewed\./);
     assert.equal(await p.locator('#pm-panel').count(), 0); // plan-maker's own panel stays out of the way
-    assert.equal(await p.textContent('#pm-ver'), 'v1 ▾');
+    assert.equal(await p.textContent('#pm-ver'), 'v1');
     assert.deepEqual(JSON.parse(readFileSync(join(files.dir, 'versions/v1.notes.json'), 'utf8')), { general: 'notes from round one' });
     assert.equal(readNotes(files.notes), null);
     await p.close();

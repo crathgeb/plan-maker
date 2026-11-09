@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How plan-maker fits together</title>
+<style>
+:root {
+  --ground: #f1f3f6; --paper: #ffffff; --paper-2: #f6f7f9;
+  --ink: #1f2328; --ink-2: #57606a; --slug: #6e7781; --rule: #d8dee4; --rule-2: #eaeef2;
+  --you: #7da7d4; --you-soft: #f2f6fb; --claude: #aa8546; --claude-ink: #6f572e; --claude-soft: #f7f3ed;
+  --good: #23743a; --warn: #8f5500;
+  --serif: Charter, "Bitstream Charter", "Iowan Old Style", "Sitka Text", Cambria, Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0f1115; --paper: #171a21; --paper-2: #1d2129;
+    --ink: #e6e8eb; --ink-2: #aab1bb; --slug: #8b94a0; --rule: #2c313a; --rule-2: #232830;
+    --you: #a4c1e1; --you-soft: #303c4c; --claude: #c4aa7e; --claude-ink: #d0bc99; --claude-soft: #3a342a;
+    --good: #6fd59a; --warn: #f2b860;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0f1115; --paper: #171a21; --paper-2: #1d2129;
+  --ink: #e6e8eb; --ink-2: #aab1bb; --slug: #8b94a0; --rule: #2c313a; --rule-2: #232830;
+  --you: #a4c1e1; --you-soft: #303c4c; --claude: #c4aa7e; --claude-ink: #d0bc99; --claude-soft: #3a342a;
+  --good: #6fd59a; --warn: #f2b860;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 16px/1.65 var(--sans); -webkit-text-size-adjust: 100%; }
+::selection { background: var(--you-soft); }
+.sheet { max-width: 1040px; margin: 28px auto 80px; background: var(--paper); border-radius: 12px; padding: 48px 56px 64px; box-shadow: 0 1px 2px rgba(21,24,30,.06), 0 10px 30px rgba(21,24,30,.08); }
+h1, h2, h3 { font-family: var(--sans); font-weight: 650; line-height: 1.2; margin: 0; text-wrap: balance; }
+h1 { font-size: 40px; margin-bottom: 12px; }
+h2 { font-size: 28px; margin: 0 0 8px; }
+h3 { font-size: 19px; margin: 0 0 6px; }
+section { margin-top: 44px; padding-top: 28px; border-top: 1px solid var(--rule-2); }
+p { margin: 0 0 12px; }
+.lede { font-size: 19px; color: var(--ink-2); max-width: 68ch; }
+.sub { color: var(--ink-2); max-width: 68ch; margin-bottom: 18px; }
+code { font: 14px var(--mono); background: var(--paper-2); padding: 1px 5px; border-radius: 3px; }
+.you-c { color: var(--you); font-weight: 700; font-family: var(--sans); font-size: .85em; }
+.claude-c { color: var(--claude); font-weight: 700; font-family: var(--sans); font-size: .85em; }
+
+.diagram { overflow-x: auto; margin: 8px 0 0; }
+.diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+svg text { font-family: var(--sans); fill: var(--ink); }
+svg .t { font: 650 15px var(--sans); fill: var(--ink); }
+svg .m { font: 12.5px var(--mono); fill: var(--ink-2); }
+svg .s { font-size: 12.5px; fill: var(--ink-2); }
+svg .band { font-size: 12px; font-weight: 600; fill: var(--slug); }
+svg .box { fill: var(--paper); stroke: var(--rule); stroke-width: 1.5; }
+svg .you { fill: var(--you-soft); stroke: var(--you); }
+svg .claude { fill: var(--claude-soft); stroke: var(--claude); }
+svg .arrow { stroke: var(--ink-2); stroke-width: 1.6; fill: none; }
+svg .dash { stroke-dasharray: 6 5; }
+svg .head { fill: var(--ink-2); }
+svg .num { fill: none; stroke: var(--you); stroke-width: 1.5; }
+svg .num-t { fill: var(--you); font-size: 12px; font-weight: 700; text-anchor: middle; }
+ol.legend { list-style: none; padding: 0; margin: 18px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px 26px; font-size: 15.5px; }
+ol.legend li { display: flex; gap: 10px; }
+ol.legend .n { flex: none; width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--you); color: var(--you); font: 700 12px/22px var(--sans); text-align: center; margin-top: 2px; }
+
+.flow { counter-reset: s; border-top: 1px solid var(--rule-2); }
+.flow .row { display: grid; grid-template-columns: 110px 1fr 230px; gap: 18px; padding: 14px 0; border-bottom: 1px solid var(--rule-2); align-items: baseline; }
+.flow .who { font: 700 13px var(--sans); }
+.flow .reg { font: 12.5px var(--mono); color: var(--claude-ink); }
+.flow b { display: block; }
+
+table { width: 100%; border-collapse: collapse; font-size: 16px; }
+th { text-align: left; font: 600 13px var(--sans); color: var(--ink-2); padding: 8px 12px 8px 0; border-bottom: 1px solid var(--rule); }
+td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--rule-2); vertical-align: top; }
+tbody tr:last-child td { border-bottom: 0; }
+.statuses { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; font: 600 13.5px var(--sans); }
+.st { padding: 2px 10px; border: 1.5px solid currentColor; border-radius: 999px; }
+pre { font: 13.5px/1.65 var(--mono); background: #1f2430; color: #e6e9ef; border-radius: 10px; padding: 14px 16px; overflow-x: auto; margin: 0; }
+.c { color: #9aa3b2; }
+
+@media (max-width: 720px) {
+  .sheet { margin: 0; padding: 28px 18px 48px; box-shadow: none; }
+  h1 { font-size: 30px; }
+  .flow .row { grid-template-columns: 1fr; gap: 4px; }
+  table { font-size: 15px; }
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+<h1>How plan-maker fits together</h1>
+<p class="lede">Claude writes a plan as an HTML page. You mark it up and work through it in the browser, and a small local server saves everything to <code>notes.json</code>. Claude reads that file to write the next version. Every step in a plan has an owner: <span class="you-c">You</span> or <span class="claude-c">Claude</span>. The registry and the hub keep every plan, across all your projects, in one place.</p>
+
+<section>
+<h2>The pieces</h2>
+<p class="sub">On the left, one project's plan and its review server. On the right, the registry that knows about every project and the hub that shows it. Claude keeps both in step.</p>
+<div class="diagram">
+<svg viewBox="0 0 1000 600" role="img" aria-labelledby="dt dd">
+  <title id="dt">plan-maker architecture</title>
+  <desc id="dd">Skills write plans into a project folder and register them in the registry. A review server per plan serves it to the browser and saves notes.json. The hub reads the registry and each plan's live progress, and starts review servers on Open.</desc>
+  <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head"/></marker></defs>
+  <text x="16" y="70" class="band">Claude</text>
+  <text x="16" y="216" class="band">Disk</text>
+  <text x="16" y="416" class="band">Servers</text>
+  <text x="16" y="548" class="band">Browser</text>
+
+  <rect x="100" y="24" width="870" height="96" rx="10" class="box claude"/>
+  <text x="120" y="52" class="t">Skills</text>
+  <text x="180" y="52" class="s">make-plan · process-plan-notes · review-plan · plan-registry</text>
+  <text x="120" y="78" class="s">make-plan writes the plan and every step's owner; process-plan-notes applies your notes,</text>
+  <text x="120" y="96" class="s">answers your questions, keeps your ticked steps and updates Claude's step statuses.</text>
+
+  <rect x="100" y="180" width="410" height="160" rx="10" class="box"/>
+  <text x="120" y="208" class="t">A project folder</text>
+  <text x="120" y="238" class="m">plans/docs-migration/</text>
+  <text x="140" y="260" class="m">index.html        the live plan (vN)</text>
+  <text x="140" y="282" class="m">notes.json        your marks, your ticked steps</text>
+  <text x="140" y="304" class="m">versions/v1.html  earlier versions, with their notes</text>
+  <text x="120" y="328" class="s">Steps carry data-who (you, claude) and Claude's data-status</text>
+
+  <rect x="560" y="180" width="410" height="160" rx="10" class="box you"/>
+  <text x="580" y="208" class="t">~/.plan-maker/registry.json</text>
+  <text x="580" y="232" class="s">one file for every project</text>
+  <text x="580" y="260" class="m">name · goal · description · status</text>
+  <text x="580" y="282" class="m">next · project · path · log[]</text>
+  <text x="580" y="310" class="s">Lanes, decisions and "waiting on you"</text>
+  <text x="580" y="328" class="s">are read live, never stored</text>
+
+  <rect x="100" y="390" width="410" height="76" rx="10" class="box"/>
+  <text x="120" y="418" class="t">Review server</text>
+  <text x="240" y="418" class="m">review.mjs · :4478 and up</text>
+  <text x="120" y="444" class="s">One per plan. Injects the annotation layer, saves notes.json.</text>
+
+  <rect x="560" y="390" width="410" height="76" rx="10" class="box"/>
+  <text x="580" y="418" class="t">Hub server</text>
+  <text x="680" y="418" class="m">hub.mjs · :4477</text>
+  <text x="580" y="444" class="s">One for everything. Lists plans, saves status changes.</text>
+
+  <rect x="100" y="520" width="410" height="64" rx="10" class="box"/>
+  <text x="120" y="546" class="t">The plan</text>
+  <text x="120" y="568" class="s">Comment · Ask Claude · Mark done · You 2/6 · Claude 7/9</text>
+  <rect x="560" y="520" width="410" height="64" rx="10" class="box"/>
+  <text x="580" y="546" class="t">The hub</text>
+  <text x="580" y="568" class="s">Projects, plans, waiting on you first · Open ↗</text>
+
+  <path d="M305 120 V178" class="arrow" marker-start="url(#ah)" marker-end="url(#ah)"/>
+  <path d="M765 120 V178" class="arrow" marker-end="url(#ah)"/>
+  <path d="M305 388 V342" class="arrow" marker-start="url(#ah)" marker-end="url(#ah)"/>
+  <path d="M305 518 V468" class="arrow" marker-start="url(#ah)" marker-end="url(#ah)"/>
+  <path d="M765 388 V342" class="arrow" marker-start="url(#ah)" marker-end="url(#ah)"/>
+  <path d="M590 388 C 590 365, 540 330, 512 318" class="arrow dash" marker-end="url(#ah)"/>
+  <path d="M558 450 H512" class="arrow dash" marker-end="url(#ah)"/>
+  <path d="M765 518 V468" class="arrow" marker-start="url(#ah)" marker-end="url(#ah)"/>
+  <g>
+    <circle cx="325" cy="149" r="11" class="num"/><text x="325" y="153" class="num-t">1</text>
+    <circle cx="785" cy="149" r="11" class="num"/><text x="785" y="153" class="num-t">2</text>
+    <circle cx="325" cy="365" r="11" class="num"/><text x="325" y="369" class="num-t">3</text>
+    <circle cx="325" cy="493" r="11" class="num"/><text x="325" y="497" class="num-t">4</text>
+    <circle cx="785" cy="365" r="11" class="num"/><text x="785" y="369" class="num-t">5</text>
+    <circle cx="545" cy="342" r="11" class="num"/><text x="545" y="346" class="num-t">6</text>
+    <circle cx="535" cy="432" r="11" class="num"/><text x="535" y="436" class="num-t">7</text>
+    <circle cx="785" cy="493" r="11" class="num"/><text x="785" y="497" class="num-t">8</text>
+  </g>
+</svg>
+</div>
+<ol class="legend">
+  <li><span class="n">1</span><span><b>Skills and plans.</b> <code>make-plan</code> writes the page. <code>process-plan-notes</code> reads <code>notes.json</code>, saves the current version with <code>snapshot.mjs</code>, then writes vN+1.</span></li>
+  <li><span class="n">2</span><span><b>Skills and the registry.</b> <code>registry.mjs add</code> for a new plan; <code>update --log</code> for each version or status change.</span></li>
+  <li><span class="n">3</span><span><b>Review server and plan.</b> It reads the plan fresh on every load and writes <code>notes.json</code> as you type.</span></li>
+  <li><span class="n">4</span><span><b>You and the review server.</b> Nothing leaves your machine unless you start it with <code>--host</code>.</span></li>
+  <li><span class="n">5</span><span><b>Hub and registry.</b> The hub lists every plan; changing a status writes it back, with a log line.</span></li>
+  <li><span class="n">6</span><span><b>Live progress.</b> Each owner's steps done, open decisions, unprocessed notes and what's waiting on you are read from the plan and its notes when you look.</span></li>
+  <li><span class="n">7</span><span><b>Open starts a review server,</b> or reuses the one already running, and takes you to the plan.</span></li>
+  <li><span class="n">8</span><span><b>You and the hub.</b> Projects in the sidebar, plans beneath, waiting on you first. It refreshes itself.</span></li>
+</ol>
+</section>
+
+<section>
+<h2>A plan's life</h2>
+<p class="sub">Who acts at each point, and what lands in the registry.</p>
+<div class="flow">
+  <div class="row"><span class="who claude-c">Claude</span><span><b>Writes v1</b>Researches, writes the plan with every step owned by you or Claude, starts the review server.</span><span class="reg">add · reviewing</span></div>
+  <div class="row"><span class="who you-c">You</span><span><b>Review it</b>Comments and questions, decisions, drawings. Then Done for now.</span><span class="reg">hub: tell Claude “process my notes”</span></div>
+  <div class="row"><span class="who claude-c">Claude</span><span><b>Writes v2</b>Saves v1 with your notes, applies them, answers your questions where you asked them, adds “What changed”.</span><span class="reg">update --log "v2: …"</span></div>
+  <div class="row"><span class="who you-c">You</span><span><b>Approve it</b>When no decisions are left open.</span><span class="reg">status → approved</span></div>
+  <div class="row"><span class="who you-c">You</span><span><b>Do your steps</b>Tick each one off with Mark done. Ask about anything that's unclear.</span><span class="reg">hub: 2 of your steps left: …</span></div>
+  <div class="row"><span class="who claude-c">Claude</span><span><b>Does its steps</b>Sets each step's status to in progress, then done. Your ticked steps carry into every new version.</span><span class="reg">in-progress → done</span></div>
+</div>
+<p class="sub" style="margin-top:14px">Review and revise repeat as often as you like, and every version stays in the switcher. A walkthrough is the same thing with mostly your steps. If you're stuck on someone else, Claude sets <code>blocked</code> and writes what you're waiting on as the next action.</p>
+</section>
+
+<section>
+<h2>Statuses</h2>
+<p class="sub">Every status except done and archived counts as active.</p>
+<div class="statuses">
+  <span class="st" style="color:var(--warn)">draft</span><span>→</span>
+  <span class="st" style="color:var(--warn)">reviewing</span><span>→</span>
+  <span class="st" style="color:var(--good)">approved</span><span>→</span>
+  <span class="st" style="color:var(--claude)">in-progress</span><span>→</span>
+  <span class="st" style="color:var(--good)">done</span>
+  <span style="margin-left:12px;color:var(--ink-2);font-weight:500">any time:</span>
+  <span class="st" style="color:var(--you)">blocked</span>
+  <span class="st" style="color:var(--slug)">archived</span>
+</div>
+</section>
+
+<section>
+<h2>What to say</h2>
+<table>
+  <thead><tr><th>You say</th><th>Skill</th><th>What happens</th></tr></thead>
+  <tbody>
+    <tr><td>“Plan the billing migration” · <code>/plan-maker:plan …</code></td><td><code>make-plan</code></td><td>A plan, registered as reviewing, opened in your browser</td></tr>
+    <tr><td>“Guide me through moving DNS” · <code>/plan-maker:guide …</code></td><td><code>make-plan</code></td><td>A plan made mostly of your steps, registered as in progress</td></tr>
+    <tr><td>“Process my notes” · “answer my questions”</td><td><code>process-plan-notes</code></td><td>The next version: notes applied, questions answered in place, your progress kept, a log line</td></tr>
+    <tr><td>“Open the docs plan again”</td><td><code>review-plan</code></td><td>Its review server restarted (and registered, if it wasn't)</td></tr>
+    <tr><td>“Show my plans” · <code>/plan-maker:plans</code></td><td><code>plan-registry</code></td><td>The hub opens; Claude says what's waiting on you</td></tr>
+    <tr><td>“Register my plans”</td><td><code>plan-registry</code></td><td>Every plan-maker page in the project registered, with goals filled in</td></tr>
+    <tr><td>“The DNS setup is blocked on IT”</td><td><code>plan-registry</code></td><td>Status and next action updated, with a log line</td></tr>
+  </tbody>
+</table>
+</section>
+
+<section>
+<h2>The same, without Claude</h2>
+<pre><span class="c"># one plan</span>
+node scripts/review.mjs plans/docs/index.html      <span class="c"># review it in the browser</span>
+node scripts/snapshot.mjs plans/docs/index.html    <span class="c"># save vN before revising</span>
+node scripts/bundle.mjs plans/docs/index.html      <span class="c"># a self-contained copy to share</span>
+
+<span class="c"># every plan</span>
+node scripts/registry.mjs scan                     <span class="c"># register every plan-maker page in this project</span>
+node scripts/registry.mjs update plans/docs --status in-progress --log "Phase 1 done"
+node scripts/registry.mjs list [--all] [--json]
+node scripts/hub.mjs                               <span class="c"># the hub, at http://127.0.0.1:4477/</span></pre>
+</section>
+
+</div>
+</body>
+</html>
