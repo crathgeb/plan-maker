@@ -125,7 +125,7 @@ function startHub() {
 after(() => {
   for (const c of children) c.kill();
   // Review servers the hub started run detached, so they outlive the hub: stop them by their arguments.
-  spawnSync('pkill', ['-f', `review.mjs ${proj}`]);
+  for (const d of [proj, proj2]) spawnSync('pkill', ['-f', `review.mjs ${d}`]);
   for (const d of [home, proj, proj2]) rmSync(d, { recursive: true, force: true });
 });
 

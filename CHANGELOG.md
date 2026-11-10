@@ -24,6 +24,9 @@
 - **Drawing**: draw tools, always in the top bar, add arrows, boxes, circles, points and sticky notes anywhere on the page. They're anchored to the block under them, saved in `notes.json` as `drawings[]` and read by `process-plan-notes`.
 - The toolbar is now a bar fixed to the top of the page; on phones it takes two rows.
 
+- **Running servers in the hub**: every review server on this machine, by page, with whether a tab has it open. Orphans (page deleted or moved, a duplicate server) are flagged; **Stop** one, the orphans, the ones not in use, or servers from older versions. Each server keeps a record in `~/.plan-maker/servers/` (`lib/servers.mjs`), so it's found on any port, and a second start reuses it there too.
+- **Idle stop**: an open tab pings its server once a minute; a server with no tab for `--idle-hours` (or `PLAN_MAKER_IDLE_HOURS`; default 12, `0` never) stops itself. Sleep doesn't count. The page says when its server has stopped.
+- The registry tests no longer leave a review server running after each run.
 - The review server reports a page's kind and statuses (`/api/status`), its links (`/api/links`), and opens a linked page on its own server (`/api/open`). After 20 busy ports it takes any free one.
 - `bundle.mjs` bundles a plan's guides with it, linked both ways (`--no-guides` to skip), and creates the output folder.
 - - `review.mjs --host <address>` (or `PLAN_MAKER_HOST`) to review from another device: `0.0.0.0` for every interface, or one address such as a VPN's. Beyond loopback, every request needs a per-run key, printed in each `net →` URL and kept in a cookie after the first visit. Loopback stays the default and works as before.

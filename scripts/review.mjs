@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // plan-maker review server. Node built-ins only.
 //
-//   node review.mjs <plan.html | plan-dir> [--port 4478] [--host 127.0.0.1] [--trust tailnet] [--no-open]
+//   node review.mjs <plan.html | plan-dir> [--port 4478] [--host 127.0.0.1] [--trust tailnet] [--idle-hours 12] [--no-open]
 //
 // Serves the plan with the annotation layer injected and saves the review to
 // notes.json next to the plan as the reader works. Binds to 127.0.0.1 unless
@@ -16,9 +16,16 @@
 // If the port is taken it tries the next 19, then any free port. If a plan-maker server is
 // already reviewing the same plan, it reuses that one and exits.
 //
+// While it runs it leaves a record in ~/.plan-maker/servers/ (lib/servers.mjs) so the hub
+// can list and stop it. An open tab pings it every minute; once no tab has spoken to it
+// for --idle-hours (or PLAN_MAKER_IDLE_HOURS; default 12, 0 = never), it stops itself.
+// Time asleep doesn't count. Opening the page from the hub starts it again.
+//
 // Earlier versions (versions/v<N>.html, see lib/versions.mjs) are served
 // read-only at /versions/v<N>, with the notes written on them.
 //
+//   GET  /api/health       { app, planHash }; from this machine also pid, page, started, idle (seconds)
+//   POST /api/ping         an open tab saying it's still there (any request but /api/health counts)
 //   GET  /                 the live plan, annotation layer injected
 //   GET  /versions/v<N>    version N, read-only, its notes shown
 //   GET  /api/versions     every version, newest first
@@ -30,7 +37,7 @@
 //   GET  /api/open?href=…  start (or reuse) the review server for a linked page, then redirect to it
 
 import { spawn } from 'node:child_process';
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { existsSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createServer, get } from 'node:http';
 import { hostname, networkInterfaces, tmpdir } from 'node:os';
@@ -39,6 +46,7 @@ import { inject, readLayer } from '../lib/inject.mjs';
 import { currentVersion, isLegacy, listVersions, readJson, readVersion, snapshotNotesPath, snapshotPath } from '../lib/versions.mjs';
 import { readKind, readMeta, statusesFor } from '../lib/kinds.mjs';
 import { startReview } from '../lib/launch.mjs';
+import { pageHash, readRecords, removeRecord, writeRecord } from '../lib/servers.mjs';
 import { find, guideProgress, linkTarget, load as loadRegistry, projectOf, readPage, readPhases, save as saveRegistry, staleSources, upsert } from '../lib/registry.mjs';
 
 const LOOPBACK = '127.0.0.1';
@@ -55,7 +63,7 @@ const TYPES = {
 
 function usage(msg) {
   if (msg) console.error(`review: ${msg}`);
-  console.error('usage: node review.mjs <plan.html | plan-dir> [--port N] [--host ADDR] [--trust tailnet,CIDR] [--no-open]');
+  console.error('usage: node review.mjs <plan.html | plan-dir> [--port N] [--host ADDR] [--trust tailnet,CIDR] [--idle-hours H] [--no-open]');
   process.exit(2);
 }
 
@@ -65,6 +73,7 @@ let port = DEFAULT_PORT;
 let open = true;
 let host = process.env.PLAN_MAKER_HOST || LOOPBACK;
 let trustArg = process.env.PLAN_MAKER_TRUST || '';
+let idleHours = process.env.PLAN_MAKER_IDLE_HOURS ? Number(process.env.PLAN_MAKER_IDLE_HOURS) : 12;
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
   if (a === '--port') port = Number(argv[++i]);
@@ -73,6 +82,8 @@ for (let i = 0; i < argv.length; i++) {
   else if (a.startsWith('--host=')) host = a.slice(7);
   else if (a === '--trust') trustArg = argv[++i] || '';
   else if (a.startsWith('--trust=')) trustArg = a.slice(8);
+  else if (a === '--idle-hours') idleHours = Number(argv[++i]);
+  else if (a.startsWith('--idle-hours=')) idleHours = Number(a.slice(13));
   else if (a === '--no-open') open = false;
   else if (a === '-h' || a === '--help') usage();
   else if (a.startsWith('-')) usage(`unknown option ${a}`);
@@ -81,6 +92,7 @@ for (let i = 0; i < argv.length; i++) {
 }
 if (!planArg) usage('which plan? pass the path to its HTML file');
 if (!Number.isInteger(port) || port < 1 || port > 65535) usage('--port needs a number between 1 and 65535');
+if (!(idleHours >= 0)) usage('--idle-hours needs a number of hours, or 0 to never stop');
 if (!host) usage('--host needs an address, e.g. 0.0.0.0 or 127.0.0.1');
 
 // Network mode: listening beyond loopback. The Host-header check that guards
@@ -102,7 +114,7 @@ const planDir = dirname(planPath);
 const notesPath = join(planDir, 'notes.json');
 // Where a network-mode run leaves its URLs, so a second start can print them
 // (outside the plan folder, so it never ends up in a repo).
-const planHash = createHash('sha256').update(planPath).digest('hex').slice(0, 16);
+const planHash = pageHash(planPath);
 const runFile = join(tmpdir(), `plan-maker-${planHash}.json`);
 const show = (p) => relative(process.cwd(), p) || '.';
 const config = { mode: 'server', plan: show(planPath).split(sep).join('/'), notesPath: show(notesPath).split(sep).join('/') };
@@ -127,7 +139,9 @@ function probe(p) {
   });
 }
 
-const found = (await Promise.all(Array.from({ length: PORT_TRIES }, (_, i) => probe(port + i)))).find(Boolean);
+// The usual ports, then any port a server for this page recorded (one the system picked).
+const tryPorts = [...new Set([...Array.from({ length: PORT_TRIES }, (_, i) => port + i), ...readRecords().filter((r) => r.page === planPath).map((r) => r.port)])];
+const found = (await Promise.all(tryPorts.map(probe))).find(Boolean);
 if (found) {
   const run = readJson(runFile);
   const mine = run && run.port === found;
@@ -144,7 +158,12 @@ async function handle(req, res) {
     const url = new URL(req.url, 'http://localhost');
     // Health is public: the probe from a second start has no key. It names the plan only by a hash.
     if (url.pathname === '/api/health' && req.method === 'GET') {
-      return send(res, 200, JSON.stringify({ app: 'plan-maker', planHash }), TYPES['.json']);
+      // The hub, asking from this machine, also gets what it needs to list and stop this server.
+      // (Addressed to 127.0.0.1 by name, as in the check below, so a DNS-rebinding page can't read it.)
+      const asker = req.socket.remoteAddress?.replace(/^::ffff:/, '') || '';
+      const named = ['127.0.0.1', 'localhost'].includes((req.headers.host || '').replace(/:\d+$/, ''));
+      const more = isLoopback(asker) && named ? { pid: process.pid, page: planPath, started, idle: Math.floor((performance.now() - lastActive) / 1000), network } : {};
+      return send(res, 200, JSON.stringify({ app: 'plan-maker', planHash, ...more }), TYPES['.json']);
     }
     // Loopback: only requests addressed to this machine by name (blocks DNS rebinding).
     // Network mode: anything else must carry the key (rebinding pages never have it).
@@ -162,6 +181,8 @@ async function handle(req, res) {
       }
       if (!keyMatches(readCookie(req, cookie))) return send(res, 403, 'forbidden: open the network URL this server printed (it carries ?key=)');
     }
+    lastActive = performance.now();
+    if (url.pathname === '/api/ping') return send(res, 204, '');
     // A relative link from one version page to another ("versions/v1" from
     // /versions/v2) resolves to /versions/versions/v1: treat it as /versions/v1.
     const path = decodeURIComponent(url.pathname).replace(/^(\/versions)+\//, '/versions/');
@@ -315,6 +336,9 @@ async function handle(req, res) {
     send(res, err instanceof SyntaxError ? 400 : 500, String(err.message || err));
   }
 }
+// performance.now() stops while the machine sleeps, so a night's sleep isn't counted as idle.
+let lastActive = performance.now();
+const started = new Date().toISOString();
 const server = createServer(handle);
 const loopbackServer = network && !wildcard ? createServer(handle) : null;
 let boundPort = null;
@@ -371,6 +395,7 @@ async function listen(p, triesLeft) {
     process.exit(1);
   }
   boundPort = p;
+  writeRecord({ pid: process.pid, port: p, page: planPath, started });
   const url = `http://${local}:${p}/`;
   if (p !== port) console.log(`plan-maker: port ${port} is busy, using ${p}`);
   console.log(`plan-maker: reviewing ${config.plan}${network ? ' (network mode)' : ''}\n  open  → ${url}\n  notes → ${config.notesPath}`);
@@ -386,14 +411,29 @@ async function listen(p, triesLeft) {
   }
   console.log('Ctrl-C to stop.');
   if (open) openBrowser(url);
+  if (idleHours > 0) {
+    const idleMs = idleHours * 3600e3;
+    setInterval(() => {
+      if (performance.now() - lastActive < idleMs) return;
+      console.log(`plan-maker: no tab has had ${config.plan} open for ${idleHours} hours: stopping. Open it from the hub to start it again.`);
+      shutdown();
+    }, Math.min(60e3, idleMs / 4)).unref();
+  }
 }
 listen(port, PORT_TRIES);
 
-for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => {
+function shutdown() {
   if (network) try { unlinkSync(runFile); } catch {}
+  removeRecord();
   loopbackServer?.close();
   server.close(() => process.exit(0));
-});
+  // Open keep-alive connections would hold close() up: don't wait for them.
+  server.closeAllConnections?.();
+  loopbackServer?.closeAllConnections?.();
+  setTimeout(() => process.exit(0), 1000).unref();
+}
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, shutdown);
+process.on('exit', () => removeRecord());
 
 // ---------- helpers ----------
 /** "tailnet,192.168.1.0/24" → [{label, test(addr)}]. Exits on anything it can't read. */

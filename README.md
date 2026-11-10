@@ -50,6 +50,7 @@ Every page Claude writes is registered in one list across all your projects: `~/
 - **The sidebar** lists your projects, each with its pages underneath, marked plan, guide or reference. A guide made from a plan sits under it. Anything waiting on you comes first, then the rest by most recent. A filter shows all, or just plans, guides or references.
 - **The opening view** is everything waiting on you, across every project: pages to review, decisions to answer, notes and guide requests to hand back to Claude, your steps left ("3 of your steps left: Point DNS at Cloudflare"), and references gone out of date.
 - **A selected page** is the page itself, live, with its status (which you can change) and progress in its own top bar.
+- **Running servers** lists every review server on this machine: its page, project and port, and whether a tab has it open. Orphans (a page that was deleted or moved, a second server for the same page) are flagged, and **Stop** works on one server, on the orphans, or on everything not in use. Servers also stop themselves after 12 hours with no tab open, and opening a page from the hub starts its server again.
 
 Already have pages? Say **"register my plans"** in a project: Claude finds every plan-maker page under it, then fills in each one's goal and description.
 
@@ -116,7 +117,7 @@ The scripts work on their own:
 
 ```bash
 # Review any HTML file. Notes go to notes.json beside it.
-node scripts/review.mjs path/to/plan.html [--port 4478] [--host 127.0.0.1] [--trust tailnet] [--no-open]
+node scripts/review.mjs path/to/plan.html [--port 4478] [--host 127.0.0.1] [--trust tailnet] [--idle-hours 12] [--no-open]
 
 # Save the live plan as versions/v<N>.html and move its notes beside it.
 # Never overwrites an existing snapshot.
@@ -136,6 +137,8 @@ node scripts/bundle.mjs path/to/plan.html [-o out.html] [--with-notes] [--all-ve
 ```
 
 The server binds to 127.0.0.1 by default. If port 4478 is taken it tries the next 19, then any free port. If a server is already serving the same plan, it prints that URL and exits. It reads the plan fresh on every load, so a reload shows Claude's edits.
+
+While it runs, a server keeps a record in `~/.plan-maker/servers/` so the hub can list and stop it. An open tab pings it once a minute. After `--idle-hours` (or `PLAN_MAKER_IDLE_HOURS`; default 12, `0` for never) with no tab open, it stops itself. Time the computer spends asleep doesn't count.
 
 **Reviewing from another device.** `--host 0.0.0.0` listens on every interface (Wi-Fi, Ethernet, a VPN such as Tailscale), and `--host <address>` listens on just one. Set `PLAN_MAKER_HOST` in your shell profile to make it the default on that machine. Beyond loopback the server prints a URL for each address with a `?key=` that changes every run. Opening it once stores the key in a cookie. Requests without the key get 403, which also covers DNS rebinding. This machine still reaches `http://127.0.0.1:<port>/` without the key.
 
@@ -242,7 +245,7 @@ npm test             # end-to-end tests in Chrome
 npm run screenshot   # regenerates the screenshots in docs/
 ```
 
-The tests drive the system Chrome (`/Applications/Google Chrome.app/…` on macOS; set `CHROME_PATH` elsewhere). They cover: selecting text and saving a note, highlights restored after a reload, comments on blocks and sections, questions, general notes, your steps and Claude's with both lanes, decisions, the server's host, content-type and path checks, reusing a running server, no horizontal scroll at phone width, no console errors, ids assigned to plain HTML, and the standalone bundle. For versions: snapshots (and refusing to overwrite one), the switcher, an old version read-only with its notes and disabled controls, a stale tab unable to save, the current version still saving, links between versions, an older page with its own review script, and `bundle --all-versions`. For kinds: the three templates sharing one style block, each kind's top bar, statuses and progress, phases following their guide, Make a guide and More detail, the links between a plan and its guides (on the server and in bundles), stale references, the hub's nesting and filter, and plans from before kinds still working (`test/fixtures/steps-plan.html`).
+The tests drive the system Chrome (`/Applications/Google Chrome.app/…` on macOS; set `CHROME_PATH` elsewhere). They cover: selecting text and saving a note, highlights restored after a reload, comments on blocks and sections, questions, general notes, your steps and Claude's with both lanes, decisions, the server's host, content-type and path checks, reusing a running server, no horizontal scroll at phone width, no console errors, ids assigned to plain HTML, and the standalone bundle. For versions: snapshots (and refusing to overwrite one), the switcher, an old version read-only with its notes and disabled controls, a stale tab unable to save, the current version still saving, links between versions, an older page with its own review script, and `bundle --all-versions`. For kinds: the three templates sharing one style block, each kind's top bar, statuses and progress, phases following their guide, Make a guide and More detail, the links between a plan and its guides (on the server and in bundles), stale references, the hub's nesting and filter, and plans from before kinds still working (`test/fixtures/steps-plan.html`). For running servers: the record a server keeps, stopping itself when idle (and not while a tab pings it), reuse on any port, the hub's list, orphans and Stop, and the page saying when its server has stopped. These tests set `PLAN_MAKER_SCAN=off` so the hub only sees their own servers, never yours.
 
 ## License
 

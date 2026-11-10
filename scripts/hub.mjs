@@ -11,14 +11,17 @@
 //   GET   /api/entries       every entry, with live progress
 //   PATCH /api/entries/<id>  change status, next, goal, name, description; {log} appends a progress line
 //   GET   /open/<id>         start or reuse the review server for that page, then redirect to it
+//   GET   /api/servers       every review server running on this machine, and which are orphans
+//   POST  /api/servers/stop  stop some: { servers: [{ port, planHash }] }
 
 import { spawn } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createServer, get } from 'node:http';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startReview } from '../lib/launch.mjs';
-import { describe, find, load, registryPath, save, upsert } from '../lib/registry.mjs';
+import { describe, find, load, projectOf, readPage, registryPath, save, upsert } from '../lib/registry.mjs';
+import { classify, running, stop } from '../lib/servers.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const PAGE = join(here, '..', 'lib', 'hub.html');
@@ -121,11 +124,44 @@ async function handle(req, res) {
       res.writeHead(302, { location: target, 'cache-control': 'no-store' });
       return res.end();
     }
+    if (url.pathname === '/api/servers' && req.method === 'GET') return json(res, 200, { servers: await servers() });
+    if (url.pathname === '/api/servers/stop' && req.method === 'POST') {
+      if (!(req.headers['content-type'] || '').startsWith('application/json')) return send(res, 415, 'expected JSON');
+      const list = JSON.parse(await readBody(req))?.servers;
+      if (!Array.isArray(list)) return send(res, 400, 'expected { servers: [{ port, planHash }] }');
+      const results = await Promise.all(list.map(async ({ port, planHash }) => {
+        if (!Number.isInteger(port)) return { port, error: 'no port' };
+        try {
+          return await stop(port, planHash);
+        } catch (err) {
+          return { port, error: err.message };
+        }
+      }));
+      return json(res, 200, { results, servers: await servers() });
+    }
     if (url.pathname === '/favicon.ico') return send(res, 204, '');
     send(res, 404, 'not found');
   } catch (err) {
     send(res, err instanceof SyntaxError ? 400 : 500, String(err.message || err));
   }
+}
+
+/** Running review servers, each with its page's registry entry (or name and project, when it has none). */
+async function servers() {
+  const reg = load();
+  return classify(await running()).map((s) => {
+    const e = s.page ? find(reg, s.page) : null;
+    const proj = s.page ? e?.projectPath || projectOf(s.page) : null;
+    let name = e?.name || null, kind = null;
+    if (s.page && existsSync(s.page)) {
+      try {
+        const page = readPage(s.page);
+        name ||= page.title || null;
+        kind = page.kind;
+      } catch {}
+    }
+    return { ...s, id: e?.id || null, kind, name, project: proj && basename(proj), shown: proj && relative(proj, s.page) };
+  });
 }
 
 const server = createServer(handle);

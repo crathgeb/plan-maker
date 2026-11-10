@@ -27,6 +27,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/review.mjs" <plan path> [--port N] [--host A
 - Default port 4478; if it's taken it uses the next free one and prints the URL.
 - To review from another device (a phone, a tablet, another computer on the network or a VPN), add `--host 0.0.0.0`, or `--host <one address>` to limit it to one network. The server then prints a `net →` URL per address, each carrying a `?key=` that changes every run. Give the user the URL for the network they're on. Without the key, other devices get 403. If `PLAN_MAKER_HOST` or `PLAN_MAKER_TRUST` is set, the user has chosen defaults; don't override them. `--trust tailnet` (devices on their Tailscale network need no key) is only for users who say they use Tailscale.
 - If a server is already serving this plan, it prints that server's URL, opens it and exits. Run the command again whenever you're unsure whether the server is up.
+- A server with no tab open for 12 hours stops itself (`--idle-hours`, `0` for never), and the page then says "the review server stopped". Run the command again. To see or stop every running server, the hub has **Running servers**.
 - Earlier versions (`versions/v<N>.html`) open read-only at `/versions/v<N>`, with the notes written on them. The version switcher in the top bar lists them all.
 - Links between pages work from the page itself: a plan's phase opens its guide, and a guide's "Part of" line opens its plan, each on its own review server, started on demand.
 

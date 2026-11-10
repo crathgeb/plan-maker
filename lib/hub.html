@@ -54,7 +54,35 @@ nav.toc.side { position: sticky; top: 0; align-self: start; height: 100vh; max-h
 .kinds-filter button[aria-pressed="true"] { background: var(--paper); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(31, 35, 40, .1); }
 .w-plan h3 .kind-chip { display: inline-flex; align-items: center; height: 20px; margin-left: 8px; padding: 0 7px; border-radius: 6px; background: var(--paper); box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); font: 600 11.5px/1 var(--sans); vertical-align: 2px; }
 .row .ico { flex: none; width: 16px; height: 16px; color: var(--ink-2); }
-.waiting-all { margin-bottom: 8px; }
+.waiting-all { margin-bottom: 2px; }
+.servers-row { margin-bottom: 8px; }
+.servers-row .count, .servers-row .count.zero { background: var(--paper-2); color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line-2); }
+.servers-row .count.warn { background: var(--paper); color: var(--warn); box-shadow: inset 0 0 0 1px var(--warn); }
+/* running servers: one row per server, its state, and Stop */
+.srv-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 0; }
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); font: 600 13.5px var(--sans); cursor: pointer; white-space: nowrap; }
+.btn:hover { background: var(--paper-2); }
+.btn:disabled { opacity: .55; cursor: default; }
+.btn.small { height: 28px; padding: 0 10px; font-size: 13px; }
+.srv-list { list-style: none; margin: 0; padding: 0; }
+.srv { max-width: none; margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: center; padding: 14px 0; border-top: 1px solid var(--line-2); }
+.srv:first-child { border-top: 0; }
+.srv .srv-name { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 600; color: var(--ink); }
+.srv .srv-name span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.srv .kind { flex: none; width: 14px; height: 14px; background: var(--muted); -webkit-mask: var(--k-plan) center / contain no-repeat; mask: var(--k-plan) center / contain no-repeat; }
+.srv .kind[data-k="guide"] { -webkit-mask-image: var(--k-guide); mask-image: var(--k-guide); }
+.srv .kind[data-k="reference"] { -webkit-mask-image: var(--k-reference); mask-image: var(--k-reference); }
+.srv .srv-meta { grid-column: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 13px; color: var(--muted); }
+.srv .srv-meta code { font-size: 12.5px; overflow-wrap: anywhere; }
+.srv .srv-meta a { color: inherit; }
+.srv .btn { grid-column: 2; grid-row: 1 / span 2; }
+.state { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+.state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.state[data-s="open"]::before { background: var(--good); }
+.state[data-s="orphan"] { color: var(--warn); font-weight: 600; }
+.state[data-s="orphan"]::before { background: var(--warn); }
+.state[data-s="older"]::before { background: none; box-shadow: inset 0 0 0 1.5px var(--muted); }
+@media (max-width: 720px) { .srv { grid-template-columns: minmax(0, 1fr); } .srv .btn { grid-column: 1; grid-row: auto; justify-self: start; } }
 .count { flex: none; display: inline-grid; place-items: center; min-width: 22px; height: 20px; padding: 0 7px; border-radius: 999px; background: var(--you-tint); color: var(--you-ink); box-shadow: inset 0 0 0 1px var(--you-line); font: 700 11.5px/1 var(--sans); font-variant-numeric: tabular-nums; }
 .count.zero { background: var(--paper-2); color: var(--muted); box-shadow: inset 0 0 0 1px var(--line-2); }
 /* collapsible project groups */
@@ -188,6 +216,7 @@ html.side-collapsed .waiting-all .count { min-width: 20px; height: 18px; padding
       <div class="find"><input type="search" id="q" placeholder="Search" aria-label="Search plans, guides and references"></div>
       <div class="kinds-filter" role="group" aria-label="Show"><button type="button" data-kind="" aria-pressed="true">All</button><button type="button" data-kind="plan" aria-pressed="false">Plans</button><button type="button" data-kind="guide" aria-pressed="false">Guides</button><button type="button" data-kind="reference" aria-pressed="false">References</button></div>
       <button type="button" class="row waiting-all" data-sel="" aria-current="true"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2 9.5 4 3h8l2 6.5V13H2z"/><path d="M2 9.5h3.5l1 1.5h3l1-1.5H14"/></svg><span class="name">Waiting on you</span><span class="count" id="wcount">0</span></button>
+      <button type="button" class="row servers-row" data-sel="servers" aria-current="false"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="4.5" rx="1.2"/><rect x="2" y="9" width="12" height="4.5" rx="1.2"/><path d="M4.8 4.75h.01M4.8 11.25h.01" stroke-linecap="round" stroke-width="2"/></svg><span class="name">Running servers</span><span class="count zero" id="scount">0</span></button>
       <div id="projects"></div>
       <div class="side-foot" id="done"></div>
     </div>
@@ -208,6 +237,7 @@ const OUT = '<svg viewBox="0 0 11 11" aria-hidden="true"><path d="M3 1h7v7M10 1 
 const CARET = '<svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
 
 let entries = [];
+let servers = null; // null until the first answer from /api/servers
 const view = { q: '', kind: '', collapsed: { '__done': true } };
 try { view.kind = localStorage.getItem('pm-hub-kind') || ''; } catch {}
 try { Object.assign(view.collapsed, JSON.parse(localStorage.getItem('pm-hub-collapsed') || '{}')); } catch {}
@@ -291,7 +321,15 @@ function renderSide() {
     el.textContent = waitingTotal;
     el.classList.toggle('zero', !waitingTotal);
   }
-  $('.waiting-all').setAttribute('aria-current', String(!sel || !entries.some((e) => e.id === sel)));
+  $('.waiting-all').setAttribute('aria-current', String(sel !== 'servers' && (!sel || !entries.some((e) => e.id === sel))));
+  $('.servers-row').setAttribute('aria-current', String(sel === 'servers'));
+  if (servers) {
+    const orphans = servers.filter((s) => s.orphan).length;
+    const c = $('#scount');
+    c.textContent = servers.length;
+    c.classList.toggle('warn', orphans > 0);
+    $('.servers-row').title = `${plural(servers.length, 'review server')} running${orphans ? `, ${orphans} orphaned` : ''}`;
+  }
   if (focusedId) $(`#projects .row[data-sel="${focusedId}"]`)?.focus();
 }
 
@@ -333,13 +371,80 @@ function renderPlan(e) {
     : `<iframe class="plan-frame" src="/open/${e.id}" title="${esc(e.name)}"></iframe>`;
 }
 
+// ---------- running servers ----------
+function idleText(sec) {
+  if (sec < 3600) return `${Math.max(1, Math.round(sec / 60))} min`;
+  if (sec < 86400) return `${Math.round(sec / 3600)} h`;
+  return plural(Math.round(sec / 86400), 'day');
+}
+function serverState(s) {
+  if (s.why.includes('missing')) return ['orphan', 'Page deleted or moved'];
+  if (s.why.includes('duplicate')) return ['orphan', 'Duplicate: another server has this page'];
+  if (s.older) return ['older', 'Older version: can’t tell if a tab is open'];
+  if (s.unused) return ['idle', `No tab open · idle ${idleText(s.idle)}`];
+  return ['open', 'Open in a tab'];
+}
+const ref = (s) => ({ port: s.port, planHash: s.planHash });
+function renderServers() {
+  document.title = 'Running servers · Your work';
+  const sheet = $('#sheet');
+  if (!servers) {
+    sheet.innerHTML = `<header class="hero"><h1>Running servers</h1><p class="lede">Looking…</p></header>`;
+    return;
+  }
+  const orphans = servers.filter((s) => s.orphan), unused = servers.filter((s) => s.orphan || s.unused), older = servers.filter((s) => s.older);
+  const btn = (key, label, list) => (list.length ? `<button type="button" class="btn" data-stop="${key}">${label} (${list.length})</button>` : '');
+  const row = (s) => {
+    const [st, label] = serverState(s);
+    const name = s.name || (s.page ? s.shown : 'Unknown page');
+    return `<li class="srv"><div class="srv-name">${s.kind ? `<span class="kind" data-k="${esc(s.kind)}" aria-hidden="true"></span>` : ''}<span>${esc(name)}</span></div>
+      <div class="srv-meta"><span class="state" data-s="${st}">${esc(label)}</span>${s.project ? `<span>${esc(s.project)}</span>` : ''}${s.page ? `<code>${esc(s.shown)}</code>` : ''}<a href="http://127.0.0.1:${s.port}/" target="_blank" rel="noopener">port ${s.port}</a>${s.network ? '<span>network mode</span>' : ''}</div>
+      <button type="button" class="btn small" data-stop-port="${s.port}" aria-label="Stop the server for ${esc(name)}">Stop</button></li>`;
+  };
+  sheet.innerHTML = `<header class="hero"><h1>Running servers</h1>
+      <p class="lede">${servers.length ? `${plural(servers.length, 'review server')} running on this machine, one per open page.` : 'No review servers are running.'} A server stops itself after 12 hours with no tab open, and opening a page from here starts it again.</p>
+      ${servers.length ? `<div class="srv-actions">${btn('orphans', 'Stop orphans', orphans)}${btn('unused', 'Stop the ones not in use', unused)}${btn('older', 'Stop older servers', older)}</div>` : ''}</header>
+    ${servers.length ? `<section class="sec"><h2>By page</h2><ul class="srv-list">${servers.map(row).join('')}</ul>
+      ${older.length ? `<p class="meta">Older servers were started before plan-maker could tell whether a tab is open. If you stop one that’s open, open its page again from here.</p>` : ''}</section>` : ''}`;
+  stopSets = { orphans, unused, older };
+}
+let stopSets = {};
+async function loadServers() {
+  try {
+    const r = await fetch('/api/servers', { cache: 'no-store' });
+    servers = (await r.json()).servers;
+  } catch {
+    return;
+  }
+  renderSide();
+  if (selected() === 'servers') renderServers();
+}
+async function stopServers(list, buttons) {
+  if (!list.length) return;
+  buttons.forEach((b) => (b.disabled = true));
+  try {
+    const r = await fetch('/api/servers/stop', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ servers: list.map(ref) }) });
+    const j = await r.json();
+    servers = j.servers;
+    const failed = j.results.filter((x) => x.error);
+    const done = j.results.length - failed.length;
+    toast(failed.length ? `Stopped ${done}. ${failed.length} didn’t stop: ${failed[0].error}` : `Stopped ${plural(done, 'server')}`);
+  } catch {
+    toast('Couldn’t reach the hub');
+  }
+  renderSide();
+  if (selected() === 'servers') renderServers();
+}
+
 function renderMain() {
   if (document.activeElement?.matches?.('select.status')) return;
-  const e = entries.find((x) => x.id === selected());
+  const sel = selected();
+  const e = entries.find((x) => x.id === sel);
   if (e) return renderPlan(e);
   const sheet = $('#sheet');
   sheet.classList.remove('embed');
   delete sheet.dataset.embed;
+  if (sel === 'servers') return renderServers();
   renderWaiting();
 }
 
@@ -358,6 +463,7 @@ function select(id) {
 }
 
 async function load() {
+  loadServers();
   try {
     const r = await fetch('/api/entries', { cache: 'no-store' });
     entries = (await r.json()).entries;
@@ -383,6 +489,11 @@ document.addEventListener('click', async (ev) => {
     try { localStorage.setItem('pm-hub-kind', view.kind); } catch {}
     renderSide();
     return;
+  }
+  const sb = ev.target.closest('[data-stop], [data-stop-port]');
+  if (sb && servers) {
+    const list = sb.dataset.stop ? stopSets[sb.dataset.stop] || [] : servers.filter((s) => String(s.port) === sb.dataset.stopPort);
+    return stopServers(list, [sb]);
   }
   const sel = ev.target.closest('[data-sel]');
   if (sel) return select(sel.dataset.sel);
