@@ -36,7 +36,7 @@ async function draw(page, shape, from, to = from) {
 describe('steps and lanes on the plan template', () => {
   let server, files, page;
   before(async () => {
-    files = planCopy(join(repo, 'templates/plan.html'));
+    files = planCopy(join(repo, 'test/fixtures/steps-plan.html'));
     server = await startServer(files.plan);
     page = await newPage(browser, errors);
     await open(page, server.url);
@@ -139,7 +139,7 @@ describe('steps and lanes on the plan template', () => {
 
 describe('Claude\'s status on its steps', () => {
   test('data-status sets the mark and counts toward Claude\'s lane', async () => {
-    const files = planCopy(join(repo, 'templates/plan.html'));
+    const files = planCopy(join(repo, 'test/fixtures/steps-plan.html'));
     writeFileSync(files.plan, readFileSync(files.plan, 'utf8')
       .replace('data-id="s2-scaffold" data-who="claude" data-status="todo"', 'data-id="s2-scaffold" data-who="claude" data-status="done"')
       .replace('data-id="s3-convert" data-who="claude" data-status="todo"', 'data-id="s3-convert" data-who="claude" data-status="doing"'));
@@ -175,7 +175,7 @@ describe('a plan-maker 0.2 guide still works', () => {
 describe('drawings on a plan', () => {
   let server, files, page;
   before(async () => {
-    files = planCopy(join(repo, 'templates/plan.html'));
+    files = planCopy(join(repo, 'test/fixtures/steps-plan.html'));
     server = await startServer(files.plan);
     page = await newPage(browser, errors);
     await open(page, server.url);

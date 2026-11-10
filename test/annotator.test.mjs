@@ -20,7 +20,7 @@ after(async () => {
 describe('template plan through the review server', () => {
   let server, files, page;
   before(async () => {
-    files = planCopy(join(repo, 'templates/plan.html'));
+    files = planCopy(join(repo, 'test/fixtures/steps-plan.html'));
     server = await startServer(files.plan);
     page = await newPage(browser, errors);
     await open(page, server.url);
@@ -185,7 +185,7 @@ describe('plain HTML with no data-ids', () => {
 
 describe('standalone bundle', () => {
   test('opens from disk, saves in the browser and offers a download', async () => {
-    const files = planCopy(join(repo, 'templates/plan.html'));
+    const files = planCopy(join(repo, 'test/fixtures/steps-plan.html'));
     const out = join(files.dir, 'shared.html');
     execFileSync(process.execPath, [join(repo, 'scripts/bundle.mjs'), files.plan, '-o', out], { cwd: files.dir });
     const html = readFileSync(out, 'utf8');

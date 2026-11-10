@@ -25,7 +25,7 @@ function call(host, port, opts = {}, body) {
 describe('network mode on every interface (--host 0.0.0.0)', { skip: !lan && 'no network interface' }, () => {
   let server, files, port, key;
   before(async () => {
-    files = planCopy(join(repo, 'templates/plan.html'));
+    files = planCopy(join(repo, 'test/fixtures/steps-plan.html'));
     server = await startServer(files.plan, ['--host', '0.0.0.0']);
     port = Number(new URL(server.url).port);
     // The network lines print just after the "open →" line the helper waits for.
@@ -80,7 +80,7 @@ describe('network mode on every interface (--host 0.0.0.0)', { skip: !lan && 'no
 describe('loopback stays the default', () => {
   let server;
   before(async () => {
-    server = await startServer(planCopy(join(repo, 'templates/plan.html')).plan);
+    server = await startServer(planCopy(join(repo, 'test/fixtures/steps-plan.html')).plan);
   });
   after(() => server?.stop());
 
@@ -93,7 +93,7 @@ describe('trusted networks skip the key (--trust)', { skip: !lan && 'no network 
   let server, port;
   before(async () => {
     // Trust exactly this machine's LAN address, so requests sent to it count as "from a trusted network".
-    server = await startServer(planCopy(join(repo, 'templates/plan.html')).plan, ['--host', '0.0.0.0', '--trust', `${lan}/32`]);
+    server = await startServer(planCopy(join(repo, 'test/fixtures/steps-plan.html')).plan, ['--host', '0.0.0.0', '--trust', `${lan}/32`]);
     port = Number(new URL(server.url).port);
     for (let i = 0; i < 40 && !/Ctrl-C/.test(server.output()); i++) await new Promise((r) => setTimeout(r, 50));
   });
@@ -115,14 +115,14 @@ describe('trusted networks skip the key (--trust)', { skip: !lan && 'no network 
   });
 
   test('a bad --trust value is rejected at startup', async () => {
-    await assert.rejects(startServer(planCopy(join(repo, 'templates/plan.html')).plan, ['--host', '0.0.0.0', '--trust', 'office']));
+    await assert.rejects(startServer(planCopy(join(repo, 'test/fixtures/steps-plan.html')).plan, ['--host', '0.0.0.0', '--trust', 'office']));
   });
 });
 
 describe('one network address (--host <ip>) still answers on localhost', { skip: !lan && 'no network interface' }, () => {
   let server, port;
   before(async () => {
-    server = await startServer(planCopy(join(repo, 'templates/plan.html')).plan, ['--host', lan]);
+    server = await startServer(planCopy(join(repo, 'test/fixtures/steps-plan.html')).plan, ['--host', lan]);
     port = Number(new URL(server.url).port);
     for (let i = 0; i < 40 && !/Ctrl-C/.test(server.output()); i++) await new Promise((r) => setTimeout(r, 50));
   });

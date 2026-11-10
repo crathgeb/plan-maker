@@ -36,7 +36,7 @@ function httpGet(url, path) {
 describe('versions of a plan', () => {
   let files, server, page;
   before(async () => {
-    files = planCopy(join(repo, 'templates/plan.html'));
+    files = planCopy(join(repo, 'test/fixtures/steps-plan.html'));
     server = await startServer(files.plan);
     page = await newPage(browser, expected); // this tab sees a refused save later
     await open(page, server.url);
@@ -196,7 +196,7 @@ describe('versions of a plan', () => {
 describe('an earlier version that carries its own review script', () => {
   let server, files;
   before(async () => {
-    files = planCopy(join(repo, 'templates/plan.html'));
+    files = planCopy(join(repo, 'test/fixtures/steps-plan.html'));
     writeV2(files.plan);
     mkdirSync(join(files.dir, 'versions'));
     copyFileSync(join(repo, 'test/fixtures/legacy-v1.html'), join(files.dir, 'versions/v1.html'));

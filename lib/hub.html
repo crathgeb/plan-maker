@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Your plans</title>
+<title>Your plans, guides and references</title>
 <!-- plan-styles -->
 <style>
 /* Hub-only layout. Everything else (tokens, pages, step cards, the timeline, chips,
@@ -34,6 +34,25 @@ nav.toc.side { position: sticky; top: 0; align-self: start; height: 100vh; max-h
 .row .dot[data-s="in-progress"] { background: var(--good); }
 .row .dot[data-s="blocked"] { background: var(--warn); }
 .row .dot[data-s="done"], .row .dot[data-s="archived"] { background: var(--line); }
+.row .dot[data-s="not-started"] { background: none; box-shadow: inset 0 0 0 1.5px var(--ink-2); }
+.row .dot[data-s="current"] { background: var(--good); }
+/* the page's kind, as a small icon before its name: plan, guide, reference */
+.row .kind { flex: none; width: 14px; height: 14px; background: var(--muted); -webkit-mask: var(--k-plan) center / contain no-repeat; mask: var(--k-plan) center / contain no-repeat; }
+.row .kind[data-k="guide"] { -webkit-mask-image: var(--k-guide); mask-image: var(--k-guide); }
+.row .kind[data-k="reference"] { -webkit-mask-image: var(--k-reference); mask-image: var(--k-reference); }
+:root {
+  --k-plan: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Crect x='2' y='2.5' width='12' height='3' rx='1'/%3E%3Crect x='2' y='6.5' width='8' height='3' rx='1'/%3E%3Crect x='2' y='10.5' width='10' height='3' rx='1'/%3E%3C/svg%3E");
+  --k-guide: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 13.5h3.5V10H9V6.5h3.5V3H14'/%3E%3C/svg%3E");
+  --k-reference: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M3 2.5h7.5L13 5v8.5H3z'/%3E%3Cpath d='M5.5 7h5M5.5 10h5' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+/* a guide made from a plan sits under it, one step in */
+.nav-list .nav-list.kids { margin: 0; padding-left: 14px; border-left: 1px solid var(--line-2); margin-left: 14px; }
+/* the type filter: All, Plans, Guides, References */
+.kinds-filter { display: flex; gap: 2px; margin: 0 0 10px; padding: 2px; border-radius: 8px; background: var(--paper-2); }
+.kinds-filter button { flex: 1 1 auto; min-width: 0; height: 28px; padding: 0 4px; border: 0; border-radius: 6px; background: none; color: var(--ink-2); font: 500 12.5px/1 var(--sans); cursor: pointer; white-space: nowrap; }
+.kinds-filter button:hover { color: var(--ink); }
+.kinds-filter button[aria-pressed="true"] { background: var(--paper); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(31, 35, 40, .1); }
+.w-plan h3 .kind-chip { display: inline-flex; align-items: center; height: 20px; margin-left: 8px; padding: 0 7px; border-radius: 6px; background: var(--paper); box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); font: 600 11.5px/1 var(--sans); vertical-align: 2px; }
 .row .ico { flex: none; width: 16px; height: 16px; color: var(--ink-2); }
 .waiting-all { margin-bottom: 8px; }
 .count { flex: none; display: inline-grid; place-items: center; min-width: 22px; height: 20px; padding: 0 7px; border-radius: 999px; background: var(--you-tint); color: var(--you-ink); box-shadow: inset 0 0 0 1px var(--you-line); font: 700 11.5px/1 var(--sans); font-variant-numeric: tabular-nums; }
@@ -70,7 +89,7 @@ html.side-collapsed .side-collapse .arr { transform: translateX(16px) scaleX(-1)
 html.side-collapsed .desk { grid-template-columns: 56px minmax(0, 1fr); }
 html.side-collapsed nav.toc.side { padding: 12px 8px; align-items: center; }
 html.side-collapsed .side .toc-title { justify-content: center; margin: 0 0 10px; }
-html.side-collapsed .side .title-text, html.side-collapsed .find, html.side-collapsed #projects, html.side-collapsed #done, html.side-collapsed .waiting-all .name { display: none; }
+html.side-collapsed .side .title-text, html.side-collapsed .find, html.side-collapsed .kinds-filter, html.side-collapsed #projects, html.side-collapsed #done, html.side-collapsed .waiting-all .name { display: none; }
 html.side-collapsed .waiting-all { flex-direction: column; gap: 4px; justify-content: center; width: 40px; padding: 6px 0; }
 html.side-collapsed .waiting-all .count { min-width: 20px; height: 18px; padding: 0 5px; font-size: 10.5px; }
 .embed .hero { margin: 24px; }
@@ -101,6 +120,8 @@ html.side-collapsed .waiting-all .count { min-width: 20px; height: 18px; padding
 .status-wrap[data-s="approved"]::before { background: none; box-shadow: inset 0 0 0 2px var(--good); }
 .status-wrap[data-s="done"]::before, .status-wrap[data-s="archived"]::before { background: var(--line); }
 .status-wrap[data-s="blocked"]::before { background: var(--warn); }
+.status-wrap[data-s="current"]::before { background: var(--good); }
+.status-wrap[data-s="not-started"]::before { background: none; box-shadow: inset 0 0 0 1.5px var(--ink-2); }
 .status-wrap select { appearance: none; -webkit-appearance: none; height: 24px; padding: 0 26px 0 23px; border: 0; border-radius: 999px; background: none; color: var(--ink); font: 600 13px var(--sans); cursor: pointer; }
 .status-wrap svg { position: absolute; right: 9px; width: 9px; height: 6px; color: var(--ink-2); pointer-events: none; }
 
@@ -142,6 +163,7 @@ html.side-collapsed .waiting-all .count { min-width: 20px; height: 18px; padding
   html.side-collapsed .side .toc-title { justify-content: space-between; margin: 0; }
   html.side-collapsed .side .title-text, html.side-collapsed .waiting-all .name { display: inline; }
   html.side-collapsed .find, html.side-collapsed #projects { display: block; }
+  html.side-collapsed .kinds-filter { display: flex; }
   html.side-collapsed .waiting-all { flex-direction: row; width: 100%; padding: 6px 8px 6px 10px; }
   #sheet.embed { height: 82vh; }
   .desk { grid-template-columns: minmax(0, 1fr); }
@@ -159,11 +181,12 @@ html.side-collapsed .waiting-all .count { min-width: 20px; height: 18px; padding
 <body>
 <div class="desk">
   <nav class="toc side" id="side" aria-label="Plans">
-    <div class="toc-title"><span class="title-text">Your plans</span><button type="button" class="side-collapse" id="side-collapse" aria-expanded="true" aria-controls="side-body" title="Collapse the sidebar" aria-label="Collapse the sidebar"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="2.5"/><path d="M6.5 2.5v11"/><path class="arr" d="M11 6.2 9.2 8l1.8 1.8" stroke-linecap="round"/></svg></button>
+    <div class="toc-title"><span class="title-text">Your work</span><button type="button" class="side-collapse" id="side-collapse" aria-expanded="true" aria-controls="side-body" title="Collapse the sidebar" aria-label="Collapse the sidebar"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="2.5"/><path d="M6.5 2.5v11"/><path class="arr" d="M11 6.2 9.2 8l1.8 1.8" stroke-linecap="round"/></svg></button>
       <button type="button" class="side-toggle" id="side-toggle" aria-expanded="false" aria-controls="side-body">All plans <span class="count zero" id="wcount-m" title="Waiting on you">0</span><svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
     </div>
     <div id="side-body">
-      <div class="find"><input type="search" id="q" placeholder="Search plans" aria-label="Search plans"></div>
+      <div class="find"><input type="search" id="q" placeholder="Search" aria-label="Search plans, guides and references"></div>
+      <div class="kinds-filter" role="group" aria-label="Show"><button type="button" data-kind="" aria-pressed="true">All</button><button type="button" data-kind="plan" aria-pressed="false">Plans</button><button type="button" data-kind="guide" aria-pressed="false">Guides</button><button type="button" data-kind="reference" aria-pressed="false">References</button></div>
       <button type="button" class="row waiting-all" data-sel="" aria-current="true"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2 9.5 4 3h8l2 6.5V13H2z"/><path d="M2 9.5h3.5l1 1.5h3l1-1.5H14"/></svg><span class="name">Waiting on you</span><span class="count" id="wcount">0</span></button>
       <div id="projects"></div>
       <div class="side-foot" id="done"></div>
@@ -174,9 +197,10 @@ html.side-collapsed .waiting-all .count { min-width: 20px; height: 18px; padding
 <div class="toast" id="toast" role="status"></div>
 
 <script>
-const STATUSES = ['draft', 'reviewing', 'approved', 'in-progress', 'blocked', 'done', 'archived'];
-const ACTIVE = ['draft', 'reviewing', 'approved', 'in-progress', 'blocked'];
-const LABEL = { draft: 'Draft', reviewing: 'Reviewing', approved: 'Approved', 'in-progress': 'In progress', blocked: 'Blocked', done: 'Done', archived: 'Archived' };
+// lib/kinds.mjs: every status any kind of page can have; done and archived are finished.
+const ACTIVE = ['draft', 'reviewing', 'approved', 'not-started', 'in-progress', 'blocked', 'current'];
+const LABEL = { draft: 'Draft', reviewing: 'Reviewing', approved: 'Approved', 'not-started': 'Not started', 'in-progress': 'In progress', blocked: 'Blocked', current: 'Current', done: 'Done', archived: 'Archived' };
+const KIND = { plan: 'Plan', guide: 'Guide', reference: 'Reference' };
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
@@ -184,7 +208,8 @@ const OUT = '<svg viewBox="0 0 11 11" aria-hidden="true"><path d="M3 1h7v7M10 1 
 const CARET = '<svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
 
 let entries = [];
-const view = { q: '', collapsed: { '__done': true } };
+const view = { q: '', kind: '', collapsed: { '__done': true } };
+try { view.kind = localStorage.getItem('pm-hub-kind') || ''; } catch {}
 try { Object.assign(view.collapsed, JSON.parse(localStorage.getItem('pm-hub-collapsed') || '{}')); } catch {}
 const keep = () => { try { localStorage.setItem('pm-hub-collapsed', JSON.stringify(view.collapsed)); } catch {} };
 const CHEV = '<svg class="chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -218,23 +243,30 @@ function bar(e, cls) {
   return `<span class="${cls}" aria-hidden="true"><i class="y" style="width:${w(y.done)}%"></i><i class="c" style="width:${w(c.done)}%"></i></span>`;
 }
 
-// One line per plan: a status dot, the name, and a count only when it's waiting on you.
-function planRow(e, sel) {
+// One line per page: a status dot, its kind, the name, and a count only when it's waiting on you.
+// A guide made from a plan in the same list sits under that plan.
+function planRow(e, sel, list = []) {
   const status = e.missing ? 'Page missing' : LABEL[e.status] || e.status;
-  const tip = e.waiting.length ? `${status}. ${plural(e.waiting.length, 'thing')} waiting on you.` : status;
+  const kind = KIND[e.kind] || 'Plan';
+  const tip = `${kind}. ${e.waiting.length ? `${status}. ${plural(e.waiting.length, 'thing')} waiting on you.` : status}`;
+  const kids = list.filter((k) => k.parentPath && k.parentPath === e.path);
   return `<li><button type="button" class="row" data-sel="${e.id}" aria-current="${e.id === sel}" title="${esc(tip)}">
-    <span class="dot" data-s="${esc(e.status)}" aria-hidden="true"></span><span class="name">${esc(e.name)}</span>
-    ${e.waiting.length ? `<span class="count">${e.waiting.length}</span>` : ''}<span class="sr-only">${esc(status)}</span></button></li>`;
+    <span class="dot" data-s="${esc(e.status)}" aria-hidden="true"></span><span class="kind" data-k="${esc(e.kind || 'plan')}" aria-hidden="true"></span><span class="name">${esc(e.name)}</span>
+    ${e.waiting.length ? `<span class="count">${e.waiting.length}</span>` : ''}<span class="sr-only">${esc(kind)}, ${esc(status)}</span></button>
+    ${kids.length ? `<ul class="nav-list kids" aria-label="Guides for ${esc(e.name)}">${kids.map((k) => planRow(k, sel, list)).join('')}</ul>` : ''}</li>`;
 }
 function group(key, title, list, sel) {
   const open = !view.collapsed[key];
+  const paths = new Set(list.map((e) => e.path));
+  const top = list.filter((e) => !(e.parentPath && paths.has(e.parentPath)));
   return `<h2><button type="button" class="grp" data-grp="${esc(key)}" aria-expanded="${open}">${CHEV}<span class="grp-name">${esc(title)}</span><span class="n">${list.length}</span></button></h2>
-    <ul class="nav-list"${open ? '' : ' hidden'}>${list.map((e) => planRow(e, sel)).join('')}</ul>`;
+    <ul class="nav-list"${open ? '' : ' hidden'}>${top.map((e) => planRow(e, sel, list)).join('')}</ul>`;
 }
 function renderSide() {
   if ($('#q').value !== view.q) $('#q').value = view.q;
   const q = view.q.trim().toLowerCase();
-  const match = (e) => !q || [e.name, e.goal, e.description, e.project, e.next].join(' ').toLowerCase().includes(q);
+  const match = (e) => (!view.kind || e.kind === view.kind) && (!q || [e.name, e.goal, e.description, e.project, e.next, KIND[e.kind]].join(' ').toLowerCase().includes(q));
+  for (const b of document.querySelectorAll('.kinds-filter button')) b.setAttribute('aria-pressed', String(b.dataset.kind === view.kind));
   const shown = entries.filter((e) => ACTIVE.includes(e.status) && match(e));
   const finished = entries.filter((e) => !ACTIVE.includes(e.status) && match(e));
   shown.sort((a, b) => (b.waiting.length > 0) - (a.waiting.length > 0) || touched(b).localeCompare(touched(a)));
@@ -250,7 +282,7 @@ function renderSide() {
   const focusedId = document.activeElement?.closest?.('#side .row, #side .grp')?.dataset;
   $('#projects').innerHTML = projects.length
     ? projects.map((p) => `<section class="project">${group(p, p, shown.filter((e) => e.project === p), sel)}</section>`).join('')
-    : `<p class="empty-side">${entries.length ? (q ? 'No plans match.' : 'No active plans.') : 'Nothing registered yet.'}</p>`;
+    : `<p class="empty-side">${entries.length ? (q || view.kind ? 'Nothing matches.' : 'Nothing active.') : 'Nothing registered yet.'}</p>`;
   $('#done').innerHTML = finished.length ? `<section class="project done-group">${group('__done', 'Done and archived', finished, sel)}</section>` : '';
   if (focusedId?.sel) $(`#side .row[data-sel="${focusedId.sel}"]`)?.focus();
   else if (focusedId?.grp) $(`#side .grp[data-grp="${CSS.escape(focusedId.grp)}"]`)?.focus();
@@ -264,33 +296,33 @@ function renderSide() {
 }
 
 function renderWaiting() {
-  document.title = 'Waiting on you · Your plans';
+  document.title = 'Waiting on you · Your work';
   if (!entries.length) {
-    $('#sheet').innerHTML = `<header class="hero"><h1>Your plans</h1><p class="lede">Nothing registered yet. Ask Claude for a plan, or say “register my plans” in a project to add the ones you already have.</p></header>`;
+    $('#sheet').innerHTML = `<header class="hero"><h1>Your plans, guides and references</h1><p class="lede">Nothing registered yet. Ask Claude for a plan, a guide or a reference, or say “register my plans” in a project to add the ones you already have.</p></header>`;
     return;
   }
   const waiting = entries.filter((e) => e.waiting.length);
   if (!waiting.length) {
-    $('#sheet').innerHTML = `<header class="hero"><h1>Nothing is waiting on you</h1><p class="lede">Every active plan is with Claude or finished. Pick a plan on the left to see where it stands.</p></header>`;
+    $('#sheet').innerHTML = `<header class="hero"><h1>Nothing is waiting on you</h1><p class="lede">Everything active is with Claude or finished. Pick something on the left to see where it stands.</p></header>`;
     return;
   }
   const projects = [...new Set(waiting.map((e) => e.project))].sort();
   const total = waiting.reduce((n, e) => n + e.waiting.length, 0);
   $('#sheet').innerHTML = `<header class="hero"><h1>Waiting on you</h1>
-      <p class="lede">${plural(total, 'thing')} across ${plural(waiting.length, 'plan')}, in ${plural(projects.length, 'project')}. Open a plan to get on with it.</p></header>
+      <p class="lede">${plural(total, 'thing')} across ${plural(waiting.length, 'page')}, in ${plural(projects.length, 'project')}. Open one to get on with it.</p></header>
     ${projects.map((p) => `<section class="sec"><h2>${esc(p)}</h2><div class="steps">${waiting
       .filter((e) => e.project === p)
       .sort((a, b) => touched(b).localeCompare(touched(a)))
-      .map((e) => `<div class="step w-plan" data-who="you" data-sel="${e.id}"><h3>${esc(e.name)}</h3>
+      .map((e) => `<div class="step w-plan" data-who="you" data-sel="${e.id}"><h3>${esc(e.name)}<span class="kind-chip">${esc(KIND[e.kind] || 'Plan')}</span></h3>
           ${e.waiting.map((w) => `<p class="why">${esc(cap(owned(w.text).text))}</p>`).join('')}
-          <div class="go"><button type="button" class="link-btn open-here" data-sel="${e.id}">Open plan</button></div></div>`)
+          <div class="go"><button type="button" class="link-btn open-here" data-sel="${e.id}">Open ${esc((KIND[e.kind] || 'Plan').toLowerCase())}</button></div></div>`)
       .join('')}</div></section>`).join('')}`;
 }
 
 // A selected plan is the plan itself: its live page in a frame, served by its own review
 // server (started on demand by /open). Its name, status and progress are all in the plan.
 function renderPlan(e) {
-  document.title = `${e.name} · Your plans`;
+  document.title = `${e.name} · Your work`;
   const sheet = $("#sheet");
   sheet.classList.add("embed");
   // Same plan as before (a refresh): never reload the frame under the reader.
@@ -345,6 +377,13 @@ function toast(msg) {
 
 document.addEventListener('click', async (ev) => {
   if (ev.target.closest('a')) return; // Open plan: let the link do its job
+  const kb = ev.target.closest('.kinds-filter button');
+  if (kb) {
+    view.kind = kb.dataset.kind;
+    try { localStorage.setItem('pm-hub-kind', view.kind); } catch {}
+    renderSide();
+    return;
+  }
   const sel = ev.target.closest('[data-sel]');
   if (sel) return select(sel.dataset.sel);
   const g = ev.target.closest('.grp');

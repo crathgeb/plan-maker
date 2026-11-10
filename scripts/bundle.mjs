@@ -9,18 +9,23 @@
 // --all-versions  also write each earlier version (versions/v<N>.html) as
 //                 <out>.v<N>.html, read-only with its notes, linked by the
 //                 version switcher
+// --no-guides     don't bundle a plan's guides. By default each guide a phase
+//                 links to (data-guide) is written as <out>.guide-<name>.html,
+//                 and the plan and its guides link to each other's copies.
 // Default output: <plan-dir>/<name>.review.html
 //
 // Images and stylesheets the plan links to are not inlined.
 
-import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { hasLayer, inject, readLayer } from '../lib/inject.mjs';
+import { readKind, readMeta } from '../lib/kinds.mjs';
+import { guideProgress, linkTarget, readPhases } from '../lib/registry.mjs';
 import { currentVersion, isLegacy, listVersions, readJson } from '../lib/versions.mjs';
 
 function usage(msg) {
   if (msg) console.error(`bundle: ${msg}`);
-  console.error('usage: node bundle.mjs <plan.html> [-o out.html] [--with-notes] [--all-versions]');
+  console.error('usage: node bundle.mjs <plan.html> [-o out.html] [--with-notes] [--all-versions] [--no-guides]');
   process.exit(2);
 }
 
@@ -29,11 +34,13 @@ let planArg = null;
 let out = null;
 let withNotes = false;
 let allVersions = false;
+let guides = true;
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
   if (a === '-o' || a === '--out') out = argv[++i];
   else if (a === '--with-notes') withNotes = true;
   else if (a === '--all-versions') allVersions = true;
+  else if (a === '--no-guides') guides = false;
   else if (a === '-h' || a === '--help') usage();
   else if (a.startsWith('-')) usage(`unknown option ${a}`);
   else if (!planArg) planArg = a;
@@ -64,6 +71,36 @@ if (withNotes) {
 
 const layer = readLayer();
 const written = [outPath];
+mkdirSync(dirname(outPath), { recursive: true });
+
+// A plan's guides travel with it: each one bundled beside the plan, linked both ways.
+if (guides && readKind(html) === 'plan') {
+  const links = {};
+  const phases = {};
+  for (const p of readPhases(html)) {
+    const target = p.guide && linkTarget(planPath, p.guide);
+    if (!target || !existsSync(target)) continue;
+    const g = guideProgress(target);
+    const file = outPath.replace(/(\.html?)?$/i, `.guide-${basename(dirname(target))}.html`);
+    const ghtml = readFileSync(target, 'utf8');
+    const gcfg = {
+      mode: 'standalone',
+      plan: posix(relative(process.cwd(), target)),
+      notesPath: posix(relative(process.cwd(), join(dirname(target), 'notes.json'))),
+      version: currentVersion(target, ghtml),
+      // the guide's way back: its pm-parent href → the plan's bundled copy
+      links: { [readMeta(ghtml, 'pm-parent') || '']: basename(outPath) },
+      linkInfo: { phases: {}, parent: { href: readMeta(ghtml, 'pm-parent'), exists: true, name: html.match(/<title>([\s\S]*?)<\/title>/i)?.[1]?.trim() || null, phase: p.title } },
+    };
+    if (withNotes && existsSync(join(dirname(target), 'notes.json'))) gcfg.notes = readJson(join(dirname(target), 'notes.json'));
+    writeFileSync(file, inject(ghtml, gcfg, layer));
+    written.push(file);
+    links[p.guide] = basename(file);
+    phases[p.id] = { href: p.guide, exists: true, name: g.name, you: g.you, claude: g.claude, done: g.done };
+  }
+  config.links = links;
+  config.linkInfo = { phases, parent: null };
+}
 if (allVersions) {
   const versions = listVersions(planPath);
   const fileFor = (v) => (v.current ? outPath : outPath.replace(/(\.html?)?$/i, `.v${v.version}.html`));

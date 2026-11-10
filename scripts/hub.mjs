@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// The plan hub: one page listing every registered plan and guide, with their
-// goal, status and live progress. Node built-ins only. Loopback only.
+// The hub: one page listing every registered plan, guide and reference, with
+// their goal, status and live progress. Node built-ins only. Loopback only.
 //
 //   node hub.mjs [--port 4477] [--no-open]
 //
@@ -13,11 +13,12 @@
 //   GET   /open/<id>         start or reuse the review server for that page, then redirect to it
 
 import { spawn } from 'node:child_process';
-import { closeSync, mkdirSync, openSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { createServer, get } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, find, home, load, registryPath, save, upsert } from '../lib/registry.mjs';
+import { startReview } from '../lib/launch.mjs';
+import { describe, find, load, registryPath, save, upsert } from '../lib/registry.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const PAGE = join(here, '..', 'lib', 'hub.html');
@@ -28,11 +29,11 @@ function hubPage() {
   const html = readFileSync(PAGE, 'utf8');
   let style = '';
   try {
-    style = readFileSync(TEMPLATE, 'utf8').match(/<style>[\s\S]*?<\/style>/)?.[0] || '';
+    // The template's own style element: on a line of its own, after its head comment.
+    style = readFileSync(TEMPLATE, 'utf8').match(/^<style>$[\s\S]*?^<\/style>$/m)?.[0] || '';
   } catch {}
   return html.replace('<!-- plan-styles -->', () => style);
 }
-const REVIEW = join(here, 'review.mjs');
 const HOST = '127.0.0.1';
 const DEFAULT_PORT = 4477;
 const PORT_TRIES = 20; // 4477 downward, clear of the review servers' 4478 upward
@@ -116,7 +117,7 @@ async function handle(req, res) {
     if (o && req.method === 'GET') {
       const e = find(load(), o[1]);
       if (!e) return send(res, 404, 'not registered');
-      const target = await startReview(e);
+      const { url: target } = await startReview(e.path);
       res.writeHead(302, { location: target, 'cache-control': 'no-store' });
       return res.end();
     }
@@ -125,34 +126,6 @@ async function handle(req, res) {
   } catch (err) {
     send(res, err instanceof SyntaxError ? 400 : 500, String(err.message || err));
   }
-}
-
-/** Start the page's review server (or find the one already serving it) and resolve with its URL. */
-function startReview(entry) {
-  const logs = join(home(), 'logs');
-  mkdirSync(logs, { recursive: true });
-  const logFile = join(logs, `${entry.id}.log`);
-  // Output goes to a file, not a pipe, so the review server keeps running after the hub exits.
-  const fd = openSync(logFile, 'w');
-  const child = spawn(process.execPath, [REVIEW, entry.path, '--no-open'], {
-    cwd: entry.projectPath || dirname(entry.path),
-    stdio: ['ignore', fd, fd],
-    detached: true,
-  });
-  closeSync(fd);
-  child.unref();
-  return new Promise((ok, bad) => {
-    const t0 = Date.now();
-    const tick = () => {
-      const out = readFileSync(logFile, 'utf8');
-      const url = out.match(/open\s+→\s+(http:\/\/\S+)/)?.[1];
-      if (url) return ok(url);
-      if (child.exitCode != null && child.exitCode !== 0) return bad(new Error(`the review server stopped:\n${out}`));
-      if (Date.now() - t0 > 6000) return bad(new Error(`the review server didn't start:\n${out}`));
-      setTimeout(tick, 80);
-    };
-    tick();
-  });
 }
 
 const server = createServer(handle);

@@ -13,7 +13,7 @@
 // and/or IPv4 CIDRs, comma-separated. A trusted request must still address the
 // server by an IP, a *.ts.net name or this machine's hostname, so a DNS
 // rebinding page (which sends its own domain as Host) is still refused.
-// If the port is taken it tries the next ones. If a plan-maker server is
+// If the port is taken it tries the next 19, then any free port. If a plan-maker server is
 // already reviewing the same plan, it reuses that one and exits.
 //
 // Earlier versions (versions/v<N>.html, see lib/versions.mjs) are served
@@ -24,8 +24,10 @@
 //   GET  /api/versions     every version, newest first
 //   GET  /api/notes        the live plan's notes (a version's, when asked from its page)
 //   PUT  /api/notes        save the live plan's notes
-//   GET  /api/status       the plan's registry entry: { registered, name, status }
-//   PUT  /api/status       change its status ({ status }); 404 if the plan isn't registered
+//   GET  /api/status       the page's kind and registry entry: { kind, statuses, registered, name, status, stale }
+//   PUT  /api/status       change its status ({ status }); 404 if the page isn't registered
+//   GET  /api/links        where the page's links lead: a plan's guides (by phase) and a guide's plan
+//   GET  /api/open?href=…  start (or reuse) the review server for a linked page, then redirect to it
 
 import { spawn } from 'node:child_process';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -35,7 +37,9 @@ import { hostname, networkInterfaces, tmpdir } from 'node:os';
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { inject, readLayer } from '../lib/inject.mjs';
 import { currentVersion, isLegacy, listVersions, readJson, readVersion, snapshotNotesPath, snapshotPath } from '../lib/versions.mjs';
-import { STATUSES, find, load as loadRegistry, save as saveRegistry, upsert } from '../lib/registry.mjs';
+import { readKind, readMeta, statusesFor } from '../lib/kinds.mjs';
+import { startReview } from '../lib/launch.mjs';
+import { find, guideProgress, linkTarget, load as loadRegistry, projectOf, readPage, readPhases, save as saveRegistry, staleSources, upsert } from '../lib/registry.mjs';
 
 const LOOPBACK = '127.0.0.1';
 const DEFAULT_PORT = 4478;
@@ -174,24 +178,70 @@ async function handle(req, res) {
       }));
       return send(res, 200, JSON.stringify({ current: versions[0].version, versions }), TYPES['.json']);
     }
-    // The plan's status in the registry (~/.plan-maker), shown and changed from the top bar.
+    // The page's kind, and its status in the registry (~/.plan-maker), shown and changed from the top bar.
     if (path === '/api/status') {
       if (req.method === 'GET') {
+        const html = readFileSync(planPath, 'utf8');
+        const kind = readKind(html);
         const e = find(loadRegistry(), planPath);
-        return send(res, 200, JSON.stringify(e ? { registered: true, name: e.name, status: e.status } : { registered: false }), TYPES['.json']);
+        const stale = kind === 'reference' ? staleSources(planPath, html, e?.projectPath || projectOf(planPath)).map((x) => x.rel) : [];
+        const base = { kind, statuses: statusesFor(kind), stale };
+        return send(res, 200, JSON.stringify(e ? { ...base, registered: true, name: e.name, status: e.status } : { ...base, registered: false }), TYPES['.json']);
       }
       if (req.method === 'PUT') {
         if (!(req.headers['content-type'] || '').startsWith('application/json')) return send(res, 415, 'expected JSON');
         if (from) return send(res, 409, `v${from} is read-only`);
         const { status } = JSON.parse(await readBody(req)) || {};
-        if (!STATUSES.includes(status)) return send(res, 400, `status must be one of ${STATUSES.join(', ')}`);
         const reg = loadRegistry();
-        if (!find(reg, planPath)) return send(res, 404, 'this plan is not registered');
-        const e = upsert(reg, planPath, { status });
+        if (!find(reg, planPath)) return send(res, 404, 'this page is not registered');
+        let e;
+        try {
+          e = upsert(reg, planPath, { status });
+        } catch (err) {
+          return send(res, 400, err.message);
+        }
         saveRegistry(reg);
         return send(res, 200, JSON.stringify({ registered: true, name: e.name, status: e.status }), TYPES['.json']);
       }
       return send(res, 405, 'method not allowed');
+    }
+    // Where the page's links lead: each phase's guide and how far along it is, and a guide's plan.
+    if (path === '/api/links' && req.method === 'GET') {
+      const html = readFileSync(from ? snapshotPath(planPath, from) : planPath, 'utf8');
+      const phases = {};
+      for (const p of readKind(html) === 'plan' ? readPhases(html) : []) {
+        const target = p.guide && linkTarget(planPath, p.guide);
+        if (!target) continue;
+        const g = guideProgress(target);
+        phases[p.id] = { href: p.guide, exists: g.exists, name: g.name, you: g.you, claude: g.claude, done: g.done };
+      }
+      let parent = null;
+      const ph = readMeta(html, 'pm-parent');
+      const target = ph && linkTarget(planPath, ph);
+      if (target) {
+        const exists = existsSync(target);
+        const page = exists ? readPage(target) : null;
+        const phaseId = readMeta(html, 'pm-parent-phase');
+        const phase = page && phaseId ? readPhases(page.html).find((p) => p.id === phaseId) : null;
+        parent = { href: ph, exists, name: page?.title || null, phase: phase?.title || null };
+      }
+      return send(res, 200, JSON.stringify({ phases, parent }), TYPES['.json']);
+    }
+    // Follow a link to another plan-maker page: start (or reuse) its own review server and go there.
+    if (path === '/api/open' && req.method === 'GET') {
+      const target = linkTarget(planPath, url.searchParams.get('href') || '');
+      const project = projectOf(planPath);
+      if (!target || !(target === project || target.startsWith(project + sep)) || extname(target) !== '.html' || !existsSync(target)) {
+        return send(res, 404, 'no such page in this project');
+      }
+      const head = readFileSync(target, 'utf8').slice(0, 4000);
+      if (!/<meta\s+name=["'](?:plan-version|pm-kind)["']/i.test(head)) return send(res, 404, 'not a plan-maker page');
+      // Match this server's network mode, so a link followed from another device works there too.
+      const extra = network ? ['--host', host, ...(trustArg ? ['--trust', trustArg] : [])] : [];
+      const { url: loopUrl, net } = await startReview(target, extra);
+      if (fromHere || !network) return redirect(res, loopUrl);
+      const mine = net.find((u) => new URL(u).hostname.replace(/^\[|\]$/g, '') === hostName) || net[0];
+      return redirect(res, mine || loopUrl);
     }
     if (path === '/api/notes') {
       if (req.method === 'GET') {
@@ -286,17 +336,25 @@ function versionOf(referer) {
 
 function bind(srv, p, addr) {
   return new Promise((ok, bad) => {
-    srv.once('error', bad);
-    srv.listen(p, addr, () => {
-      srv.off('error', bad);
+    // Remove both listeners whichever fires, so trying port after port leaves none behind.
+    const onError = (err) => {
+      srv.off('listening', onListening);
+      bad(err);
+    };
+    const onListening = () => {
+      srv.off('error', onError);
       ok();
-    });
+    };
+    srv.once('error', onError);
+    srv.once('listening', onListening);
+    srv.listen(p, addr);
   });
 }
 
 async function listen(p, triesLeft) {
   try {
     await bind(server, p, host);
+    p = server.address().port; // port 0: the one the system picked
     if (loopbackServer) {
       try {
         await bind(loopbackServer, p, LOOPBACK);
@@ -307,6 +365,8 @@ async function listen(p, triesLeft) {
     }
   } catch (err) {
     if (err.code === 'EADDRINUSE' && triesLeft > 1) return listen(p + 1, triesLeft - 1);
+    // Every port in the range is taken (many plans open at once): let the system pick one.
+    if (err.code === 'EADDRINUSE' && p !== 0) return listen(0, 1);
     console.error(`review: could not start the server: ${err.message}`);
     process.exit(1);
   }

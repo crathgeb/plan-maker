@@ -141,12 +141,14 @@ describe('registry CLI', () => {
     assert.equal(add.status, 0, add.stderr);
   });
 
-  test('entries take their name and description from the page, with no kind', () => {
+  test('entries take their name, description and kind from the page', () => {
     const docs = entry('Docs Site Migration');
     assert.equal(docs.status, 'reviewing');
     assert.equal(docs.description, 'Move the docs to a static site built from the repo.'); // the hero's lede, not the glossary's
-    assert.equal('kind' in docs, false);
-    assert.equal(entry('Deploy a Static Site').status, 'in-progress'); // written as a guide: followed, not reviewed
+    assert.equal(docs.kind, 'plan'); // no pm-kind: a plan
+    // a 0.2 guide (pm-kind="guide") is a guide again: followed, not reviewed, so it starts not started
+    assert.equal(entry('Deploy a Static Site').kind, 'guide');
+    assert.equal(entry('Deploy a Static Site').status, 'not-started');
     assert.equal(entry('Coffer Build Plan').project, proj2.split('/').pop());
   });
 
@@ -198,6 +200,9 @@ describe('registry CLI', () => {
     const r = cli('update', 'plans/docs', '--status', 'finished');
     assert.equal(r.status, 1);
     assert.match(r.stderr, /status must be one of/);
+    // statuses belong to kinds: a plan is never "current", a guide never "approved"
+    assert.match(cli('update', 'plans/docs', '--status', 'current').stderr, /a plan's status must be one of/);
+    assert.match(cli('update', 'guides/deploy', '--status', 'approved').stderr, /a guide's status must be one of/);
   });
 
   test('list groups by project, waiting plans first, with lanes and reasons', () => {
@@ -236,7 +241,7 @@ describe('hub', () => {
     const docs = entries.find((e) => e.name === 'Docs Site Migration');
     assert.deepEqual(docs.lanes.you, { done: 1, total: 3 });
     assert.equal(docs.waiting[0].key, 'steps');
-    assert.equal(entries.some((e) => 'kind' in e), false);
+    assert.deepEqual([...new Set(entries.map((e) => e.kind))].sort(), ['guide', 'plan']);
   });
 
   test('a second start reuses the running hub', async () => {

@@ -25,6 +25,10 @@
   --pm-i-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
   --pm-i-ring: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6'%3E%3Ccircle cx='8' cy='8' r='5.8'/%3E%3C/svg%3E");
   --pm-i-half: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='5.8' fill='none' stroke='black' stroke-width='1.6'/%3E%3Cpath d='M8 2.2a5.8 5.8 0 0 1 0 11.6z' fill='black'/%3E%3C/svg%3E");
+  --pm-i-detail: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M2.5 4h11M2.5 8h6M2.5 12h6M12.5 8.5v5M10 11h5'/%3E%3C/svg%3E");
+  --pm-i-guide: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 13.5h3.5V10H9V6.5h3.5V3H14'/%3E%3C/svg%3E");
+  --pm-i-plan: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Crect x='2' y='2.5' width='12' height='3' rx='1'/%3E%3Crect x='2' y='6.5' width='8' height='3' rx='1'/%3E%3Crect x='2' y='10.5' width='10' height='3' rx='1'/%3E%3C/svg%3E");
+  --pm-i-reference: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M3 2.5h7.5L13 5v8.5H3z'/%3E%3Cpath d='M5.5 7h5M5.5 10h5' stroke-linecap='round'/%3E%3C/svg%3E");
   --pm-i-done: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.6' fill='black'/%3E%3Cpath d='M5 8.3l2 2 4-4.4' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 @media (prefers-color-scheme: dark) {
@@ -69,6 +73,18 @@
 .pm-ctl button:hover { color: var(--pm-ink); border-color: var(--pm-muted); }
 .pm-ctl button::before { content: ""; flex: none; width: 15px; height: 15px; background: currentColor; -webkit-mask: var(--pm-m) center / contain no-repeat; mask: var(--pm-m) center / contain no-repeat; }
 .pm-note-btn { --pm-m: var(--pm-i-comment); }
+.pm-detail-btn, .pm-note-btn[data-k="detail"] { --pm-m: var(--pm-i-detail); }
+.pm-guide-btn, .pm-note-btn[data-k="guide"] { --pm-m: var(--pm-i-guide); }
+.pm-ctl button[hidden] { display: none; }
+/* a phase handed to a guide: the guide's name and progress, one click from the guide itself */
+.pm-guide-link { display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 4px 10px; min-height: 30px; padding: 4px 12px 4px 9px; border: 1px solid var(--pm-you-line); border-radius: 8px; background: var(--pm-paper); color: var(--pm-you-ink); text-decoration: none; font-weight: 600; }
+.pm-guide-link::before { content: ""; flex: none; width: 15px; height: 15px; background: currentColor; -webkit-mask: var(--pm-i-guide) center / contain no-repeat; mask: var(--pm-i-guide) center / contain no-repeat; }
+.pm-guide-link::after { content: "→"; font-weight: 600; }
+.pm-guide-link:hover { border-color: var(--pm-you); color: var(--pm-you-ink); }
+.pm-guide-link .pm-guide-prog { font-weight: 500; color: var(--pm-ink-2); font-variant-numeric: tabular-nums; }
+.pm-guide-link { min-width: 0; max-width: 100%; }
+.pm-guide-link .pm-guide-name { min-width: 0; max-width: 30ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pm-guide-link.pm-on { background: var(--pm-you-tint); }
 .pm-ctl .pm-note-btn.pm-has { background: var(--pm-hl); border-color: transparent; color: var(--pm-ink); }
 /* Mark done: the reader's checkbox, in their blue */
 .pm-ctl .pm-done-btn { --pm-m: var(--pm-i-box); border-color: var(--pm-you-line); background: var(--pm-paper); color: var(--pm-you-ink); font-weight: 600; }
@@ -83,9 +99,8 @@ td > .pm-ctl { margin-top: 8px; }
 /* Comment stays out of the way until a block is pointed at or focused, or has a comment.
    Touch screens always show it. A step's Mark done / status always shows. */
 @media (hover: hover) {
-  .pm-ctl .pm-note-btn:not(.pm-has) { opacity: 0; transition: opacity .12s; }
-  .pm-item:hover .pm-note-btn, .pm-item:focus-within .pm-note-btn, .pm-item:hover + .pm-ctl .pm-note-btn,
-  .table-wrap:hover + .pm-ctl .pm-note-btn, .pm-ctl:hover .pm-note-btn, .pm-ctl:focus-within .pm-note-btn { opacity: 1; }
+  .pm-ctl :is(.pm-note-btn:not(.pm-has), .pm-detail-btn, .pm-guide-btn) { opacity: 0; transition: opacity .12s; }
+  :is(.pm-item:hover, .pm-item:focus-within, .pm-item:hover + .pm-ctl, .table-wrap:hover + .pm-ctl, .pm-ctl:hover, .pm-ctl:focus-within) :is(.pm-note-btn, .pm-detail-btn, .pm-guide-btn) { opacity: 1; }
 }
 .pm-item.pm-noted { box-shadow: none; }
 
@@ -121,6 +136,7 @@ textarea.pm-dnote { display: block; margin-top: 12px; min-height: 44px; }
 #pm-pop button:hover { background: var(--pm-paper-2); }
 #pm-pop button[data-kind="note"]::before { content: ""; width: 15px; height: 15px; background: currentColor; -webkit-mask: var(--pm-i-comment) center / contain no-repeat; mask: var(--pm-i-comment) center / contain no-repeat; }
 #pm-pop button[data-kind="question"] { color: var(--pm-claude-ink); }
+#pm-pop button[data-kind="detail"]::before { content: ""; width: 15px; height: 15px; background: currentColor; -webkit-mask: var(--pm-i-detail) center / contain no-repeat; mask: var(--pm-i-detail) center / contain no-repeat; }
 
 /* ---------- top bar: lanes, draw tools, status, Comments, Done ---------- */
 :where(:root) { --pm-top-h: 52px; }
@@ -131,6 +147,11 @@ html.pm-has-top { padding-top: var(--pm-top-h); scroll-padding-top: calc(var(--p
 @media (min-width: 1100px) { html.pm-has-top #pm-panel { top: var(--pm-top-h); } }
 /* the top bar's left end: the plan's name, then its status as a pill you can change */
 .pm-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+/* what kind of page this is: Plan, Guide or Reference, in neutral ink (blue and gold mean owners) */
+.pm-kind { display: inline-flex; align-items: center; gap: 5px; flex: none; height: 24px; padding: 0 9px 0 7px; border-radius: 6px; background: var(--pm-paper-2); box-shadow: inset 0 0 0 1px var(--pm-line-2); color: var(--pm-ink-2); font: 600 12px/1 var(--pm-sans); }
+.pm-kind::before { content: ""; width: 14px; height: 14px; background: currentColor; -webkit-mask: var(--pm-i-plan) center / contain no-repeat; mask: var(--pm-i-plan) center / contain no-repeat; }
+.pm-kind[data-k="guide"]::before { -webkit-mask-image: var(--pm-i-guide); mask-image: var(--pm-i-guide); }
+.pm-kind[data-k="reference"]::before { -webkit-mask-image: var(--pm-i-reference); mask-image: var(--pm-i-reference); }
 .pm-title-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 46ch; font-size: 15px; font-weight: 650; }
 .pm-status { position: relative; display: inline-flex; align-items: center; flex: none; height: 28px; border-radius: 999px; background: var(--pm-paper-2); border: 1px solid var(--pm-line-2); }
 .pm-status-dot { position: absolute; left: 10px; width: 7px; height: 7px; border-radius: 50%; background: var(--pm-muted); pointer-events: none; }
@@ -138,6 +159,8 @@ html.pm-has-top { padding-top: var(--pm-top-h); scroll-padding-top: calc(var(--p
 .pm-status[data-s="reviewing"] .pm-status-dot { background: var(--pm-muted); }
 .pm-status[data-s="approved"] .pm-status-dot { background: none; box-shadow: inset 0 0 0 2px var(--pm-good); }
 .pm-status[data-s="in-progress"] .pm-status-dot { background: var(--pm-good); }
+.pm-status[data-s="current"] .pm-status-dot { background: var(--pm-good); }
+.pm-status[data-s="not-started"] .pm-status-dot { background: none; box-shadow: inset 0 0 0 1.5px var(--pm-ink-2); }
 .pm-status[data-s="blocked"] .pm-status-dot { background: var(--pm-warn); }
 .pm-status[data-s="done"] .pm-status-dot, .pm-status[data-s="archived"] .pm-status-dot { background: var(--pm-line); }
 .pm-status select { appearance: none; -webkit-appearance: none; height: 26px; padding: 0 26px 0 23px; border: 0; border-radius: 999px; background: none; color: var(--pm-ink); font: 600 13px var(--pm-sans); cursor: pointer; }
@@ -156,6 +179,15 @@ html.pm-has-top { padding-top: var(--pm-top-h); scroll-padding-top: calc(var(--p
 .pm-lane::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--pm-you); }
 .pm-lane[data-who="claude"]::before { background: var(--pm-claude); }
 .pm-progress-slot { margin: 16px 0 20px; }
+/* a guide's way back to its plan, above its title */
+.pm-parent { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; margin: 0 0 12px; color: var(--pm-ink-2); font: 500 13.5px/1.4 var(--pm-sans); text-decoration: none; }
+.pm-parent::before { content: "←"; }
+.pm-parent b { color: var(--pm-ink); font-weight: 600; }
+.pm-parent .pm-parent-phase::before { content: "›"; margin-right: 8px; color: var(--pm-muted); }
+.pm-parent:hover b { text-decoration: underline; text-underline-offset: 3px; }
+/* a reference whose sources changed after it was written */
+.pm-stale { margin: 16px 0 0; padding: 12px 14px; border-radius: 10px; background: color-mix(in srgb, var(--pm-warn) 10%, var(--pm-paper)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pm-warn) 35%, transparent); color: var(--pm-ink); font: 14px/1.5 var(--pm-sans); }
+.pm-stale b { color: var(--pm-warn); }
 #pm-rail { display: flex; align-items: center; gap: 2px; padding: 0 8px; border-left: 1px solid var(--pm-line); }
 #pm-rail[hidden] { display: none; }
 .pm-rail-lbl { margin-right: 4px; color: var(--pm-muted); font-weight: 500; }
@@ -206,6 +238,7 @@ html.pm-open #pm-panel { display: block; }
 .pm-kinds { display: inline-flex; margin-bottom: 8px; padding: 2px; background: var(--pm-paper-2); border-radius: 8px; }
 .pm-kinds button { border: 0; background: none; color: var(--pm-ink-2); padding: 3px 10px; border-radius: 6px; font-size: 12.5px; }
 .pm-kinds button.pm-on { background: var(--pm-paper); color: var(--pm-ink); font-weight: 600; box-shadow: 0 1px 2px rgba(31, 35, 40, .1); }
+.pm-kinds { flex-wrap: wrap; }
 .pm-kinds button[data-k="question"].pm-on { color: var(--pm-claude-ink); }
 
 /* "comments saved" dialog */
@@ -285,6 +318,7 @@ pre.pm-has-copy { position: relative; }
   html.pm-legacy #pm-bar { left: 16px; justify-content: flex-end; }
 }
 @media (max-width: 429px) { .pm-title-name { display: none; } }
+@media (max-width: 379px) { .pm-kind { display: none; } }
 @media (max-width: 379px) {
   .pm-wide { display: none; }
   #pm-bar { gap: 4px; }
