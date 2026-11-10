@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: plan-maker
-description: Visual system for plan-maker's pages (plans, the annotation layer, the hub). A calm, rounded document in the manner of Google Docs. The one strong signal is ownership: your steps are blue cards, Claude's are gold cards.
+description: Visual system for plan-maker's pages (plans, guides, references, the annotation layer, the hub). A calm, rounded document in the manner of Google Docs. The one strong signal is ownership: your phases and steps are blue cards, Claude's are gold cards.
 colors:
   ground: "#F1F3F6"
   paper: "#FFFFFF"
@@ -72,14 +72,22 @@ radii:
 
 ## Overview
 
-A plan reads like a well-kept shared doc: a white page with rounded corners on a soft grey desk, plain sans-serif text at a comfortable size, and generous space. One thing is loud, and it's who owns each step:
+Every page reads like a well-kept shared doc: a white page with rounded corners on a soft grey desk, plain sans-serif text at a comfortable size, and generous space. There are three kinds of page, one design:
 
-- **Your steps** are blue cards with a "You" chip (a person icon).
-- **Claude's steps** are gold cards with a "Claude" chip (a sparkle icon).
+- **Plan**: a sequence of phases. Each phase is a card.
+- **Guide**: steps to follow, mostly yours. Each step is a card.
+- **Reference**: sections to look things up in. No cards, no timeline, no progress.
 
-The same two colours carry ownership everywhere: the step cards and their timeline nodes, the two segments of the progress bar, and the hub's "waiting on you" cards. Nothing else uses blue or gold.
+One thing is loud, and it's who owns each phase or step:
 
-Reviewing works like commenting in a doc. Select text to **Comment** or **Ask Claude**, or use the single **Comment** button on any block. There is no verdict system, so there's no Keep / Change / Cut. System fonts only: pages must work offline and as one shared file.
+- **Yours** are blue cards with a "You" chip (a person icon).
+- **Claude's** are gold cards with a "Claude" chip (a sparkle icon).
+
+The same two colours carry ownership everywhere: the cards and their timeline nodes, the two segments of the progress bar, a guide's link on its phase, and the hub's "waiting on you" cards. Nothing else uses blue or gold. The kind of page is never shown in colour: it's a neutral chip with an icon (stacked bars for a plan, a staircase for a guide, a page for a reference) in the top bar and the hub.
+
+Reviewing works like commenting in a doc. Select text to **Comment**, **Ask Claude** or ask for **More detail**, or use the same buttons on any block. There is no verdict system, so there's no Keep / Change / Cut. System fonts only: pages must work offline and as one shared file.
+
+All three templates share one style block, word for word, and the hub wears it too. A change to the system is made once, in all three.
 
 ## Colors
 
@@ -97,7 +105,9 @@ Reviewing works like commenting in a doc. Select text to **Comment** or **Ask Cl
   - **Draft:** hollow `muted`. **Reviewing:** solid `muted`.
   - **Approved:** hollow `good`. **In progress:** solid `good`.
   - **Blocked:** solid `warn`.
+  - **Not started** (a guide): hollow `ink-2`. **Current** (a reference): solid `good`.
   - **Done and archived:** `line`.
+- **Out of date** (a reference whose sources changed): a `warn` notice on the cover, tinted 10% into `paper`, with the word "Out of date." in `warn`.
 - **No red, anywhere.** Not for status, errors, notices or counts. Errors and notices are neutral (`paper-2` with a `line` border).
 - **Links** are plain `ink` with a `muted` underline that darkens on hover. Focus rings are 2px `ink-2`; text selection is `ink` at 14%. Neither uses an ownership colour.
 - **Dark mode** uses the `dark-*` values. It's never pure black.
@@ -116,9 +126,11 @@ Reviewing works like commenting in a doc. Select text to **Comment** or **Ask Cl
 - **Timeline:** inside a section, every entry, list item, callout, step and decision is a numbered node (2.1, 2.2…) on a vertical line on the left. Nodes are 34px circles on a 2px `line-2` line, with content indented 52px.
   - **Steps:** a node takes its owner's colour (tint fill, ring). It fills solid with a check when done, the line below a done node takes the owner's colour, and the next undone step (whoever owns it) gets a soft halo ring.
   - **The line** breaks between runs, e.g. across a phase heading.
-- **Steps:** grouped under a phase heading (h3 plus when, aligned with the cards). Each step is its own card with 12px between cards, so steps never run together.
+- **Phases (plans):** each phase is its own card, 14px apart, a little roomier than a step card (radius 12px, 18px/20px padding). They sit on the timeline like steps.
+- **Steps (guides):** grouped under a short heading (h3 plus when, aligned with the cards). Each step is its own card with 12px between cards, so steps never run together.
+- **References:** no timeline nodes and no number circles inside sections: entries, lists and callouts sit flush. The contents list is on the cover as well as in the side rail, because a reference is read by jumping.
 - **The comment panel** sits on the right like the Docs comment sidebar, a column of rounded comment cards. It is closed until you comment or press Comments.
-- **Hub:** a full-height sidebar on its own white surface: search, "Waiting on you", then collapsible project groups with one line per plan (status dot, name, a count when it waits on you), and done or archived plans collapsed at the bottom. A button collapses it to a 56px rail. The main area shows "Waiting on you" as pages, or the selected plan itself, live, in a frame with nothing of the hub's above it. The hub never uses red.
+- **Hub:** a full-height sidebar on its own white surface: search, a type filter (All, Plans, Guides, References), "Waiting on you", then collapsible project groups with one line per page (status dot, kind icon, name, a count when it waits on you), a plan's guides indented beneath it on a hairline, and done or archived pages collapsed at the bottom. A button collapses it to a 56px rail. The main area shows "Waiting on you" as pages, or the selected plan itself, live, in a frame with nothing of the hub's above it. The hub never uses red.
 
 ## Elevation & Depth
 
@@ -133,23 +145,29 @@ Reviewing works like commenting in a doc. Select text to **Comment** or **Ask Cl
 
 ## Components
 
-- **Step card:** the owner chip (You or Claude, with its icon) inline before the title (h4), the time or need in `muted`, then the body. A footer row, under a 1px `-line` rule, holds the actions:
+- **Phase card (plan):** the owner chip before the title (h3), when in `muted`, a sentence or two, then **Done when …** in a `paper` inset. Claude's phases may list a short checklist: small gold rings, half-filled when in progress, filled with a check when done. The footer holds Mark done (yours) or the status (Claude's), and on hover **Comment**, **More detail** and **Make a guide**. A phase done through a guide shows the guide instead of Mark done: a blue-outlined link with the staircase icon, the guide's name, its progress ("3 of 7 steps done") and an arrow; tinted when the guide is done.
+- **Step card (guide):** the owner chip (You or Claude, with its icon) inline before the title (h4), the time or need in `muted`, then the body. **You should see …** sits in a `paper` inset with the words in `good`; **If it fails …** in a `warn` inset tinted 8% into `paper`. A footer row, under a 1px `-line` rule, holds the actions:
   - **Your steps:** **Mark done**, a rounded checkbox button. Once done it fills with the base colour and a check in `on-fill`.
   - **Claude's steps:** the status Claude set (To do, In progress or Done), with an empty, half or check icon. The reader can't change it.
-  - **Comment** sits at the footer's right.
+  - **Comment** and **More detail** sit at the footer's right.
   - **A done step** keeps its colours, and its chip icon becomes a check.
-- **Comment:** one quiet button per block ("Comment" with a bubble icon). It shows on hover or focus, always shows on touch screens, and always shows once the block has a comment ("1 comment").
-- **Selection popover:** **Comment** and **Ask Claude**. A question is a comment flagged as a question, and the comment card has a Comment / Question switch.
+- **Comment, More detail, Make a guide:** quiet buttons on each block (a bubble, a list with a plus, a staircase). They show on hover or focus and always on touch screens. Once a block has a note, one button stays, saying what it is: "Your comment", "Your question", "More detail asked", "Guide requested", in the comment highlight.
+- **Selection popover:** **Comment**, **Ask Claude** and **More detail**. The comment card has a switch between Comment, Question, More detail and (on a plan's phase) Make a guide.
+- **What you need (guide):** on the cover, a blue-tinted box with a short list: time, logins, values, tools.
+- **Part of (guide):** above a guide's title, "← Part of **Plan name** › Phase", in `ink-2`, linking back.
+- **Contents (reference):** on the cover, a `paper-2` box with a numbered list of sections in two columns. **Definitions** (`dl.defs`) are a two-column list ruled like entries; **signatures** (`.sig`) are mono on `paper-2`.
 - **Code block:** a dark rounded block (radius 10px). A header bar shows the label (`data-label`, default "Code") on the left and **Copy** on the right; the code sits below in mono 13.5px. It scrolls sideways and never wraps commands.
 - **Decision:** a question (h3) and its options as rounded radio rows, with no box around the whole. Claude's recommendation is a gold "Recommended" chip. Your choice gets a blue ring.
 - **Claude's answer** (`aside.explain`): a gold-tinted rounded box headed "You asked: …".
 - **What changed in vN:** a two-column table, "You said" against "What changed". Changed blocks get a small gold "Updated in vN" chip.
-- **Top bar:** white, 1px bottom line. On the left, the plan's name and its status as a pill you can change (saved to the registry through the review server). Then the draw tools, the version menu, save status, **Comments (n)** and **Done for now** (ink fill).
-- **Progress:** on the cover page, under the lede: one bar for the whole plan ("3 of 7 steps done"), filled with a blue segment for your done steps and a gold one for Claude's, with "You: 1 of 3" and "Claude: 2 of 4" beneath. There is no "how to use this plan" box.
+- **Top bar:** white, 1px bottom line. On the left, the kind chip (Plan, Guide, Reference: neutral, with its icon), the page's name and its status as a pill you can change, offering only that kind's statuses (saved to the registry through the review server). Then the draw tools, the version menu, save status, **Comments (n)** and **Done for now** (ink fill).
+- **Progress:** on the cover page, under the lede: one bar for the whole page ("2 of 4 phases done" on a plan, "3 of 7 steps done" on a guide), filled with a blue segment for yours and a gold one for Claude's, with "You: 1 of 3" and "Claude: 2 of 4" beneath. A reference has none. There is no "how to use this page" box.
 
 ## Do's and Don'ts
 
 - **Do** make ownership readable from across the room: card colour, chip and icon together.
+- **Do** keep the kinds apart by shape and words, never colour: a plan's phases, a guide's steps, a reference's flat sections, and the neutral kind chip.
+- **Don't** put a list of the user's steps inside a plan's phase. That's a guide.
 - **Do** keep everything else quiet: neutral greys, one weight of rule, plain text.
 - **Don't** add verdict controls, loose gutter numbers or eyebrows. Numbering belongs to the section badges and the timeline only.
 - **Do** reuse the template's stylesheet for every other surface. The hub server injects it, so the hub can never drift from the plan page.

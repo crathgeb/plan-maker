@@ -1,5 +1,5 @@
 ---
-description: Open the hub: every plan across your projects, what is waiting on you, and progress
+description: Open the hub: every plan, guide and reference across your projects, what is waiting on you, and progress
 argument-hint: "[register]"
 ---
 

@@ -114,7 +114,7 @@ export async function waitForNotes(path, check, timeout = 4000) {
   throw new Error('notes.json never matched; last saw:\n' + JSON.stringify(last, null, 2));
 }
 
-/** Turn the live template (v1) into v2, the way process-plan-notes does. */
+/** Turn the live template (v1) into v2, the way process-notes does. */
 export function writeV2(plan) {
   let html = readFileSync(plan, 'utf8');
   html = html

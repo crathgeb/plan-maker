@@ -110,9 +110,9 @@ pre { font: 13.5px/1.65 var(--mono); background: #1f2430; color: #e6e9ef; border
 
   <rect x="100" y="24" width="870" height="96" rx="10" class="box claude"/>
   <text x="120" y="52" class="t">Skills</text>
-  <text x="180" y="52" class="s">make-plan · process-plan-notes · review-plan · plan-registry</text>
-  <text x="120" y="78" class="s">make-plan writes the plan and every step's owner; process-plan-notes applies your notes,</text>
-  <text x="120" y="96" class="s">answers your questions, keeps your ticked steps and updates Claude's step statuses.</text>
+  <text x="180" y="52" class="s">make-plan · make-guide · make-reference · process-notes · review-plan · plan-registry</text>
+  <text x="120" y="78" class="s">make-* write a plan (phases), a guide (your steps) or a reference; process-notes applies your notes,</text>
+  <text x="120" y="96" class="s">answers your questions, writes the guides you asked for and keeps what you ticked off.</text>
 
   <rect x="100" y="180" width="410" height="160" rx="10" class="box"/>
   <text x="120" y="208" class="t">A project folder</text>
@@ -168,14 +168,14 @@ pre { font: 13.5px/1.65 var(--mono); background: #1f2430; color: #e6e9ef; border
 </svg>
 </div>
 <ol class="legend">
-  <li><span class="n">1</span><span><b>Skills and plans.</b> <code>make-plan</code> writes the page. <code>process-plan-notes</code> reads <code>notes.json</code>, saves the current version with <code>snapshot.mjs</code>, then writes vN+1.</span></li>
-  <li><span class="n">2</span><span><b>Skills and the registry.</b> <code>registry.mjs add</code> for a new plan; <code>update --log</code> for each version or status change.</span></li>
-  <li><span class="n">3</span><span><b>Review server and plan.</b> It reads the plan fresh on every load and writes <code>notes.json</code> as you type.</span></li>
+  <li><span class="n">1</span><span><b>Skills and pages.</b> <code>make-plan</code>, <code>make-guide</code> and <code>make-reference</code> write the pages. <code>process-notes</code> reads <code>notes.json</code>, saves the current version with <code>snapshot.mjs</code>, then writes vN+1, and any guides you asked for.</span></li>
+  <li><span class="n">2</span><span><b>Skills and the registry.</b> <code>registry.mjs add</code> for a new page; <code>update --log</code> for each version or status change.</span></li>
+  <li><span class="n">3</span><span><b>Review server and page.</b> It reads the page fresh on every load and writes <code>notes.json</code> as you type. A link to a plan's guide, or back to the plan, starts that page's own server.</span></li>
   <li><span class="n">4</span><span><b>You and the review server.</b> Nothing leaves your machine unless you start it with <code>--host</code>.</span></li>
-  <li><span class="n">5</span><span><b>Hub and registry.</b> The hub lists every plan; changing a status writes it back, with a log line.</span></li>
-  <li><span class="n">6</span><span><b>Live progress.</b> Each owner's steps done, open decisions, unprocessed notes and what's waiting on you are read from the plan and its notes when you look.</span></li>
-  <li><span class="n">7</span><span><b>Open starts a review server,</b> or reuses the one already running, and takes you to the plan.</span></li>
-  <li><span class="n">8</span><span><b>You and the hub.</b> Projects in the sidebar, plans beneath, waiting on you first. It refreshes itself.</span></li>
+  <li><span class="n">5</span><span><b>Hub and registry.</b> The hub lists every plan, guide and reference; changing a status writes it back, with a log line.</span></li>
+  <li><span class="n">6</span><span><b>Live progress.</b> Each owner's phases or steps done (a phase follows its guide), open decisions, unprocessed notes, guide requests, stale references and what's waiting on you are read from the page and its notes when you look.</span></li>
+  <li><span class="n">7</span><span><b>Open starts a review server,</b> or reuses the one already running, and takes you to the page.</span></li>
+  <li><span class="n">8</span><span><b>You and the hub.</b> Projects in the sidebar, pages beneath (a plan's guides under it), waiting on you first. It refreshes itself.</span></li>
 </ol>
 </section>
 
@@ -183,19 +183,19 @@ pre { font: 13.5px/1.65 var(--mono); background: #1f2430; color: #e6e9ef; border
 <h2>A plan's life</h2>
 <p class="sub">Who acts at each point, and what lands in the registry.</p>
 <div class="flow">
-  <div class="row"><span class="who claude-c">Claude</span><span><b>Writes v1</b>Researches, writes the plan with every step owned by you or Claude, starts the review server.</span><span class="reg">add · reviewing</span></div>
-  <div class="row"><span class="who you-c">You</span><span><b>Review it</b>Comments and questions, decisions, drawings. Then Done for now.</span><span class="reg">hub: tell Claude “process my notes”</span></div>
-  <div class="row"><span class="who claude-c">Claude</span><span><b>Writes v2</b>Saves v1 with your notes, applies them, answers your questions where you asked them, adds “What changed”.</span><span class="reg">update --log "v2: …"</span></div>
+  <div class="row"><span class="who claude-c">Claude</span><span><b>Writes v1</b>Researches, writes the plan's phases, each owned by you or Claude, starts the review server.</span><span class="reg">add · reviewing</span></div>
+  <div class="row"><span class="who you-c">You</span><span><b>Review it</b>Comments, questions and More detail, decisions, drawings, and Make a guide on the phases you want walked through. Then Done for now.</span><span class="reg">hub: tell Claude “process my notes”</span></div>
+  <div class="row"><span class="who claude-c">Claude</span><span><b>Writes v2</b>Saves v1 with your notes, applies them, answers your questions where you asked them, writes the guides you asked for and links them, adds “What changed”.</span><span class="reg">update --log "v2: …" · guides: add · not-started</span></div>
   <div class="row"><span class="who you-c">You</span><span><b>Approve it</b>When no decisions are left open.</span><span class="reg">status → approved</span></div>
-  <div class="row"><span class="who you-c">You</span><span><b>Do your steps</b>Tick each one off with Mark done. Ask about anything that's unclear.</span><span class="reg">hub: 2 of your steps left: …</span></div>
-  <div class="row"><span class="who claude-c">Claude</span><span><b>Does its steps</b>Sets each step's status to in progress, then done. Your ticked steps carry into every new version.</span><span class="reg">in-progress → done</span></div>
+  <div class="row"><span class="who you-c">You</span><span><b>Follow the guides</b>Open a phase's guide and tick each step off with Mark done. Ask about anything that's unclear.</span><span class="reg">hub: 2 of your steps left: …</span></div>
+  <div class="row"><span class="who claude-c">Claude</span><span><b>Does its phases</b>Sets each phase's status to in progress, then done. A phase done through a guide is done when the guide is.</span><span class="reg">in-progress → done</span></div>
 </div>
-<p class="sub" style="margin-top:14px">Review and revise repeat as often as you like, and every version stays in the switcher. A walkthrough is the same thing with mostly your steps. If you're stuck on someone else, Claude sets <code>blocked</code> and writes what you're waiting on as the next action.</p>
+<p class="sub" style="margin-top:14px">Review and revise repeat as often as you like, on plans, guides and references alike, and every version stays in the switcher. If you're stuck on someone else, Claude sets <code>blocked</code> and writes what you're waiting on as the next action.</p>
 </section>
 
 <section>
 <h2>Statuses</h2>
-<p class="sub">Every status except done and archived counts as active.</p>
+<p class="sub">Every status except done and archived counts as active. A plan's run as below; a guide goes <code>not-started → in-progress → done</code> (or <code>blocked</code>); a reference is <code>reviewing</code>, then <code>current</code>, and is flagged out of date when its sources change.</p>
 <div class="statuses">
   <span class="st" style="color:var(--warn)">draft</span><span>→</span>
   <span class="st" style="color:var(--warn)">reviewing</span><span>→</span>
@@ -214,8 +214,9 @@ pre { font: 13.5px/1.65 var(--mono); background: #1f2430; color: #e6e9ef; border
   <thead><tr><th>You say</th><th>Skill</th><th>What happens</th></tr></thead>
   <tbody>
     <tr><td>“Plan the billing migration” · <code>/plan-maker:plan …</code></td><td><code>make-plan</code></td><td>A plan, registered as reviewing, opened in your browser</td></tr>
-    <tr><td>“Guide me through moving DNS” · <code>/plan-maker:guide …</code></td><td><code>make-plan</code></td><td>A plan made mostly of your steps, registered as in progress</td></tr>
-    <tr><td>“Process my notes” · “answer my questions”</td><td><code>process-plan-notes</code></td><td>The next version: notes applied, questions answered in place, your progress kept, a log line</td></tr>
+    <tr><td>“Guide me through moving DNS” · <code>/plan-maker:guide …</code></td><td><code>make-guide</code></td><td>A guide of your steps, registered as not started</td></tr>
+    <tr><td>“Document the build pipeline” · <code>/plan-maker:reference …</code></td><td><code>make-reference</code></td><td>A reference that names its sources, registered as reviewing</td></tr>
+    <tr><td>“Process my notes” · “answer my questions”</td><td><code>process-notes</code></td><td>The next version: notes applied, questions answered in place, detail added, requested guides written, your progress kept, a log line</td></tr>
     <tr><td>“Open the docs plan again”</td><td><code>review-plan</code></td><td>Its review server restarted (and registered, if it wasn't)</td></tr>
     <tr><td>“Show my plans” · <code>/plan-maker:plans</code></td><td><code>plan-registry</code></td><td>The hub opens; Claude says what's waiting on you</td></tr>
     <tr><td>“Register my plans”</td><td><code>plan-registry</code></td><td>Every plan-maker page in the project registered, with goals filled in</td></tr>
@@ -226,15 +227,15 @@ pre { font: 13.5px/1.65 var(--mono); background: #1f2430; color: #e6e9ef; border
 
 <section>
 <h2>The same, without Claude</h2>
-<pre><span class="c"># one plan</span>
+<pre><span class="c"># one page: a plan, guide or reference</span>
 node scripts/review.mjs plans/docs/index.html      <span class="c"># review it in the browser</span>
 node scripts/snapshot.mjs plans/docs/index.html    <span class="c"># save vN before revising</span>
-node scripts/bundle.mjs plans/docs/index.html      <span class="c"># a self-contained copy to share</span>
+node scripts/bundle.mjs plans/docs/index.html      <span class="c"># a self-contained copy to share, with its guides</span>
 
-<span class="c"># every plan</span>
+<span class="c"># everything</span>
 node scripts/registry.mjs scan                     <span class="c"># register every plan-maker page in this project</span>
 node scripts/registry.mjs update plans/docs --status in-progress --log "Phase 1 done"
-node scripts/registry.mjs list [--all] [--json]
+node scripts/registry.mjs list [--all] [--kind guide] [--json]
 node scripts/hub.mjs                               <span class="c"># the hub, at http://127.0.0.1:4477/</span></pre>
 </section>
 
