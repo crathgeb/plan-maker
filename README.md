@@ -49,7 +49,7 @@ Every page Claude writes is registered in one list across all your projects: `~/
 
 - **The sidebar** lists your projects, each with its pages underneath, marked plan, guide or reference. A guide made from a plan sits under it. Anything waiting on you comes first, then the rest by most recent. A filter shows all, or just plans, guides or references.
 - **The opening view** is everything waiting on you, across every project: pages to review, decisions to answer, notes and guide requests to hand back to Claude, your steps left ("3 of your steps left: Point DNS at Cloudflare"), and references gone out of date.
-- **A selected page** is the page itself, live, with its status (which you can change) and progress in its own top bar.
+- **A selected page** is the page itself, live, with its status (which you can change) and progress in its own top bar. Set it to **Done** or **Archived** and it moves to the collapsed "Done and archived" group. **Remove from hub…**, at the bottom of the same menu, takes it off the hub entirely; the page, its notes and versions stay on disk. A page that was deleted or moved has a **Remove from hub** button on its view.
 - **Running servers** lists every review server on this machine: its page, project and port, and whether a tab has it open. Orphans (a page that was deleted or moved, a second server for the same page) are flagged, and **Stop** works on one server, on the orphans, or on everything not in use. Servers also stop themselves after 12 hours with no tab open, and opening a page from the hub starts its server again.
 
 Already have pages? Say **"register my plans"** in a project: Claude finds every plan-maker page under it, then fills in each one's goal and description.

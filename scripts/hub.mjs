@@ -10,6 +10,7 @@
 //   GET   /                  the hub page
 //   GET   /api/entries       every entry, with live progress
 //   PATCH /api/entries/<id>  change status, next, goal, name, description; {log} appends a progress line
+//   DELETE /api/entries/<id> remove it from the hub (the registry entry only; the page stays)
 //   GET   /open/<id>         start or reuse the review server for that page, then redirect to it
 //   GET   /api/servers       every review server running on this machine, and which are orphans
 //   POST  /api/servers/stop  stop some: { servers: [{ port, planHash }] }
@@ -20,7 +21,7 @@ import { createServer, get } from 'node:http';
 import { basename, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startReview } from '../lib/launch.mjs';
-import { describe, find, load, projectOf, readPage, registryPath, save, upsert } from '../lib/registry.mjs';
+import { describe, find, load, projectOf, readPage, registryPath, remove, save, upsert } from '../lib/registry.mjs';
 import { classify, running, stop } from '../lib/servers.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -101,6 +102,13 @@ async function handle(req, res) {
       return json(res, 200, { registry: registryPath(), entries: load().entries.map(describe) });
     }
     const m = url.pathname.match(/^\/api\/entries\/([0-9a-f]{10})$/);
+    if (m && req.method === 'DELETE') {
+      const reg = load();
+      const e = remove(reg, m[1]);
+      if (!e) return send(res, 404, 'not registered');
+      save(reg);
+      return json(res, 200, { removed: e.id, name: e.name });
+    }
     if (m && req.method === 'PATCH') {
       if (!(req.headers['content-type'] || '').startsWith('application/json')) return send(res, 415, 'expected JSON');
       const body = JSON.parse(await readBody(req));

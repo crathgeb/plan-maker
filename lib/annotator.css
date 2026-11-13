@@ -163,7 +163,7 @@ html.pm-has-top { padding-top: var(--pm-top-h); scroll-padding-top: calc(var(--p
 .pm-status[data-s="not-started"] .pm-status-dot { background: none; box-shadow: inset 0 0 0 1.5px var(--pm-ink-2); }
 .pm-status[data-s="blocked"] .pm-status-dot { background: var(--pm-warn); }
 .pm-status[data-s="done"] .pm-status-dot, .pm-status[data-s="archived"] .pm-status-dot { background: var(--pm-line); }
-.pm-status select { appearance: none; -webkit-appearance: none; height: 26px; padding: 0 26px 0 23px; border: 0; border-radius: 999px; background: none; color: var(--pm-ink); font: 600 13px var(--pm-sans); cursor: pointer; }
+.pm-status select { field-sizing: content; appearance: none; -webkit-appearance: none; height: 26px; padding: 0 26px 0 23px; border: 0; border-radius: 999px; background: none; color: var(--pm-ink); font: 600 13px var(--pm-sans); cursor: pointer; }
 .pm-status svg { position: absolute; right: 9px; width: 9px; height: 6px; color: var(--pm-ink-2); pointer-events: none; }
 
 /* the plan's progress, on its cover page: one bar, your share in blue and Claude's in gold */

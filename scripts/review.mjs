@@ -33,6 +33,7 @@
 //   PUT  /api/notes        save the live plan's notes
 //   GET  /api/status       the page's kind and registry entry: { kind, statuses, registered, name, status, stale }
 //   PUT  /api/status       change its status ({ status }); 404 if the page isn't registered
+//   DELETE /api/status     remove the page from the hub (the registry entry only)
 //   GET  /api/links        where the page's links lead: a plan's guides (by phase) and a guide's plan
 //   GET  /api/open?href=…  start (or reuse) the review server for a linked page, then redirect to it
 
@@ -47,7 +48,7 @@ import { currentVersion, isLegacy, listVersions, readJson, readVersion, snapshot
 import { readKind, readMeta, statusesFor } from '../lib/kinds.mjs';
 import { startReview } from '../lib/launch.mjs';
 import { pageHash, readRecords, removeRecord, writeRecord } from '../lib/servers.mjs';
-import { find, guideProgress, linkTarget, load as loadRegistry, projectOf, readPage, readPhases, save as saveRegistry, staleSources, upsert } from '../lib/registry.mjs';
+import { find, guideProgress, linkTarget, load as loadRegistry, projectOf, readPage, readPhases, remove as removeEntry, save as saveRegistry, staleSources, upsert } from '../lib/registry.mjs';
 
 const LOOPBACK = '127.0.0.1';
 const DEFAULT_PORT = 4478;
@@ -223,6 +224,15 @@ async function handle(req, res) {
         }
         saveRegistry(reg);
         return send(res, 200, JSON.stringify({ registered: true, name: e.name, status: e.status }), TYPES['.json']);
+      }
+      // Remove from the hub: drops the registry entry only; the page, notes and versions stay.
+      if (req.method === 'DELETE') {
+        if (from) return send(res, 409, `v${from} is read-only`);
+        const reg = loadRegistry();
+        const e = removeEntry(reg, planPath);
+        if (!e) return send(res, 404, 'this page is not registered');
+        saveRegistry(reg);
+        return send(res, 200, JSON.stringify({ registered: false, name: e.name }), TYPES['.json']);
       }
       return send(res, 405, 'method not allowed');
     }

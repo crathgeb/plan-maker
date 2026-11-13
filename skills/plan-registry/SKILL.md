@@ -62,6 +62,8 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/hub.mjs"
 
 It opens `http://127.0.0.1:4477/` (or the next free port below it) and reuses a hub that's already running. The page refreshes itself, and the user can change a status from the card. **Open** on a card starts that page's review server, or reuses it, and goes there. The hub only listens on this machine.
 
+A page's status menu (in its top bar) ends with **Remove from hub…**, and a missing page's view in the hub has a **Remove from hub** button: either drops the entry and leaves the page. When the user asks to remove something from the hub, do it with `registry.mjs remove <page|id>`, and say the page itself is untouched.
+
 Its **Running servers** view lists every review server running on this machine and flags orphans (page deleted or moved, a duplicate server for one page). The user can stop one, the orphans, or every server not open in a tab. When they ask to clean up or stop servers, send them there: `http://127.0.0.1:<hub port>/#servers`.
 
 Give the user the URL and a short summary from `list`: what's waiting on them first, then what's in progress or blocked.

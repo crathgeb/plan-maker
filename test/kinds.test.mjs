@@ -81,7 +81,7 @@ describe('a plan: phases, a linked guide, Make a guide, More detail', () => {
     assert.equal(await page.locator('#pm-prog').getAttribute('data-you'), '0/2');
     assert.equal(await page.locator('#pm-prog').getAttribute('data-claude'), '0/2');
     // the plan's statuses, not a guide's
-    const opts = await page.locator('#pm-status-sel option').evaluateAll((o) => o.map((x) => x.value));
+    const opts = await page.locator('#pm-status-sel option:not([disabled]):not([value="pm-remove"])').evaluateAll((o) => o.map((x) => x.value));
     assert.deepEqual(opts, ['draft', 'reviewing', 'approved', 'in-progress', 'blocked', 'done', 'archived']);
   });
 
@@ -176,7 +176,7 @@ describe('a guide: its plan above the title, steps to follow', () => {
     assert.equal(await page.locator('#pm-top .pm-kind').textContent(), 'Guide');
     assert.equal(await page.locator('.pm-parent b').textContent(), 'Docs site migration');
     assert.equal(await page.locator('.pm-parent .pm-parent-phase').textContent(), 'Switch the domain over');
-    const opts = await page.locator('#pm-status-sel option').evaluateAll((o) => o.map((x) => x.value));
+    const opts = await page.locator('#pm-status-sel option:not([disabled]):not([value="pm-remove"])').evaluateAll((o) => o.map((x) => x.value));
     assert.ok(opts.includes('not-started') && !opts.includes('approved'));
   });
 
@@ -229,7 +229,7 @@ describe('a reference: no progress, statuses of its own, stale when its sources 
     assert.equal(await page.locator('.pm-done-btn').count(), 0);
     assert.equal(await page.locator('[data-id="cmd-dev"] .pm-detail-btn').count(), 1);
     assert.equal(await page.locator('.pm-stale').count(), 0);
-    const opts = await page.locator('#pm-status-sel option').evaluateAll((o) => o.map((x) => x.value));
+    const opts = await page.locator('#pm-status-sel option:not([disabled]):not([value="pm-remove"])').evaluateAll((o) => o.map((x) => x.value));
     assert.deepEqual(opts, ['draft', 'reviewing', 'current', 'archived']);
   });
 

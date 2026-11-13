@@ -231,3 +231,47 @@ test('Copy works inside the hub, and without clipboard permission', async () => 
   await ctx.close();
   for (const s of (await http(hub, '/api/servers')).json().servers.filter((x) => x.page === page)) await http(hub, '/api/servers/stop', 'POST', { servers: [{ port: s.port, planHash: s.planHash }] });
 });
+
+test('Remove from hub: from the page’s status menu, and from a missing page’s view in the hub', async () => {
+  const cli = (...a) => spawnSync(process.execPath, [join(repo, 'scripts/registry.mjs'), ...a], { env: process.env, encoding: 'utf8' });
+  const kept = pageAt('rm-page', 'Remove me');
+  const id = cli('add', kept, '--goal', 'x').stdout.match(/id ([0-9a-f]{10})/)[1];
+  const hub = await startHub();
+  const errors = [];
+  const p = await newPage(browser, errors);
+  p.on('dialog', (d) => d.accept());
+  await p.goto(`${hub}#${id}`);
+  const f = await (await p.waitForSelector('iframe.plan-frame')).contentFrame();
+  await f.waitForSelector('.pm-status:not([hidden])');
+  await f.selectOption('#pm-status-sel', 'pm-remove');
+  // The hub drops the page's frame and says so.
+  await p.waitForFunction(() => /Removed Remove me from the hub/.test(document.querySelector('#toast').textContent));
+  assert.equal(cli('show', kept).status, 1, 'the entry is gone');
+  assert.ok(existsSync(kept), 'the page is not');
+  assert.equal(await p.$(`#side .row[data-sel="${id}"]`), null);
+  assert.equal(await p.$('iframe.plan-frame'), null, 'back to the waiting view');
+
+  // The page in its own tab: the status menu goes and the page says so.
+  const solo = pageAt('rm-solo', 'Solo page');
+  cli('add', solo, '--goal', 'x');
+  const s = await serve(solo);
+  const q = await newPage(browser, errors);
+  q.on('dialog', (d) => d.accept());
+  await q.goto(s.url);
+  await q.waitForSelector('.pm-status:not([hidden])');
+  await q.selectOption('#pm-status-sel', 'pm-remove');
+  await q.waitForFunction(() => /Removed from the hub/.test(document.querySelector('#pm-status').textContent));
+  assert.ok(await q.$eval('.pm-status', (el) => el.hidden));
+  assert.equal(cli('show', solo).status, 1);
+
+  // A page that was deleted: its view in the hub has the button.
+  const gone = pageAt('rm-gone', 'Gone page');
+  const gid = cli('add', gone, '--goal', 'x').stdout.match(/id ([0-9a-f]{10})/)[1];
+  rmSync(join(proj, 'plans', 'rm-gone'), { recursive: true, force: true });
+  await p.goto(`${hub}#${gid}`);
+  await p.click(`button[data-remove="${gid}"]`);
+  await p.waitForFunction(() => /Removed Gone page/.test(document.querySelector('#toast').textContent));
+  assert.equal(cli('show', gid).status, 1);
+  assert.deepEqual(errors.filter((e) => !/404/.test(e)), []);
+  for (const s of (await http(hub, '/api/servers')).json().servers) await http(hub, '/api/servers/stop', 'POST', { servers: [{ port: s.port, planHash: s.planHash }] });
+});

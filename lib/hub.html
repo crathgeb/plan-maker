@@ -367,7 +367,8 @@ function renderPlan(e) {
   if (sheet.dataset.embed === e.id) return;
   sheet.dataset.embed = e.id;
   sheet.innerHTML = e.missing
-    ? `<header class="hero"><h1>${esc(e.name)}</h1><p class="notice">The page isn’t there any more: it was moved or deleted.</p><p class="meta">${esc(e.path)}</p></header>`
+    ? `<header class="hero"><h1>${esc(e.name)}</h1><p class="notice">The page isn’t there any more: it was moved or deleted.</p><p class="meta">${esc(e.path)}</p>
+        <div class="srv-actions"><button type="button" class="btn" data-remove="${e.id}">Remove from hub</button></div></header>`
     : `<iframe class="plan-frame" src="/open/${e.id}" title="${esc(e.name)}" allow="clipboard-write"></iframe>`;
 }
 
@@ -490,6 +491,20 @@ document.addEventListener('click', async (ev) => {
     renderSide();
     return;
   }
+  const rb = ev.target.closest('[data-remove]');
+  if (rb) {
+    const e = entries.find((x) => x.id === rb.dataset.remove);
+    if (!e || !confirm(`Remove “${e.name}” from the hub?`)) return;
+    rb.disabled = true;
+    const r = await fetch(`/api/entries/${e.id}`, { method: 'DELETE' });
+    if (!r.ok) {
+      rb.disabled = false;
+      return toast('Not removed: ' + (await r.text()));
+    }
+    toast(`Removed ${e.name} from the hub`);
+    select('');
+    return load();
+  }
   const sb = ev.target.closest('[data-stop], [data-stop-port]');
   if (sb && servers) {
     const list = sb.dataset.stop ? stopSets[sb.dataset.stop] || [] : servers.filter((s) => String(s.port) === sb.dataset.stopPort);
@@ -539,7 +554,14 @@ $('#side').addEventListener('keydown', (ev) => {
 $('#q').addEventListener('input', (ev) => { view.q = ev.target.value; renderSide(); });
 addEventListener('hashchange', render);
 // The embedded plan says when its status changes: refresh the sidebar straight away.
-addEventListener('message', (ev) => { if (ev.data?.app === 'plan-maker') load(); });
+addEventListener('message', (ev) => {
+  if (ev.data?.app !== 'plan-maker') return;
+  if (ev.data.type === 'removed') {
+    toast(`Removed ${ev.data.name || 'it'} from the hub`);
+    history.pushState(null, '', location.pathname + location.search);
+  }
+  load();
+});
 // Collapse the sidebar to a thin rail; the choice is remembered.
 function setCollapsed(on) {
   document.documentElement.classList.toggle('side-collapsed', on);
