@@ -368,7 +368,7 @@ function renderPlan(e) {
   sheet.dataset.embed = e.id;
   sheet.innerHTML = e.missing
     ? `<header class="hero"><h1>${esc(e.name)}</h1><p class="notice">The page isn’t there any more: it was moved or deleted.</p><p class="meta">${esc(e.path)}</p></header>`
-    : `<iframe class="plan-frame" src="/open/${e.id}" title="${esc(e.name)}"></iframe>`;
+    : `<iframe class="plan-frame" src="/open/${e.id}" title="${esc(e.name)}" allow="clipboard-write"></iframe>`;
 }
 
 // ---------- running servers ----------

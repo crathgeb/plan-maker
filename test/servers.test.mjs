@@ -1,7 +1,7 @@
 // Running review servers: records, health, idle stop, reuse on any port, and the hub's
 // Running servers page (list, orphans, Stop).
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { request } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -203,4 +203,31 @@ test('the annotator pings its server every minute, and says when it has stopped'
   await exited(s.proc);
   await p.clock.runFor(61e3);
   await p.waitForFunction(() => /review server stopped/.test(document.querySelector('#pm-status')?.textContent || ''));
+});
+
+test('Copy works inside the hub, and without clipboard permission', async () => {
+  const page = pageAt('copy', 'Copy plan');
+  const add = spawnSync(process.execPath, [join(repo, 'scripts/registry.mjs'), 'add', page, '--goal', 'Copy'], { env: process.env, encoding: 'utf8' });
+  const id = add.stdout.match(/id ([0-9a-f]{10})/)[1];
+  const hub = await startHub();
+  const ctx = await browser.newContext();
+  await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const p = await ctx.newPage();
+  const copyInFrame = async () => {
+    await p.evaluate(() => navigator.clipboard.writeText('-'));
+    const f = p.frames().find((x) => x !== p.mainFrame());
+    await f.waitForSelector('html[data-pm-ready]');
+    await f.click('.pm-copy', { force: true });
+    await f.waitForFunction(() => document.querySelector('.pm-copy').textContent !== 'Copy');
+    return [await f.textContent('.pm-copy'), await p.evaluate(() => navigator.clipboard.readText())];
+  };
+  await p.goto(`${hub}#${id}`);
+  await p.waitForSelector('iframe.plan-frame[allow~="clipboard-write"]');
+  assert.deepEqual(await copyInFrame(), ['Copied', 'docs/\n  guides/        how-to pages\n  reference/     generated from the API schema\n  redirects.json old URL → new URL']);
+  // A frame the clipboard API refuses (like plain http from another device) falls back to the copy command.
+  await p.evaluate(() => { const f = document.querySelector('iframe.plan-frame'); f.removeAttribute('allow'); f.src = f.src; });
+  await p.waitForTimeout(500);
+  assert.equal((await copyInFrame())[0], 'Copied');
+  await ctx.close();
+  for (const s of (await http(hub, '/api/servers')).json().servers.filter((x) => x.page === page)) await http(hub, '/api/servers/stop', 'POST', { servers: [{ port: s.port, planHash: s.planHash }] });
 });
