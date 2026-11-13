@@ -1,6 +1,6 @@
 # Writing a plan-maker page
 
-The rules every page follows: plans, guides and references alike. `make-plan`, `make-guide`, `make-reference` and `process-notes` read this before they write. `DESIGN.md` says how the page looks; this says what goes on it.
+The rules every page follows: plans, guides and references alike. `make-plan`, `make-guide`, `make-reference` and `process-notes` read this before they write. `DESIGN.md` says how the page looks; this says what goes on it. `scripts/check.mjs` checks a written page against both: the structure, the template's example left in, and the rules here it can test (ledes, owners on steps, entries that run long, headings numbered by hand).
 
 ## Two kinds of block: content and steps
 

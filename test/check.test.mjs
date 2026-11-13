@@ -1,0 +1,91 @@
+// scripts/check.mjs: a broken page fails, the templates pass, the writing rules warn.
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { after, test } from 'node:test';
+import { check } from '../scripts/check.mjs';
+import { repo } from './helpers.mjs';
+
+const dir = mkdtempSync(join(tmpdir(), 'plan-maker-check-'));
+after(() => rmSync(dir, { recursive: true, force: true }));
+const tpl = (k) => readFileSync(join(repo, 'templates', `${k}.html`), 'utf8');
+let n = 0;
+const page = (html) => {
+  const p = join(dir, String(n++), 'index.html');
+  mkdirSync(join(p, '..'), { recursive: true });
+  writeFileSync(p, html);
+  return p;
+};
+/** A guide of the user's own: the template with every example block replaced. */
+const own = () => tpl('guide')
+  .replace(/<main data-plan>[\s\S]*<\/main>/, `<main data-plan>
+<header class="hero" data-id="top"><h1>Rotate the key</h1><p class="lede">Swap the old key for a new one without downtime.</p></header>
+<section class="sec" id="swap" data-id="swap">
+  <h2>Swap it</h2>
+  <p class="lede">Make the new key, then retire the old one.</p>
+  <div class="steps">
+    <div class="step item" data-id="s-make" data-who="you"><h4>Make the new key</h4><p>In the dashboard, under Keys.</p></div>
+  </div>
+</section>
+</main>`)
+  .replace(/<nav class="toc"[\s\S]*?<\/nav>/, '<nav class="toc" aria-label="Contents">\n  <div class="toc-title">Contents</div>\n  <a href="#swap">Swap it</a>\n</nav>');
+
+test('the three templates pass', () => {
+  for (const k of ['plan', 'guide', 'reference']) {
+    const r = check(join(repo, 'templates', `${k}.html`));
+    assert.deepEqual([r.errors, r.warnings], [[], []], k);
+  }
+});
+
+test('a page of its own passes', () => {
+  const r = check(page(own()));
+  assert.deepEqual([r.errors, r.warnings], [[], []]);
+});
+
+test('part of the template pasted twice fails: two bodies, two contents lists, tags left open', () => {
+  // How a real guide broke: the template's opening, up to its first contents link, left above the page's.
+  const html = own();
+  const at = html.indexOf('<body>');
+  const broken = html.slice(0, at) + '<body>\n<div class="desk">\n<nav class="toc" aria-label="Contents">\n  <div class="toc-title">Contents</div>\n  <a href="#records">Add the records</a>\n' + html.slice(at);
+  const r = check(page(broken));
+  assert.ok(r.errors.some((e) => /2 <body>/.test(e)));
+  assert.ok(r.errors.some((e) => /More than one contents list/.test(e)));
+  assert.ok(r.errors.some((e) => /<nav> opened 2 times but closed 1/.test(e)));
+  assert.ok(r.errors.some((e) => /#records goes nowhere/.test(e)));
+});
+
+test("the template's example left in fails; a section that only shares its heading doesn't", () => {
+  const r = check(page(tpl('guide')));
+  assert.ok(r.errors.some((e) => /example is still here/.test(e)));
+  assert.ok(r.errors.some((e) => /docs\.example\.com/.test(e)));
+  const shared = own().replace('</main>', `<section class="sec" id="trouble" data-id="trouble">
+  <h2>If something goes wrong</h2>
+  <p class="lede">What you might see on the way, and what to do about it.</p>
+  <div class="table-wrap"><table><tbody><tr class="item" data-id="t-1"><td>401 from the API</td><td>Make the key again.</td></tr></tbody></table></div>
+</section>
+</main>`);
+  assert.deepEqual(check(page(shared)).errors, []);
+});
+
+test('repeated ids fail; writing rules warn', () => {
+  const html = own()
+    .replace('data-id="s-make"', 'data-id="swap"')
+    .replace('<p class="lede">Make the new key, then retire the old one.</p>', '')
+    .replace('data-id="swap" data-who="you"', 'data-id="swap"')
+    .replace('<h4>Make the new key</h4>', '<h4>1. Make the new key</h4>');
+  const r = check(page(html));
+  assert.ok(r.errors.some((e) => /Repeated data-id: swap/.test(e)));
+  assert.ok(r.warnings.some((w) => /"Swap it" doesn't open with a one-sentence lede/.test(w)));
+  assert.ok(r.warnings.some((w) => /without an owner/.test(w)));
+  assert.ok(r.warnings.some((w) => /numbered by hand/.test(w)));
+});
+
+test('the command exits 1 on an error, 0 on warnings only', () => {
+  const run = (p) => spawnSync(process.execPath, [join(repo, 'scripts/check.mjs'), p], { encoding: 'utf8' });
+  assert.equal(run(page(own().replace('<body>', '<body>\n<body>'))).status, 1);
+  const warned = run(page(own().replace('<p class="lede">Make the new key, then retire the old one.</p>', '')));
+  assert.equal(warned.status, 0);
+  assert.match(warned.stdout, /^warn /m);
+});

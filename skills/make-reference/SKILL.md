@@ -47,6 +47,14 @@ Copy `${CLAUDE_PLUGIN_ROOT}/templates/reference.html` and replace every piece of
 
 Lead each entry with its point. Write in the present tense ("Builds every page into `dist/`"). No steps, no owners, no decisions: if the user needs to choose or do something, that's a plan or a guide, so offer one. Use sentence case in `<title>`.
 
+**Check the page** before anyone sees it:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/check.mjs" <page path>
+```
+
+Fix every **error** and run it again until it prints `ok` or only warnings. An error means the page is broken or will lose the reader's notes: a second `<body>` or contents list (part of the template pasted twice), a tag left open, a repeated `data-id`, the template's example left in. Fix the **warnings** too, unless there's a reason (say which in your hand-over): they're `WRITING.md` rules, such as a section with no lede or an entry that runs long. Never hand over a page that fails the check.
+
 ## 4. Start the review server
 
 ```bash
@@ -73,4 +81,4 @@ Tell the user the URL and path, the scope in a line, and how to review it: selec
 
 When the user says the reference is out of date, or "refresh the reference", or the hub shows it stale: re-read every `pm-source` file, then revise it as a new version with `process-notes` (it snapshots first), even if there are no notes. Say in "What changed" which source changes you followed.
 
-Done when the reference exists, follows the conventions, names its sources, is registered, the server is running, and the user has the URL.
+Done when `check.mjs` passes on the page, the reference exists, follows the conventions, names its sources, is registered, the server is running, and the user has the URL.

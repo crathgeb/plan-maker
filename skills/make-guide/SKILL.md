@@ -65,6 +65,14 @@ For a guide made from a plan's phase:
 1. On the plan, add `data-guide="guides/<guide-slug>/index.html"` to that phase. If you're writing it in response to the user's **Make a guide**, `process-notes` does this as part of the plan's next version; otherwise edit the plan in place and mark the phase `data-changed="v<N>"`.
 2. The phase now shows the guide's progress and is done when every step of the guide is.
 
+**Check the page** before anyone sees it:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/check.mjs" <page path>
+```
+
+Fix every **error** and run it again until it prints `ok` or only warnings. An error means the page is broken or will lose the reader's notes: a second `<body>` or contents list (part of the template pasted twice), a tag left open, a repeated `data-id`, the template's example left in. Fix the **warnings** too, unless there's a reason (say which in your hand-over): they're `WRITING.md` rules, such as a section with no lede or an entry that runs long. Never hand over a page that fails the check.
+
 ## 5. Start the review server
 
 Run it in the background from the project root:
@@ -94,4 +102,4 @@ Tell the user, briefly:
 - that they tick each step with **Mark done** (the next one scrolls into view), use **Copy** on every block, and can select text to **Ask Claude** or ask for **More detail** wherever they get stuck;
 - to press **Done for now** and say **"process my notes"** when they want the guide fixed or their questions answered.
 
-Done when the guide exists, follows the conventions, is linked from its plan's phase (if it has one), is registered, the server is running, and the user has the URL.
+Done when `check.mjs` passes on the page, the guide exists, follows the conventions, is linked from its plan's phase (if it has one), is registered, the server is running, and the user has the URL.

@@ -58,9 +58,17 @@ Copy `${CLAUDE_PLUGIN_ROOT}/templates/plan.html` and replace every piece of exam
 
 Write for someone skimming in a browser: lead each entry with its point, and keep each phase to what it achieves and why. Write no eyebrow labels and no section or phase numbers yourself (they're drawn for you). Keep heading levels in order: `<h2>` for sections, `<h3>` for entries, phases and decisions. Use sentence case in `<title>`.
 
+**Check the page** before anyone sees it:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/check.mjs" <page path>
+```
+
+Fix every **error** and run it again until it prints `ok` or only warnings. An error means the page is broken or will lose the reader's notes: a second `<body>` or contents list (part of the template pasted twice), a tag left open, a repeated `data-id`, the template's example left in. Fix the **warnings** too, unless there's a reason (say which in your hand-over): they're `WRITING.md` rules, such as a section with no lede or an entry that runs long. Never hand over a page that fails the check.
+
 ## 4. Write the guides it needs now
 
-For each phase the user will act on soon, write its guide with `make-guide` at `plans/<slug>/guides/<guide-slug>/index.html`, with `pm-parent` pointing back at the plan and `pm-parent-phase` naming the phase's `data-id`. Then put `data-guide="guides/<guide-slug>/index.html"` on the phase. Later phases can wait for the user's **Make a guide**.
+For each phase the user will act on soon, write its guide with `make-guide` at `plans/<slug>/guides/<guide-slug>/index.html`, with `pm-parent` pointing back at the plan and `pm-parent-phase` naming the phase's `data-id`. Then put `data-guide="guides/<guide-slug>/index.html"` on the phase. Check each guide as well. Later phases can wait for the user's **Make a guide**.
 
 ## 5. Start the review server
 
@@ -98,6 +106,6 @@ Tell the user, briefly:
 - how to use it: select text to **Comment**, **Ask Claude** or ask for **More detail**, or use the buttons on any block; **Make a guide** on a phase they want walked through; **Mark done** on their phases; answer the decisions;
 - to press **Done for now** and say **"process my notes"**.
 
-Done when the plan exists, follows the conventions, is registered, the server is running, and the user has the URL.
+Done when `check.mjs` passes on the page, the plan exists, follows the conventions, is registered, the server is running, and the user has the URL.
 
 To share it without the server, `node "${CLAUDE_PLUGIN_ROOT}/scripts/bundle.mjs" <plan>` writes a self-contained `<name>.review.html`, plus a copy of each linked guide, linked to each other. Each saves notes in that person's browser, and they send back the file from **Download notes.json**.

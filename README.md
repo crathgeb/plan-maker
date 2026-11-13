@@ -130,6 +130,10 @@ node scripts/registry.mjs list [--all] [--project NAME] [--kind plan|guide|refer
 node scripts/registry.mjs scan [dir]        # register every plan-maker page under dir
 node scripts/hub.mjs [--port 4477] [--no-open]
 
+# Check a page after writing it: structure, leftover template example, WRITING.md rules.
+# Errors (exit 1) break the page; warnings break a writing rule.
+node scripts/check.mjs path/to/page.html [more pages…] [--json]
+
 # Write a self-contained copy for sharing or opening from disk.
 # --all-versions also writes each earlier version, read-only, linked by the switcher.
 # A plan's guides are bundled with it, linked both ways, unless --no-guides.

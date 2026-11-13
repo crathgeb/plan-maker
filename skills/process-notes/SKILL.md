@@ -109,6 +109,14 @@ Edit the page in place (its path stays the same, so the user's URL keeps working
 - Bump the version: `<meta name="plan-version" content="N+1">`, `<meta name="plan-date">` to today, and the slug's first two chips to `<span><Plan|Guide|Reference> v<N+1></span><span>Your v<N> notes applied</span>`.
 - Add new decisions where the notes opened new questions.
 
+**Check the page** you wrote (the new version, and every guide you wrote in step 6):
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/check.mjs" <page path>
+```
+
+Fix every **error** and run it again until it prints `ok` or only warnings. An error means the page is broken or will lose the reader's notes: a second `<body>` or contents list (part of the template pasted twice), a tag left open, a repeated `data-id`, the template's example left in. Fix the **warnings** too, unless there's a reason (say which in your hand-over): they're `WRITING.md` rules, such as a section with no lede or an entry that runs long. Never hand over a page that fails the check.
+
 ## 8. Update the registry
 
 ```bash
@@ -124,4 +132,4 @@ This registers the page if it isn't registered yet. Then set the status for its 
 
 Tell the user what changed (the table is enough), which questions you answered, which guides you wrote (with their paths), and anything that needs their call. Give the page's URL to reload. What they ticked off carried over. v<N> and its notes stay one click away in the version switcher. If the server isn't running, use `review-plan`.
 
-Done when every entry is accounted for in the table or in **Needs your call**, `versions/v<N>.html` and `versions/v<N>.notes.json` exist, the live page is v<N+1> with its `#changes` section and an answer beside every question, every requested guide exists, is registered and is linked from its phase, and the registry has a log line for v<N+1>.
+Done when `check.mjs` passes on every page you wrote, every entry is accounted for in the table or in **Needs your call**, `versions/v<N>.html` and `versions/v<N>.notes.json` exist, the live page is v<N+1> with its `#changes` section and an answer beside every question, every requested guide exists, is registered and is linked from its phase, and the registry has a log line for v<N+1>.
