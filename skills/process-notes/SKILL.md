@@ -105,6 +105,7 @@ Edit the page in place (its path stays the same, so the user's URL keeps working
 - **Claude's steps and phases:** set `data-status` (`todo`, `doing`, `done`) to match what you've actually done, and the `<li data-status>` in a phase's `ul.tasks`.
 - **Fill placeholders** with every value the user has given, in notes or in chat.
 - Write **What changed in v<N+1>** as the first section, `section#changes`, replacing the previous version's: copy the shape of `${CLAUDE_PLUGIN_ROOT}/templates/changes-section.html`. One row per change, "You said" in the user's words (or "Make a guide", "More detail"), "What changed" with `§` links to the sections it touched; a "Decided" line for each answered decision; a first entry in the contents. Answered questions don't need a row: their answers sit where they were asked.
+- **Refresh the page's style.** Replace its template `<style>` block (the first one, starting `:root {`) with the current one from `${CLAUDE_PLUGIN_ROOT}/templates/<kind>.html`, word for word, so design fixes reach pages written before them. Leave any second, page-specific `<style>` alone.
 - Bump the version: `<meta name="plan-version" content="N+1">`, `<meta name="plan-date">` to today, and the slug's first two chips to `<span><Plan|Guide|Reference> v<N+1></span><span>Your v<N> notes applied</span>`.
 - Add new decisions where the notes opened new questions.
 
