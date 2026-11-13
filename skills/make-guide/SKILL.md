@@ -37,6 +37,8 @@ If that folder already holds a guide, this is a revision: use `process-notes`, w
 
 ## 3. Write the page
 
+**First read `${CLAUDE_PLUGIN_ROOT}/WRITING.md`**, the rules every plan-maker page follows: content and steps kept apart (only steps and phases are numbered and owned; explanation sits flush), a one-sentence lede on every section, and content written to be understood from its headings, two sentences a block at most.
+
 Copy `${CLAUDE_PLUGIN_ROOT}/templates/guide.html` and replace every piece of example content. Keep `<meta name="pm-kind" content="guide">` and the template's style block exactly as it is (it is shared, word for word, with the plan and reference templates). Write no JavaScript. Keep the page self-contained.
 
 | Mark | Put it on | Rules |

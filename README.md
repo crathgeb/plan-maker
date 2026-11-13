@@ -166,7 +166,7 @@ Highlights are stored as character offsets within a block, counting only the pla
 
 ## HTML conventions
 
-`templates/plan.html`, `templates/guide.html` and `templates/reference.html` show each of these in use (light and dark, down to phone width). The three share one style block, word for word. DESIGN.md has the visual system.
+`templates/plan.html`, `templates/guide.html` and `templates/reference.html` show each of these in use (light and dark, down to phone width). The three share one style block, word for word. DESIGN.md has the visual system, and WRITING.md the writing rules every page follows: content kept apart from steps, a lede on every section, content concise enough to skim.
 
 | Mark | Effect |
 |---|---|

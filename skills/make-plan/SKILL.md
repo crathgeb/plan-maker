@@ -34,6 +34,8 @@ Use the path the user names. Otherwise use `plans/<slug>/index.html` from the pr
 
 ## 3. Write the page
 
+**First read `${CLAUDE_PLUGIN_ROOT}/WRITING.md`**, the rules every plan-maker page follows: content and steps kept apart (only steps and phases are numbered and owned; explanation sits flush), a one-sentence lede on every section, and content written to be understood from its headings, two sentences a block at most.
+
 Copy `${CLAUDE_PLUGIN_ROOT}/templates/plan.html` and replace every piece of example content. Keep `<meta name="pm-kind" content="plan">` and the template's style block exactly as it is (it is shared, word for word, with the guide and reference templates); add page-specific CSS in a second `<style>` element if you must. Shape the sections to fit the plan, and keep the contents rail in sync with them. Write no JavaScript. Keep the page self-contained.
 
 | Mark | Put it on | Rules |
@@ -52,7 +54,7 @@ Copy `${CLAUDE_PLUGIN_ROOT}/templates/plan.html` and replace every piece of exam
 | `<p class="slug">` | Under the `<h1>` | `<span>Plan v1</span><span>For review</span><span>DATE</span>`. Match `<meta name="plan-version">` (start at `1`) and `<meta name="plan-date">` (`YYYY-MM-DD`). |
 | `<div class="progress" data-pm-progress></div>` | The hero, after the lede | Keep it empty: the review layer draws the phases' progress there. |
 
-**Keep the design and the work apart, and say which is which.** A plan has two kinds of section: ones that describe **what gets built** (how it works, what it looks like, what changes) and the **Phases** section, which is the work. A design section's lede says so and names the phase that builds it ("What the finished hub shows. The Hub phase builds it."). Each phase's **Done when** names what it produces. A reader should never have to wonder whether a section is something to do.
+**Keep the design and the work apart, and say which is which.** A plan has two kinds of section: ones that describe **what gets built** (how it works, what it looks like, what changes) and the **Phases** section, which is the work. A design section's lede says so and names the phase that builds it ("What the finished hub shows. The Hub phase builds it."). Each phase's **Done when** names what it produces. A reader should never have to wonder whether a section is something to do (`WRITING.md`, "Two kinds of block").
 
 Write for someone skimming in a browser: lead each entry with its point, and keep each phase to what it achieves and why. Write no eyebrow labels and no section or phase numbers yourself (they're drawn for you). Keep heading levels in order: `<h2>` for sections, `<h3>` for entries, phases and decisions. Use sentence case in `<title>`.
 

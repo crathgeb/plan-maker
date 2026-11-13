@@ -140,25 +140,23 @@ ul.tight { list-style: none; padding: 0; margin: 0 0 14px; }
 ul.tight > li { position: relative; padding: 12px 0; border-top: 1px solid var(--line-2); }
 ul.tight > li:last-child { border-bottom: 1px solid var(--line-2); }
 
-/* ---------- the timeline: each block in a section is a numbered node on a vertical line ---------- */
-.sec :is(.entry, ul.tight > li, .note-box, .step, .phase, .decision) { --tl-top: 12px; --tl-gap: 0px; position: relative; counter-increment: sub; margin-left: 52px; }
-.sec .entry { --tl-top: 12px; }
-.sec ul.tight > li { --tl-top: 10px; }
-.sec .note-box { --tl-top: 10px; --tl-gap: 0px; }
-.sec .step { --tl-top: 14px; --tl-gap: 12px; }
+/* ---------- the timeline: only things to do (steps, phases) are numbered nodes on a line ----------
+   Content (entries, lists, callouts, decisions, tables) sits flush, with no numbers, so it
+   never reads as part of the sequence. */
+.sec :is(.step, .phase) { --tl-top: 14px; --tl-gap: 12px; position: relative; counter-increment: sub; margin-left: 52px; }
 .sec .phase { --tl-top: 18px; --tl-gap: 14px; }
-.sec .decision { --tl-top: 0px; --tl-gap: 26px; }
-.sec :is(.entry, ul.tight > li, .note-box, .step, .phase, .decision)::before {
+.sec :is(.step, .phase)::before {
   content: counter(sec) "." counter(sub); position: absolute; z-index: 1; left: -52px; top: var(--tl-top); width: 34px; height: 34px; border-radius: 50%;
   display: grid; place-items: center; background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--line); color: var(--ink-2);
   font: 650 11.5px/1 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: 0; }
-.sec :is(.entry, ul.tight > li, .note-box, .step, .phase, .decision)::after {
+.sec :is(.step, .phase)::after {
   content: ""; position: absolute; left: -36px; width: 2px; border-radius: 1px; background: var(--line-2);
   top: calc(var(--tl-top) + 34px); bottom: calc(-1 * (var(--tl-gap) + var(--tl-top) + 0px)); }
 /* the line stops at the last node of each run */
-.sec .entry:not(:has(+ .entry, + .note-box))::after, .sec ul.tight > li:last-child::after, .sec .note-box::after,
-.sec .steps > .step:last-child::after, .sec .phases > .phase:last-child::after, .sec .decision:not(:has(+ .decision))::after { display: none; }
+.sec .steps > .step:last-child::after, .sec .phases > .phase:last-child::after { display: none; }
 .sec .phase-h { margin-left: 52px; }
+/* a callout among steps lines up with the step cards */
+.sec .steps + .note-box, .sec .phases + .note-box { margin-left: 52px; }
 
 /* ---------- tables ---------- */
 .table-wrap { overflow-x: auto; margin: 0 0 14px; border: 1px solid var(--line); border-radius: 10px; }
@@ -241,7 +239,7 @@ ul.tasks li[data-status="done"] { color: var(--ink-2); }
 .step .iffail { background: color-mix(in srgb, var(--warn) 8%, var(--paper)); }
 .step .iffail > b:first-child { color: var(--warn); }
 
-/* ---------- references: built for lookup, so the contents sit on the page and there's no timeline ---------- */
+/* ---------- references: built for lookup, so the contents sit on the page ---------- */
 .contents { margin: 22px 0 0; padding: 14px 18px; border-radius: 10px; background: var(--paper-2); }
 .contents h2 { margin: 0 0 6px; font-size: 15px; font-weight: 650; }
 .contents ol { columns: 2 200px; column-gap: 24px; margin: 0; padding-left: 22px; }
@@ -252,9 +250,6 @@ dl.defs > dt { padding-right: 20px; font-weight: 600; overflow-wrap: anywhere; }
 dl.defs > dd { color: var(--ink-2); }
 dl.defs > dd p { margin: 6px 0 0; }
 .sig { margin: 0 0 10px; padding: 10px 12px; border-radius: 8px; background: var(--paper-2); border: 1px solid var(--line-2); font: 14px/1.5 var(--mono); overflow-x: auto; white-space: pre; }
-:root:has(meta[name="pm-kind"][content="reference"]) .sec :is(.entry, ul.tight > li, .note-box) { margin-left: 0; }
-:root:has(meta[name="pm-kind"][content="reference"]) .sec :is(.entry, ul.tight > li, .note-box)::before,
-:root:has(meta[name="pm-kind"][content="reference"]) .sec :is(.entry, ul.tight > li, .note-box)::after { content: none; }
 
 /* On a pointer screen, a block's Comment button floats at its top right instead of taking a line. */
 @media (hover: hover) and (min-width: 721px) {
@@ -282,10 +277,10 @@ dl.defs > dd p { margin: 6px 0 0; }
   .lede { font-size: 17px; }
   .sec > h2 { font-size: 21px; }
   .sec > h2::before { width: 30px; height: 30px; font-size: 14px; }
-  .sec :is(.entry, ul.tight > li, .note-box, .step, .phase, .decision) { margin-left: 38px; }
-  .sec :is(.entry, ul.tight > li, .note-box, .step, .phase, .decision)::before { left: -38px; width: 28px; height: 28px; font-size: 10.5px; }
-  .sec :is(.entry, ul.tight > li, .note-box, .step, .phase, .decision)::after { left: -25px; top: calc(var(--tl-top) + 28px); }
-  .sec .phase-h { margin-left: 38px; }
+  .sec :is(.step, .phase) { margin-left: 38px; }
+  .sec :is(.step, .phase)::before { left: -38px; width: 28px; height: 28px; font-size: 10.5px; }
+  .sec :is(.step, .phase)::after { left: -25px; top: calc(var(--tl-top) + 28px); }
+  .sec .phase-h, .sec .steps + .note-box, .sec .phases + .note-box { margin-left: 38px; }
   .entry { grid-template-columns: minmax(0, 1fr); }
   .entry > .k, .entry > :not(.k) { grid-column: 1; grid-row: auto; }
   .step, .phase { padding: 14px; }

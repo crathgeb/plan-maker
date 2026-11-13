@@ -25,6 +25,8 @@ The path the user names. Otherwise `docs/reference/<slug>/index.html` if the pro
 
 ## 3. Write the page
 
+**First read `${CLAUDE_PLUGIN_ROOT}/WRITING.md`**, the rules every plan-maker page follows: content and steps kept apart (only steps and phases are numbered and owned; explanation sits flush), a one-sentence lede on every section, and content written to be understood from its headings, two sentences a block at most.
+
 Copy `${CLAUDE_PLUGIN_ROOT}/templates/reference.html` and replace every piece of example content. Keep `<meta name="pm-kind" content="reference">` and the template's style block exactly as it is (it is shared, word for word, with the plan and guide templates). Write no JavaScript. Keep the page self-contained.
 
 | Mark | Put it on | Rules |

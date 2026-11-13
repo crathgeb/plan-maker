@@ -116,19 +116,19 @@ All three templates share one style block, word for word, and the hub wears it t
 
 - One family, the system sans, for everything except code.
 - Body 16px/1.65 with a measure of about 70 characters. Headings in weight 600–650: h1 34, h2 24, h3 18, h4 16.5. Sentence case throughout.
-- No eyebrow labels, no tracked capitals, no loose gutter numbers. Numbers appear only in two systems: the section badge before each h2 (1, 2, 3) and the timeline nodes inside a section (2.1, 2.2).
+- No eyebrow labels, no tracked capitals, no loose gutter numbers. Numbers appear only in two systems: the section badge before each h2 (1, 2, 3) and the timeline nodes on steps and phases (2.1, 2.2). Content is never numbered.
 - Monospace only in code blocks and inline `code`. Tabular numerals in progress counts and tables.
 
 ## Layout
 
 - **Pages:** like a Word document, each section is its own white page (max 860px, radius 12px, soft shadow, 48px/56px padding), stacked 24px apart on the `ground`. The hero is the cover page. "Page n" sits small in each page's bottom-right corner. On wide screens a contents list sits to the left. On phones the pages run nearly edge to edge (8px margin, radius 10px, 16px padding).
 - **Sections:** h2 with a rounded number badge (34px, `paper-2`) before it, then a one-sentence lede (`.lede`, 18px, `ink-2`) saying what the section covers and why it's there. Every section has one, on every kind of page, so no section opens straight into its steps, phases or tables. In a plan, the lede also says whether the section describes what gets built or is the work itself.
-- **Timeline:** inside a section, every entry, list item, callout, step and decision is a numbered node (2.1, 2.2…) on a vertical line on the left. Nodes are 34px circles on a 2px `line-2` line, with content indented 52px.
+- **Timeline:** only things to do are on it. Each step and phase is a numbered node (2.1, 2.2…) on a vertical line on the left: 34px circles on a 2px `line-2` line, with the cards indented 52px. Content (entries, lists, callouts, decisions, tables, definitions) sits flush, with no node and no number, on every kind of page, so explanation never reads as part of the sequence. A callout placed among steps lines up with the step cards. What counts as content and what as a step is in `WRITING.md`.
   - **Steps:** a node takes its owner's colour (tint fill, ring). It fills solid with a check when done, the line below a done node takes the owner's colour, and the next undone step (whoever owns it) gets a soft halo ring.
   - **The line** breaks between runs, e.g. across a phase heading.
 - **Phases (plans):** each phase is its own card, 14px apart, a little roomier than a step card (radius 12px, 18px/20px padding). They sit on the timeline like steps.
 - **Steps (guides):** grouped under a short heading (h3 plus when, aligned with the cards). Each step is its own card with 12px between cards, so steps never run together.
-- **References:** no timeline nodes and no number circles inside sections: entries, lists and callouts sit flush. The contents list is on the cover as well as in the side rail, because a reference is read by jumping.
+- **References:** having no steps, they have no timeline at all. The contents list is on the cover as well as in the side rail, because a reference is read by jumping.
 - **The comment panel** sits on the right like the Docs comment sidebar, a column of rounded comment cards. It is closed until you comment or press Comments.
 - **Hub:** a full-height sidebar on its own white surface: search, a type filter (All, Plans, Guides, References), "Waiting on you", then collapsible project groups with one line per page (status dot, kind icon, name, a count when it waits on you), a plan's guides indented beneath it on a hairline, and done or archived pages collapsed at the bottom. A button collapses it to a 56px rail. The main area shows "Waiting on you" as pages, or the selected plan itself, live, in a frame with nothing of the hub's above it. The hub never uses red.
 
@@ -169,7 +169,7 @@ All three templates share one style block, word for word, and the hub wears it t
 - **Do** keep the kinds apart by shape and words, never colour: a plan's phases, a guide's steps, a reference's flat sections, and the neutral kind chip.
 - **Don't** put a list of the user's steps inside a plan's phase. That's a guide.
 - **Do** keep everything else quiet: neutral greys, one weight of rule, plain text.
-- **Don't** add verdict controls, loose gutter numbers or eyebrows. Numbering belongs to the section badges and the timeline only.
+- **Don't** add verdict controls, loose gutter numbers or eyebrows. Numbering belongs to the section badges and the steps' timeline only.
 - **Do** reuse the template's stylesheet for every other surface. The hub server injects it, so the hub can never drift from the plan page.
 - **Don't** use blue or gold for anything that isn't ownership.
 - **Don't** use a coloured left border as the owner marker. The card's tint and border do that job.
