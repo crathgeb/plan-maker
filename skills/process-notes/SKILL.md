@@ -91,7 +91,7 @@ Don't start a review server for each guide: the phase's card opens it.
 
 Edit the page in place (its path stays the same, so the user's URL keeps working):
 
-- Make every change from the table, following the writing rules for the page's kind. Edited elements keep their `data-id`; new elements get new ids; ids of cut elements are not reused. If the page relied on ids assigned in the browser (`autoIds`), write explicit `data-id`s and `class="item"`s now, reusing the auto ids where the element survives.
+- Make every change from the table, following the writing rules for the page's kind. A page from before a rule existed is brought up to it as you go: every section you touch (and any section that lacks one) gets its one-sentence lede. Edited elements keep their `data-id`; new elements get new ids; ids of cut elements are not reused. If the page relied on ids assigned in the browser (`autoIds`), write explicit `data-id`s and `class="item"`s now, reusing the auto ids where the element survives.
 - Mark every element you edited or added with `data-changed="v<N+1>"`: the page shows it with an "Updated in v<N+1>" chip. Remove `data-changed` attributes left from earlier rounds.
 - **Answer every question where it was asked.** Add an `aside.explain` inside the step or entry it was about, right after the part it concerns:
   ```html

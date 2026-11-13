@@ -326,6 +326,7 @@ dl.defs > dd p { margin: 6px 0 0; }
 
 <section class="sec" id="overview" data-id="overview">
   <h2>Overview</h2>
+  <p class="lede">What goes in, what comes out, and where it runs.</p>
   <div class="entry item" data-id="ov-input"><div class="k">Input</div><h3>Markdown in <code>docs/</code></h3><p>One file per page. The folder structure becomes the URL structure.</p></div>
   <div class="entry item" data-id="ov-output"><div class="k">Output</div><h3>Static HTML in <code>dist/</code></h3><p>Deployed by Cloudflare Pages on every merge to <code>main</code>, with a preview for every pull request.</p></div>
   <div class="entry item" data-id="ov-time"><div class="k">Build time</div><h3>About 20 seconds</h3><p>For 60 pages on the CI runner. Locally, <code>dev</code> rebuilds one page on save.</p></div>
@@ -333,6 +334,7 @@ dl.defs > dd p { margin: 6px 0 0; }
 
 <section class="sec" id="commands" data-id="commands">
   <h2>Commands</h2>
+  <p class="lede">The commands you run, and what each one does.</p>
   <dl class="defs">
     <dt class="item" data-id="cmd-dev"><code>npm run docs:dev</code></dt>
     <dd>Serves the site at <code>http://localhost:4321</code> and rebuilds a page when its file changes.</dd>
@@ -345,7 +347,7 @@ dl.defs > dd p { margin: 6px 0 0; }
 
 <section class="sec" id="config" data-id="config">
   <h2>Configuration</h2>
-  <p>Every option lives in <code>docs/site.config.json</code>. Only <code>title</code> and <code>baseUrl</code> are required.</p>
+  <p class="lede">Every option in <code>docs/site.config.json</code>, with its default. Only <code>title</code> and <code>baseUrl</code> are required.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>Option</th><th>Default</th><th>What it does</th></tr></thead>
     <tbody>
@@ -364,6 +366,7 @@ dl.defs > dd p { margin: 6px 0 0; }
 
 <section class="sec" id="build" data-id="build">
   <h2>How a build runs</h2>
+  <p class="lede">What happens, in order, every time the site builds.</p>
   <ul class="tight">
     <li class="item" data-id="b-read"><b>Read.</b> Every <code>.md</code> file under <code>docs/</code> is parsed, with its front matter.</li>
     <li class="item" data-id="b-render"><b>Render.</b> Each page is rendered into the layout named in its front matter, else <code>default</code>.</li>
@@ -374,6 +377,7 @@ dl.defs > dd p { margin: 6px 0 0; }
 
 <section class="sec" id="files" data-id="files">
   <h2>Files</h2>
+  <p class="lede">The files a build reads and writes, and what each one is for.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>Path</th><th>What's in it</th></tr></thead>
     <tbody>
@@ -386,6 +390,7 @@ dl.defs > dd p { margin: 6px 0 0; }
 
 <section class="sec" id="terms" data-id="terms">
   <h2>Terms</h2>
+  <p class="lede">The words this reference uses, defined.</p>
   <dl class="defs">
     <dt class="item" data-id="t-front">Front matter</dt>
     <dd>The block of settings at the top of a Markdown file, between <code>---</code> lines.</dd>

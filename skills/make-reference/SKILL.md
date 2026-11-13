@@ -32,7 +32,8 @@ Copy `${CLAUDE_PLUGIN_ROOT}/templates/reference.html` and replace every piece of
 | `<meta name="pm-source" content="a/b.mjs, c.json">` | The head | The files it describes, relative to the project root, comma-separated. When one is changed after the reference was written, the page and the hub say it's out of date. |
 | `<div class="contents">` | The hero | An `<h2>Contents</h2>` and an `<ol>` linking every section. The side rail mirrors it on wide screens. |
 | `<p class="meta">` | The hero | What it describes and as of when: "Describes `docs/build.mjs` … as of 9 Nov 2026." |
-| `<section class="sec" id data-id>` | Each topic | An `<h2>`, then the content. One per contents entry. |
+| `<section class="sec" id data-id>` | Each topic | An `<h2>`, its one-sentence lede, then the content. One per contents entry. |
+| `<p class="lede">` | Right after every section's `<h2>` | **Every section opens with one sentence saying what it covers and why it's there**, before its tables, definitions or examples: what someone looking here will find. Never start a section straight into its content. |
 | `<dl class="defs">` | Terms, commands, fields | `<dt class="item" data-id>` then `<dd>`. Code names in `<code>`. |
 | tables | Options, files, fields with several attributes | `<tr class="item" data-id>` on every row. Columns like Option, Default, What it does. |
 | `<p class="sig">` | A signature or command shape | Monospace, one per shape. |

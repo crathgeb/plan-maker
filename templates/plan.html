@@ -24,6 +24,7 @@
     <ul class="tasks">              optional, Claude's phases only: a short checklist, <li data-status="todo|doing|done">
     <pre data-label="Terminal">     a code block; the label shows in its header ("Terminal", "redirects.json"…)
     <section class="sec" id data-id> a major part; gets a section comment; one per contents entry
+    <p class="lede"> after a section's h2   one sentence: what the section covers and why it's here
     .decision[data-decision]        a pick-one question; .rec marks the recommendation
     aside.explain[data-q]           Claude's answer to a reader's question, written where it was asked
     data-changed="v2"               an element revised in v2: shown with an "Updated in v2" chip
@@ -329,6 +330,7 @@ dl.defs > dd p { margin: 6px 0 0; }
 
 <section class="sec" id="context" data-id="context">
   <h2>Where we are</h2>
+  <p class="lede">How the docs work today, and the options we compared before picking one.</p>
   <div class="entry item" data-id="ctx-stale"><div class="k">Stale pages</div><div class="stat">18 of 60</div><p>Pages describing options that have since changed.</p></div>
   <div class="entry item" data-id="ctx-time"><div class="k">Time to publish</div><div class="stat">About a day</div><p>Edits go through a separate CMS and a manual deploy.</p></div>
   <h3>Options compared</h3>
@@ -344,6 +346,7 @@ dl.defs > dd p { margin: 6px 0 0; }
 
 <section class="sec" id="approach" data-id="approach">
   <h2>How it works</h2>
+  <p class="lede">What the finished docs site does: the design, not the work. The <a href="#phases">phases</a> build it, starting with Scaffold and import.</p>
   <ul class="tight">
     <li class="item" data-id="ap-source"><b>One source.</b> Pages are Markdown files in <code>docs/</code>, next to the code.</li>
     <li class="item" data-id="ap-preview"><b>Preview on every pull request.</b> Reviewers see the rendered page before merging.</li>
@@ -357,7 +360,7 @@ dl.defs > dd p { margin: 6px 0 0; }
 
 <section class="sec" id="phases" data-id="phases">
   <h2>Phases</h2>
-  <p>Four phases over three weeks. Your part in the switch-over has its own guide.</p>
+  <p class="lede">The work, in order: four phases over three weeks, yours in blue and Claude’s in gold. Your part in the switch-over has its own guide.</p>
   <div class="phases">
     <article class="phase" data-id="ph-scaffold" data-who="claude" data-status="doing">
       <h3>Scaffold and import</h3>
@@ -392,6 +395,7 @@ dl.defs > dd p { margin: 6px 0 0; }
 
 <section class="sec" id="risks" data-id="risks">
   <h2>What could go wrong</h2>
+  <p class="lede">What could stop the move going smoothly, how likely each is, and what guards against it.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>Risk</th><th>Likelihood</th><th>Mitigation</th></tr></thead>
     <tbody>
@@ -403,7 +407,7 @@ dl.defs > dd p { margin: 6px 0 0; }
 
 <section class="sec" id="decisions" data-id="decisions">
   <h2>Decisions for you</h2>
-  <p>Pick one in each. Add a comment if none fits.</p>
+  <p class="lede">Choices only you can make before the work starts. Pick one in each, or add a comment if none fits.</p>
 
   <div class="decision" data-decision="generator" data-id="d-generator">
     <h3>Which generator?</h3>

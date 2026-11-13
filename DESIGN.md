@@ -122,7 +122,7 @@ All three templates share one style block, word for word, and the hub wears it t
 ## Layout
 
 - **Pages:** like a Word document, each section is its own white page (max 860px, radius 12px, soft shadow, 48px/56px padding), stacked 24px apart on the `ground`. The hero is the cover page. "Page n" sits small in each page's bottom-right corner. On wide screens a contents list sits to the left. On phones the pages run nearly edge to edge (8px margin, radius 10px, 16px padding).
-- **Sections:** h2 with a rounded number badge (34px, `paper-2`) before it.
+- **Sections:** h2 with a rounded number badge (34px, `paper-2`) before it, then a one-sentence lede (`.lede`, 18px, `ink-2`) saying what the section covers and why it's there. Every section has one, on every kind of page, so no section opens straight into its steps, phases or tables. In a plan, the lede also says whether the section describes what gets built or is the work itself.
 - **Timeline:** inside a section, every entry, list item, callout, step and decision is a numbered node (2.1, 2.2…) on a vertical line on the left. Nodes are 34px circles on a 2px `line-2` line, with content indented 52px.
   - **Steps:** a node takes its owner's colour (tint fill, ring). It fills solid with a check when done, the line below a done node takes the owner's colour, and the next undone step (whoever owns it) gets a soft halo ring.
   - **The line** breaks between runs, e.g. across a phase heading.
