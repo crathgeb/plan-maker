@@ -93,7 +93,7 @@ pre code { background: none; border: 0; padding: 0; color: inherit; font-size: 1
 
 /* ---------- the desk: contents beside a rounded page ---------- */
 .desk { display: grid; grid-template-columns: 200px minmax(0, 860px); justify-content: center; gap: 32px; padding: 32px 24px 96px; }
-nav.toc { position: sticky; top: 32px; align-self: start; padding-top: 8px; font-size: 14px; }
+nav.toc { position: sticky; top: 32px; align-self: start; max-height: calc(100vh - 64px); overflow-y: auto; overscroll-behavior: contain; padding-top: 8px; font-size: 14px; }
 html.pm-has-top nav.toc { top: calc(var(--pm-top-h) + 32px); }
 nav.toc .toc-title { font-weight: 650; margin: 0 0 8px 10px; }
 nav.toc a { display: block; padding: 6px 10px; border-radius: 8px; color: var(--ink-2); text-decoration: none; }

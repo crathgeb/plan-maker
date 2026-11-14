@@ -163,6 +163,8 @@ describe('a plan: phases, a linked guide, Make a guide, More detail', () => {
   });
 
   test('the guide link opens the guide on its own review server', async () => {
+    // The phase is done (its guide is), so it's folded: open it, then follow the link.
+    await page.click('[data-id="ph-switch"] .pm-fold');
     await page.click('[data-id="ph-switch"] .pm-guide-link');
     await page.waitForSelector('html[data-pm-ready]');
     assert.equal(await page.getAttribute('html', 'data-pm-kind'), 'guide');
@@ -196,6 +198,32 @@ describe('a guide: its plan above the title, steps to follow', () => {
     const top = await page.locator('[data-id="g-dig"]').evaluate((n) => n.getBoundingClientRect().top);
     assert.ok(top > 0 && top < 700, `next step at ${top}`);
     assert.equal(await page.locator('.pm-current').getAttribute('data-id'), 'g-dig');
+  });
+
+  test('finished work folds: a done section on the page, done steps in the rail; one click opens either', async () => {
+    // By now every step in "Add the records" is done.
+    const sec = page.locator('section#records');
+    assert.equal(await sec.evaluate((n) => n.classList.contains('pm-folded')), true);
+    const fold = sec.locator('.pm-fold[data-fold="sec:records"]');
+    assert.equal(await fold.textContent(), 'All 4 steps done');
+    assert.equal(await page.locator('[data-id="g-cname"]').isVisible(), false);
+    await fold.click();
+    assert.equal(await page.locator('[data-id="g-cname"]').isVisible(), true);
+    assert.equal(await fold.getAttribute('aria-expanded'), 'true');
+    await fold.click();
+    // The rail folds the same four into one row; it opens to show them.
+    const row = page.locator('nav.toc .pm-rail-fold').first();
+    assert.equal(await row.textContent(), 'All 4 done');
+    assert.equal(await page.locator('nav.toc a.pm-rail-step:has-text("Point docs at the new site")').isVisible(), false);
+    await row.click();
+    const link = page.locator('nav.toc a.pm-rail-step:has-text("Point docs at the new site")');
+    assert.equal(await link.isVisible(), true);
+    // Following a link to a folded step opens its fold.
+    await link.click();
+    assert.equal(await page.locator('[data-id="g-cname"]').isVisible(), true);
+    await row.click();
+    // The rail scrolls on its own.
+    assert.equal(await page.locator('nav.toc').evaluate((n) => getComputedStyle(n).overflowY), 'auto');
   });
 
   test('the rail: each section with steps is a heading, its steps beneath with where each stands', async () => {
