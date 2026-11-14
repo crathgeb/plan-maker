@@ -116,12 +116,13 @@ All three templates share one style block, word for word, and the hub wears it t
 
 - One family, the system sans, for everything except code.
 - Body 16px/1.65 with a measure of about 70 characters. Headings in weight 600–650: h1 34, h2 24, h3 18, h4 16.5. Sentence case throughout.
-- No eyebrow labels, no tracked capitals, no loose gutter numbers. Numbers appear only in two systems: the section badge before each h2 (1, 2, 3) and the timeline nodes on steps and phases (2.1, 2.2). Content is never numbered.
+- No eyebrow labels, no tracked capitals, no loose gutter numbers. Numbers appear only in two systems: the section badge before each h2 (1, 2, 3) and the timeline nodes on steps (2.1, 2.2 in a guide) and phases (1, 2, 3 across a plan's Steps part). Content is never numbered.
 - Monospace only in code blocks and inline `code`. Tabular numerals in progress counts and tables.
 
 ## Layout
 
 - **Pages:** like a Word document, each section is its own white page (max 860px, radius 12px, soft shadow, 48px/56px padding), stacked 24px apart on the `ground`. The hero is the cover page. "Page n" sits small in each page's bottom-right corner. On wide screens a contents list sits to the left. On phones the pages run nearly edge to edge (8px margin, radius 10px, 16px padding).
+- **A plan's parts:** a plan's sections sit in three parts, Information, Steps and Questions, in that order. Each part opens on the desk, not on a page: a round white icon (an i, a staircase, a question mark), the part's name at 22px and one line in `ink-2`, 32px above. The contents rail has no "Contents" title: it lists the three parts in bold, each with its icon, and their sections indented beneath. Phases are numbered 1, 2, 3 across the Steps part. Guides and references have no parts. What goes in which part is in `WRITING.md`.
 - **Sections:** h2 with a rounded number badge (34px, `paper-2`) before it, then a one-sentence lede (`.lede`, 18px, `ink-2`) saying what the section covers and why it's there. Every section has one, on every kind of page, so no section opens straight into its steps, phases or tables. In a plan, the lede also says whether the section describes what gets built or is the work itself.
 - **Timeline:** only things to do are on it. Each step and phase is a numbered node (2.1, 2.2…) on a vertical line on the left: 34px circles on a 2px `line-2` line, with the cards indented 52px. Content (entries, lists, callouts, decisions, tables, definitions) sits flush, with no node and no number, on every kind of page, so explanation never reads as part of the sequence. A callout placed among steps lines up with the step cards. What counts as content and what as a step is in `WRITING.md`.
   - **Steps:** a node takes its owner's colour (tint fill, ring). It fills solid with a check when done, the line below a done node takes the owner's colour, and the next undone step (whoever owns it) gets a soft halo ring.
@@ -176,4 +177,5 @@ All three templates share one style block, word for word, and the hub wears it t
 - **Don't** introduce a web font.
 - **Don't** use red, or orange-red, anywhere.
 - **Do** keep the hub's main area for the plan itself: a selected plan is its live page in a frame, with no hub bar above it. Anything you'd do from the hub (status, comments, progress) is done inside the plan.
+- **Do** keep a plan's content, work and questions in their own parts. A reader following the plan should never meet explanation between two phases.
 - **Do** keep the "how to use" teaching out of the page. Readers learn it by using it.

@@ -23,6 +23,11 @@
     <p class="outcome">             how you'll know the phase is done
     <ul class="tasks">              optional, Claude's phases only: a short checklist, <li data-status="todo|doing|done">
     <pre data-label="Terminal">     a code block; the label shows in its header ("Terminal", "redirects.json"…)
+    <div class="part" id="information|steps|questions">  the plan's three parts, always all three, in that order,
+                                    each opening with its .part-h; every section sits in one (WRITING.md, "A plan's three parts")
+                                    Information: all content (summary, context, design, risks). Steps: the phases, nothing else.
+                                    Questions: the decisions, nothing else (or one line saying there's nothing to decide)
+    <a class="toc-part" href="#information">  the contents rail: one per part, its sections' links beneath it
     <section class="sec" id data-id> a major part; gets a section comment; one per contents entry
     <p class="lede"> after a section's h2   one sentence: what the section covers and why it's here
     .decision[data-decision]        a pick-one question; .rec marks the recommendation
@@ -49,6 +54,10 @@
   --i-done-you: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.6' fill='%237da7d4'/%3E%3Cpath d='M5 8.3l2 2 4-4.4' fill='none' stroke='%231f2328' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --i-done-claude: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.6' fill='%23aa8546'/%3E%3Cpath d='M5 8.3l2 2 4-4.4' fill='none' stroke='%231f2328' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --i-check-w: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%231f2328' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+  /* part icons: an i for information, a staircase for steps, a question mark for questions */
+  --i-info: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6.3'/%3E%3Cpath d='M8 7.3v4'/%3E%3Ccircle cx='8' cy='4.9' r='.5' fill='%2357606a'/%3E%3C/svg%3E");
+  --i-steps: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 13.5h4v-3.5h4v-3.5h4v-4'/%3E%3C/svg%3E");
+  --i-ask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6.3'/%3E%3Cpath d='M6.2 6.3a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.5'/%3E%3Ccircle cx='8' cy='11.4' r='.5' fill='%2357606a'/%3E%3C/svg%3E");
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -65,6 +74,10 @@
     --i-done-you: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.6' fill='%23a4c1e1'/%3E%3Cpath d='M5 8.3l2 2 4-4.4' fill='none' stroke='%23171a21' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     --i-done-claude: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.6' fill='%23c4aa7e'/%3E%3Cpath d='M5 8.3l2 2 4-4.4' fill='none' stroke='%23171a21' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     --i-check-w: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23171a21' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+    /* part icons: an i for information, a staircase for steps, a question mark for questions */
+    --i-info: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23aab1bb' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6.3'/%3E%3Cpath d='M8 7.3v4'/%3E%3Ccircle cx='8' cy='4.9' r='.5' fill='%23aab1bb'/%3E%3C/svg%3E");
+    --i-steps: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23aab1bb' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 13.5h4v-3.5h4v-3.5h4v-4'/%3E%3C/svg%3E");
+    --i-ask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23aab1bb' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6.3'/%3E%3Cpath d='M6.2 6.3a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.5'/%3E%3Ccircle cx='8' cy='11.4' r='.5' fill='%23aab1bb'/%3E%3C/svg%3E");
     color-scheme: dark;
   }
 }
@@ -99,6 +112,26 @@ main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 
 .hero, .sec { position: relative; counter-increment: page; background: var(--paper); border-radius: 12px; box-shadow: var(--shadow); padding: 48px 56px 56px; }
 .hero::after, .sec::after { content: "Page " counter(page); position: absolute; right: 24px; bottom: 16px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 main :is(p, li, dd) { max-width: 62ch; }
+
+/* ---------- a plan's three parts: Information, Steps, Questions ---------- */
+/* Each part is a run of pages under a heading on the desk; the contents rail groups its links under the same three. */
+.part { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; scroll-margin-top: 24px; }
+.part + .part { margin-top: 32px; }
+.part-h { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 2px 12px; align-items: center; padding: 8px 4px 0; scroll-margin-top: 24px; }
+.part-h::before { content: ""; width: 34px; height: 34px; border-radius: 50%; background: var(--paper) center / 18px no-repeat; box-shadow: var(--shadow); }
+.part-title { margin: 0; font-size: 22px; font-weight: 650; line-height: 1.3; letter-spacing: -0.01em; }
+main .part-h > p:not(.part-title) { grid-column: 2; max-width: none; margin: 0; color: var(--ink-2); font-size: 15px; }
+.part#information > .part-h::before, nav.toc .toc-part[href="#information"]::before { background-image: var(--i-info); }
+.part#steps > .part-h::before, nav.toc .toc-part[href="#steps"]::before { background-image: var(--i-steps); }
+.part#questions > .part-h::before, nav.toc .toc-part[href="#questions"]::before { background-image: var(--i-ask); }
+nav.toc .toc-part { display: flex; align-items: center; gap: 8px; margin-top: 14px; color: var(--ink); font-weight: 650; }
+nav.toc .toc-part:first-child { margin-top: 0; }
+nav.toc .toc-part::before { content: ""; flex: none; width: 16px; height: 16px; background: center / contain no-repeat; }
+nav.toc:has(.toc-part) a:not(.toc-part) { padding-left: 34px; }
+/* in Steps, phases count 1, 2, 3 across the whole part, not per section */
+.part#steps { counter-reset: sub; }
+.part#steps .sec { counter-reset: none; }
+.part#steps .sec :is(.step, .phase)::before { content: counter(sub); font-size: 13px; }
 
 /* ---------- hero: the cover page ---------- */
 .hero h1 { font-size: 34px; font-weight: 650; line-height: 1.2; margin-bottom: 12px; }
@@ -273,6 +306,8 @@ dl.defs > dd p { margin: 6px 0 0; }
   main { gap: 12px; }
   .hero, .sec { border-radius: 10px; padding: 26px 16px 44px; }
   .hero::after, .sec::after { right: 16px; bottom: 14px; }
+  .part + .part { margin-top: 20px; }
+  .part-title { font-size: 20px; }
   .hero h1 { font-size: 27px; }
   .lede { font-size: 17px; }
   .sec > h2 { font-size: 21px; }
@@ -295,12 +330,14 @@ dl.defs > dd p { margin: 6px 0 0; }
 <body>
 <div class="desk">
 <nav class="toc" aria-label="Contents">
-  <div class="toc-title">Contents</div>
-  <a href="#summary">Summary</a>
+  <a class="toc-part" href="#information">Information</a>
+  <a href="#summary">The short version</a>
   <a href="#context">Where we are</a>
-  <a href="#approach">Approach</a>
+  <a href="#approach">How it works</a>
+  <a href="#risks">What could go wrong</a>
+  <a class="toc-part" href="#steps">Steps</a>
   <a href="#phases">Phases</a>
-  <a href="#risks">Risks</a>
+  <a class="toc-part" href="#questions">Questions</a>
   <a href="#decisions">Decisions for you</a>
 </nav>
 
@@ -313,6 +350,9 @@ dl.defs > dd p { margin: 6px 0 0; }
   <div class="progress" data-pm-progress></div>
   <p class="meta">Based on the current docs folder, last quarter's support tickets and the build pipeline.</p>
 </header>
+
+<div class="part" id="information">
+<div class="part-h"><p class="part-title" role="heading" aria-level="2">Information</p><p>What you need to know: why, what gets built and what could go wrong. Nothing here is a step.</p></div>
 
 <section class="sec" id="summary" data-id="summary">
   <h2>The short version</h2>
@@ -353,6 +393,23 @@ dl.defs > dd p { margin: 6px 0 0; }
   redirects.json old URL → new URL</code></pre>
 </section>
 
+<section class="sec" id="risks" data-id="risks">
+  <h2>What could go wrong</h2>
+  <p class="lede">What could stop the move going smoothly, how likely each is, and what guards against it.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Risk</th><th>Likelihood</th><th>Mitigation</th></tr></thead>
+    <tbody>
+      <tr class="item" data-id="risk-seo"><td>Search traffic dips after the switch</td><td><span class="tag warn">medium</span></td><td>Redirect every old URL; submit the new sitemap on day one.</td></tr>
+      <tr class="item" data-id="risk-convert"><td>Converted pages lose formatting</td><td><span class="tag warn">medium</span></td><td>Your review in week 2; a visual diff of the top 20 pages.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+</div>
+
+<div class="part" id="steps">
+<div class="part-h"><p class="part-title" role="heading" aria-level="2">Steps</p><p>The work, in order. Yours are blue, Claude’s are gold.</p></div>
+
 <section class="sec" id="phases" data-id="phases">
   <h2>Phases</h2>
   <p class="lede">The work, in order: four phases over three weeks, yours in blue and Claude’s in gold. Your part in the switch-over has its own guide.</p>
@@ -388,17 +445,10 @@ dl.defs > dd p { margin: 6px 0 0; }
   </div>
 </section>
 
-<section class="sec" id="risks" data-id="risks">
-  <h2>What could go wrong</h2>
-  <p class="lede">What could stop the move going smoothly, how likely each is, and what guards against it.</p>
-  <div class="table-wrap"><table>
-    <thead><tr><th>Risk</th><th>Likelihood</th><th>Mitigation</th></tr></thead>
-    <tbody>
-      <tr class="item" data-id="risk-seo"><td>Search traffic dips after the switch</td><td><span class="tag warn">medium</span></td><td>Redirect every old URL; submit the new sitemap on day one.</td></tr>
-      <tr class="item" data-id="risk-convert"><td>Converted pages lose formatting</td><td><span class="tag warn">medium</span></td><td>Your review in week 2; a visual diff of the top 20 pages.</td></tr>
-    </tbody>
-  </table></div>
-</section>
+</div>
+
+<div class="part" id="questions">
+<div class="part-h"><p class="part-title" role="heading" aria-level="2">Questions</p><p>What only you can decide. Answer these before the work starts.</p></div>
 
 <section class="sec" id="decisions" data-id="decisions">
   <h2>Decisions for you</h2>
@@ -421,6 +471,7 @@ dl.defs > dd p { margin: 6px 0 0; }
     </div>
   </div>
 </section>
+</div>
 
 </main>
 </div>

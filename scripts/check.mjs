@@ -100,10 +100,36 @@ export function check(path) {
     const paras = [...m[1].matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)].map((p) => p[1]).join(' ');
     if (words(paras) > 60) warnings.push(`Entry "${head || text(m[1]).slice(0, 40)}" runs ${words(paras)} words: keep the body to two sentences, about 40.`);
   }
+  if (kind === 'plan') warnings.push(...planParts(body));
   // Content numbered by hand, imitating steps.
   if (/<h[2-4][^>]*>\s*(?:Step\s+)?\d+[.)]\s/i.test(body)) warnings.push('A heading is numbered by hand: steps are numbered for you, and content is never numbered.');
 
   return { path, kind, errors, warnings };
+}
+
+/** A plan's three parts (WRITING.md): Information holds the content, Steps the phases, Questions the decisions. */
+const PARTS = ['information', 'steps', 'questions'];
+function planParts(body) {
+  const out = [];
+  const parts = [...body.matchAll(/<div[^>]*class=["']part["'][^>]*id=["']([^"']+)["'][^>]*>|<div[^>]*id=["']([^"']+)["'][^>]*class=["']part["'][^>]*>/g)]
+    .map((m) => ({ id: m[1] || m[2], at: m.index }));
+  if (!parts.length) return ["This plan isn't split into its three parts: wrap its sections in Information, Steps and Questions (div.part)."];
+  if (parts.map((p) => p.id).join() !== PARTS.join()) out.push(`The plan's parts are ${parts.map((p) => p.id).join(', ')}: there must be information, steps and questions, once each, in that order.`);
+  const end = body.search(/<\/main>/i);
+  parts.forEach((p, i) => (p.end = i + 1 < parts.length ? parts[i + 1].at : end));
+  const partOf = (at) => parts.find((p) => at >= p.at && at < p.end)?.id;
+  const where = (re) => [...body.matchAll(re)].map((m) => partOf(m.index));
+  for (const m of body.matchAll(/<section[^>]*class=["'][^"']*\bsec\b[^>]*>([\s\S]*?)<\/section>/gi)) {
+    const h2 = text(m[1].match(/<h2[^>]*>([\s\S]*?)<\/h2>/i)?.[1] || '?');
+    const part = partOf(m.index);
+    if (!part) out.push(`Section "${h2}" is outside the three parts: put it in Information, Steps or Questions.`);
+    else if (part === 'steps' && !/class=["'][^"']*\b(phases|steps)\b/.test(m[1])) out.push(`Section "${h2}" is in Steps but has no phases: explanation goes in Information.`);
+    else if (part === 'questions' && !/class=["'][^"']*\bdecision\b/.test(m[1])) out.push(`Section "${h2}" is in Questions but asks nothing: move it to Information.`);
+  }
+  if (where(/class=["'](?:[^"']*\s)?(phase|step)(?:\s[^"']*)?["']/g).some((p) => p !== 'steps')) out.push('A phase or step sits outside the Steps part.');
+  if (where(/class=["'][^"']*\bdecision\b/g).some((p) => p !== 'questions')) out.push('A decision sits outside the Questions part: gather them there.');
+  if (!/class=["']toc-part["']/.test(body)) out.push('The contents rail has no part headings: list each section under <a class="toc-part" href="#information">Information</a>, Steps and Questions.');
+  return out;
 }
 
 // ---------- command line ----------

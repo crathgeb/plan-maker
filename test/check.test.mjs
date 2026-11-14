@@ -89,3 +89,21 @@ test('the command exits 1 on an error, 0 on warnings only', () => {
   assert.equal(warned.status, 0);
   assert.match(warned.stdout, /^warn /m);
 });
+
+test("a plan's three parts: none, out of order, or something in the wrong part warns", () => {
+  const plan = tpl('plan');
+  const warn = (html) => check(page(html)).warnings.join('\n');
+  // An older plan, with no parts at all.
+  const flat = plan.replace(/<div class="part" id="\w+">\n<div class="part-h">.*<\/div>\n/g, '').replace(/<\/section>\n<\/div>\n/g, '</section>\n');
+  assert.match(warn(flat), /isn't split into its three parts/);
+  // Risks moved into Steps: content among the phases.
+  const risks = plan.match(/<section class="sec" id="risks"[\s\S]*?<\/section>\n\n/)[0];
+  const misplaced = plan.replace(risks, '').replace('<section class="sec" id="phases"', risks + '<section class="sec" id="phases"');
+  assert.match(warn(misplaced), /"What could go wrong" is in Steps but has no phases/);
+  // A decision left in Information.
+  const decision = plan.match(/<div class="decision" data-decision="cutover"[\s\S]*?\n  <\/div>\n/)[0];
+  const stray = plan.replace(decision, '').replace('<section class="sec" id="risks"', `<section class="sec" id="q2" data-id="q2"><h2>Also</h2><p class="lede">One more thing to settle.</p>${decision}</section>\n<section class="sec" id="risks"`);
+  assert.match(warn(stray), /decision sits outside the Questions part/);
+  // Parts out of order.
+  assert.match(warn(plan.replace('id="questions"', 'id="later"')), /information, steps and questions, once each/);
+});

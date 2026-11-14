@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **A plan comes in three parts: Information, Steps and Questions.** Explanation, risks included, sits in Information; Steps holds only the phases, numbered 1, 2, 3; Questions holds the decisions. Each part opens with a heading on the desk, and the contents rail groups the sections under the three instead of one "Contents" list. `make-plan` writes plans this way, `process-notes` splits older plans the next time it revises them, and `check.mjs` warns about a plan without parts or with content, phases or decisions in the wrong one. Rules in `WRITING.md`, "A plan's three parts".
 - **Plans, guides and references: three kinds of page on one engine.** A page says which it is with `<meta name="pm-kind" content="plan|guide|reference">`; a page without one is a plan. All three are reviewed, versioned and listed the same way, in the same design.
   - **Plans** break an idea into **phases** (`.phase[data-who]` in `<div class="phases">`), each owned by you, Claude or both, with an outcome ("Done when…"). Claude's phases can carry a short checklist (`ul.tasks`). Your phases get **Mark done**.
   - **Make a guide** on any phase asks Claude for a guide in the next round (`kind: "guide"` in `notes.json`). A phase linked to a guide (`data-guide`) shows the guide's name and progress, opens it, and is done when the guide is. Guides made from a plan live in its folder (`plans/<plan>/guides/<slug>/`) and link back (`pm-parent`, `pm-parent-phase`): "Part of <plan> › <phase>" above the title.

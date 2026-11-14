@@ -78,7 +78,7 @@ Just ask ("plan the migration to the new billing provider", "guide me through se
 
 | Skill | When it runs | What it does |
 |---|---|---|
-| `make-plan` | You ask for a plan, proposal, strategy or roadmap, or Claude is about to present a big one | Writes the plan to `plans/<slug>/index.html` (or a path you name) from the template: phases, each owned by you or Claude, with guides for the phases you'll do soon. Then it registers the plan, starts the review server and gives you the URL |
+| `make-plan` | You ask for a plan, proposal, strategy or roadmap, or Claude is about to present a big one | Writes the plan to `plans/<slug>/index.html` (or a path you name) from the template, in three parts: **Information** (what to know, including the risks), **Steps** (the phases, each owned by you or Claude, with guides for the ones you'll do soon) and **Questions** (what only you can decide). The contents rail lists each part's sections under it. Then it registers the plan, starts the review server and gives you the URL |
 | `make-guide` | You ask to be guided or walked through something, want setup steps or a runbook, or ask for a guide for a plan's phase | Writes a guide from its template, inside the plan's folder when it's for a phase (`plans/<plan>/guides/<slug>/`), and links the phase to it |
 | `make-reference` | You ask for reference documentation of a system, API, config or pipeline | Writes a reference from its template, naming the files it describes so it can tell when it's out of date |
 | `review-plan` | You want to reopen a page, or share one for offline review | Starts the server for an existing page, or reuses the one already running |
@@ -177,6 +177,7 @@ Highlights are stored as character offsets within a block, counting only the pla
 | `<meta name="pm-kind" content="plan\|guide\|reference">` | What kind of page this is. Without it, a plan. |
 | `data-id="…"` | Makes a block annotatable. Selected text is attributed to the nearest block with a `data-id`. Use unique, stable, kebab-case ids. |
 | `class="item"` | Adds **Comment** and **More detail**: entries, table rows (`<tr>`), list items, whole tables, code blocks. |
+| `<div class="part" id="information\|steps\|questions">` | A plan's three parts, in that order, each opening with a `div.part-h`. Information holds the content, Steps the phases, Questions the decisions; `a.toc-part` links head each group in the contents rail. `check.mjs` warns when something is in the wrong part. |
 | `class="phase" data-who="you\|claude\|both"` | A plan's phase and its owner, inside `<div class="phases">`. Yours get **Mark done** and **Make a guide**; Claude's show their status. Each counts toward its owner's lane. A `.phase` without `data-who` is an ordinary block. |
 | `data-guide="guides/<slug>/index.html"` | On a phase: it's done through that guide. The card links there, shows the guide's progress, and counts as done when the guide is. |
 | `<ul class="tasks">`, `<li data-status>` | A short checklist inside one of Claude's phases. |

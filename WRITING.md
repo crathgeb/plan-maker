@@ -18,6 +18,22 @@ Everything on a page is one or the other, and the reader must always be able to 
 - **Content comes before the steps that need it.** A section of explanation, then a section of steps. Each section is one or the other.
 - **In a plan,** a content section that describes what gets built says so in its lede and names the phase that builds it. See [Ledes](#ledes).
 
+## A plan's three parts: Information, Steps, Questions
+
+Every plan is split into three parts, always all three, in this order. The contents rail lists each part's sections under its heading, so the reader always knows which kind of thing they're looking at, and can go straight to the work or straight to what's waiting on them.
+
+| Part | Holds | Never holds |
+|---|---|---|
+| **Information** | Everything to understand: the short version, where things stand, the options compared, the design (how it works, what it looks like), **the risks**, and What changed in vN (first) | Phases, steps, decisions |
+| **Steps** | The phases, in order, and nothing else. They're numbered 1, 2, 3 across the part | Explanation: a phase that needs background gets one sentence, or a pointer to the section in Information |
+| **Questions** | The decisions only the user can make (`.decision`) | Anything already decided. When nothing is open, the part says "Nothing for you to decide right now." with no section |
+
+- **Each part opens with its heading** (`div.part-h`): the part's name and one line on what's in it. Keep the template's lines unless the plan needs its own.
+- **Risks are information**, never their own part or a step. A mitigation that's real work is a phase (or a task in one) in Steps; the risk names it.
+- **A question that came up in a phase** goes to Questions, and the phase says "Waits on the decision about…" in a sentence.
+- **Claude's answers** (`aside.explain`) stay where the question was asked, in whichever part that is.
+- Guides and references don't have parts: a guide is mostly steps already, and a reference is all content.
+
 ## Ledes
 
 Every section opens with a one-sentence lede (`<p class="lede">` right after its `<h2>`): what the section covers and why it's there. Never open a section straight into its steps, entries or table.

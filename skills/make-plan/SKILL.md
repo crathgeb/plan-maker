@@ -48,13 +48,20 @@ Copy `${CLAUDE_PLUGIN_ROOT}/templates/plan.html` and replace every piece of exam
 | `<ul class="tasks">` | Optional, Claude's phases only | Three to six short lines, each `<li data-status="todo\|doing\|done">`, so the user can see progress inside the phase. Never the user's steps: those go in a guide. |
 | `data-guide="guides/<slug>/index.html"` | A phase done through a guide | The phase shows the guide's name and progress instead of Mark done, links to it, and counts as done when the guide is. The path is relative to the plan. |
 | `<pre data-label="…"><code>` | Shapes worth showing: a folder layout, a config sketch | The label shows in the block's header beside **Copy**. |
-| `<section class="sec" id data-id>` | Each major part | Starts with an `<h2>` and its one-sentence lede. One per contents entry. |
+| `<div class="part" id="information\|steps\|questions">` | The plan's three parts, all three, in that order | Each opens with `<div class="part-h">`: `<p class="part-title" role="heading" aria-level="2">` and one line. Holds sections only. |
+| `<section class="sec" id data-id>` | Each major section, inside a part | Starts with an `<h2>` and its one-sentence lede. One per contents entry. |
 | `<p class="lede">` | Right after every section's `<h2>` | **Every section opens with one sentence saying what it covers and why it's there**, before any steps, phases, tables or lists. Never start a section straight into its content. |
-| `.decision[data-decision="key"]` | Each choice only the user can make | An `<h3>` question, then 2 to 4 radios sharing `name="key"`. Put each option's name in `<b>` with its consequence in one line, and mark your pick with `<span class="rec">Recommended</span>`. Gather them in a "Decisions for you" section. |
+| `.decision[data-decision="key"]` | Each choice only the user can make | An `<h3>` question, then 2 to 4 radios sharing `name="key"`. Put each option's name in `<b>` with its consequence in one line, and mark your pick with `<span class="rec">Recommended</span>`. Gather them in a "Decisions for you" section in the Questions part. |
 | `<p class="slug">` | Under the `<h1>` | `<span>Plan v1</span><span>For review</span><span>DATE</span>`. Match `<meta name="plan-version">` (start at `1`) and `<meta name="plan-date">` (`YYYY-MM-DD`). |
 | `<div class="progress" data-pm-progress></div>` | The hero, after the lede | Keep it empty: the review layer draws the phases' progress there. |
 
-**Keep the design and the work apart, and say which is which.** A plan has two kinds of section: ones that describe **what gets built** (how it works, what it looks like, what changes) and the **Phases** section, which is the work. A design section's lede says so and names the phase that builds it ("What the finished hub shows. The Hub phase builds it."). Each phase's **Done when** names what it produces. A reader should never have to wonder whether a section is something to do (`WRITING.md`, "Two kinds of block").
+**Split the plan into its three parts: Information, Steps, Questions** (`WRITING.md`, "A plan's three parts"). Every section goes in exactly one `<div class="part">`, and the parts come in that order, each opening with its `div.part-h`:
+
+- **Information** (`id="information"`): all the content. The short version, where things stand, options, the design (what gets built), and the **risks**. A design section's lede says it's the design and names the phase that builds it.
+- **Steps** (`id="steps"`): the phases section and nothing else. No explanation between phases.
+- **Questions** (`id="questions"`): the `.decision` blocks. When nothing is open, keep the part with "Nothing for you to decide right now." in its heading line and no section.
+
+The contents rail mirrors this: `<a class="toc-part" href="#information">Information</a>` and the same for Steps and Questions, each followed by its sections' links. There's no "Contents" title on a plan.
 
 Write for someone skimming in a browser: lead each entry with its point, and keep each phase to what it achieves and why. Write no eyebrow labels and no section or phase numbers yourself (they're drawn for you). Keep heading levels in order: `<h2>` for sections, `<h3>` for entries, phases and decisions. Use sentence case in `<title>`.
 
