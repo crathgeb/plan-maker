@@ -6,7 +6,7 @@
     {
       "name": "plan-maker",
       "source": "./",
-      "description": "Plans as interactive HTML pages you annotate in the browser; Claude revises them from your notes."
+      "description": "Plans, guides and references as interactive HTML pages you annotate in the browser; Claude revises them from your notes."
     }
   ]
 }

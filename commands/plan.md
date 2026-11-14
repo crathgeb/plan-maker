@@ -1,5 +1,5 @@
 ---
-description: Write a plan as an interactive HTML page you review in the browser
+description: Write a plan, broken into phases, as a page you review in the browser
 argument-hint: "<what to plan>"
 ---
 

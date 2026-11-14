@@ -72,12 +72,12 @@ if (!src) {
     unlinkSync(src);
     console.log(`snapshot: moved ${show(src)} to ${show(snapNotes)}`);
   }
-  // A guide's progress is not feedback: it carries over, so the regenerated
-  // guide opens with the same steps ticked off. Questions and notes stay with v<N>.
+  // The reader's progress is not feedback: it carries over, so the next version
+  // opens with the same steps ticked off. Questions and notes stay with v<N>.
   const done = Object.fromEntries(Object.entries(notes.steps || {}).filter(([, s]) => s && s.done));
   if (Object.keys(done).length) {
     const next = join(dirname(planPath), 'notes.json');
-    writeFileSync(next, JSON.stringify({ version: 1, kind: 'guide', planVersion: String(n + 1), steps: done, general: '', items: {}, highlights: [], decisions: {}, drawings: [] }, null, 2) + '\n');
+    writeFileSync(next, JSON.stringify({ version: 1, planVersion: String(n + 1), steps: done, general: '', items: {}, highlights: [], decisions: {}, drawings: [] }, null, 2) + '\n');
     console.log(`snapshot: carried ${Object.keys(done).length} done step(s) into ${show(next)} for v${n + 1}`);
   }
 }

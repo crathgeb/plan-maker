@@ -1,57 +1,119 @@
 ---
 name: make-plan
-description: Use when the user asks for a plan, proposal, strategy or roadmap to review, or when you are about to present a large multi-part plan in chat. Writes the plan as an HTML page the user annotates in the browser. For step-by-step instructions the user will follow themselves, use guide-me instead.
+description: Use when the user asks for a plan, proposal, strategy, roadmap or rollout, or when you are about to present a large multi-part plan in chat. Writes it as an HTML page that breaks the idea into a high-level sequence of phases, each owned by the user or Claude, which the user reviews in the browser like a shared doc. For "guide me through…" or setup instructions use make-guide; for documentation of how a system works use make-reference.
 argument-hint: "[what to plan]"
 ---
 
 # Make Plan
 
-The plan becomes an HTML page. The user reviews it in the browser: they select text to add notes, mark items **Keep / Change / Cut**, answer decisions and write general notes. Everything saves to `notes.json` beside the plan. When they say "process my notes", the `process-plan-notes` skill revises the plan.
+plan-maker writes three kinds of page, all reviewed the same way (comments, questions, **More detail**, drawings, then "process my notes"):
+
+| Kind | For | Skill |
+|---|---|---|
+| **Plan** | Breaking a larger idea into a high-level sequence of phases | this one |
+| **Guide** | Getting the user through one task: their steps, in order | `make-guide` |
+| **Reference** | Explaining a system so people can look things up | `make-reference` |
+
+A plan says **what** happens, in what order, who owns each part and why. It does not say how to click through a dashboard: when a phase needs the user to follow steps, that phase links to a guide. Keep a plan high-level. If you're writing a numbered list of commands for the user inside a phase, it belongs in a guide.
 
 ## 1. Work out the plan
 
-Do the research and thinking first, as you would for any plan. The page is how you deliver it; the substance comes from the work. List what you still need the user to choose: those become decisions (step 3).
+Do the research first: read the code, check what exists, look up what the options really are. Then decide:
+
+- **The phases.** Three to seven, in order. Each has a goal, an outcome ("done when …") and a rough time ("Week 1", "About a day").
+- **Who owns each phase.**
+  - **You** (the user): their judgement, their accounts, their money, their clicks.
+  - **Claude**: what you can do yourself once they hand off.
+  - **Both**: you prepare, they confirm.
+- **Which phases need a guide.** A phase owned by the user (or both) that takes more than two or three actions gets a guide. Write the guide now with `make-guide` when the user will need it soon, or leave it for them to request with **Make a guide**.
+- **The decisions only they can make.** These become `.decision` blocks.
 
 ## 2. Pick the path
 
-Use the path the user names. Otherwise use `plans/<slug>/index.html` from the project root, with a short kebab-case slug (`plans/docs-migration/index.html`). Give each plan its own folder, because `notes.json` and its archives go beside it. If that folder already holds a plan, this is a revision: use `process-plan-notes`, which saves the current version under `versions/` before changing anything. Never write over a plan file without that snapshot.
+Use the path the user names. Otherwise use `plans/<slug>/index.html` from the project root, with a short kebab-case slug, one folder per plan (`notes.json`, `versions/` and `guides/` go beside it). If that folder already holds a plan, this is a revision: use `process-notes`, which saves the current version first. Never write over a plan without that snapshot.
 
 ## 3. Write the page
 
-Copy `${CLAUDE_PLUGIN_ROOT}/templates/plan.html` and replace every piece of example content. Shape the sections to fit the plan: add, drop and rename them, and keep the table of contents in sync. Keep the template's `<style>` block, extending it if you need to. Write no JavaScript, because the review server injects the annotation layer. Keep the page self-contained: inline CSS, and images beside the plan referenced by relative path.
+**First read `${CLAUDE_PLUGIN_ROOT}/WRITING.md`**, the rules every plan-maker page follows: content and steps kept apart (only steps and phases are numbered and owned; explanation sits flush), a one-sentence lede on every section, and content written to be understood from its headings, two sentences a block at most.
 
-Follow these conventions; the annotation layer and `process-plan-notes` rely on them:
+Copy `${CLAUDE_PLUGIN_ROOT}/templates/plan.html` and replace every piece of example content. Keep `<meta name="pm-kind" content="plan">` and the template's style block exactly as it is (it is shared, word for word, with the guide and reference templates); add page-specific CSS in a second `<style>` element if you must. Shape the sections to fit the plan, and keep the contents rail in sync with them. Write no JavaScript. Keep the page self-contained.
 
 | Mark | Put it on | Rules |
 |---|---|---|
-| `data-id` | Every block the user might comment on: each item, section, decision, the hero | Unique, kebab-case, meaningful (`risk-seo`, not `r3`). Ids are permanent: when you revise, an edited block keeps its id and a new block gets a new one. |
-| `class="item"` | Each thing the user could accept or reject on its own: cards, phases, steps, options, table rows (`<tr>`), risks, key claims, a code block or a whole table | If you'd want a verdict on it, it's an item. Intro paragraphs, headings and pure background are not. |
-| `<section class="sec" id data-id>` | Each major part of the plan | Gets a section note. One per table-of-contents entry. |
-| `.decision[data-decision="key"]` | Each choice only the user can make | A heading with the question, 2 to 4 radio options sharing `name="key"` with kebab-case `value`s, each option's name in `<b>` and its consequence in one line. Mark your recommendation with `<span class="rec">Recommended</span>`. Gather the decisions in a final "Decisions for you" section. Choices you can make yourself go in the plan as statements, where the user can still Change or Cut them. |
-| `<meta name="plan-version">`, `<meta name="plan-date">` and the hero eyebrow | The head and the hero | Start at `1` and today's date (`YYYY-MM-DD`): `Plan v1 · for review · <date>`. Revisions go through `process-plan-notes`, which keeps every earlier version. |
-| The hero's "How to review" line | The hero | Keep it as in the template, so the user knows what to do. |
+| `data-id` | Every block the user might mark | Unique, kebab-case, meaningful (`ph-cutover`, `risk-seo`), and permanent. Progress and notes are stored against them. An edited block keeps its id; a new block gets a new one. |
+| `class="item"` | Each thing the user might comment on as a unit: entries, rows (`<tr>`), list items, risks, code blocks | It gets **Comment** and **More detail**. Phases get them too. |
+| `<div class="phases">` | The plan's sequence, in a section of its own | One `<article class="phase">` per phase, in order. |
+| `class="phase" data-who="you\|claude\|both"` | Every phase | An `<h3>` title, `<div class="when">`, one or two sentences of what happens and why, then `<p class="outcome"><b>Done when</b> …</p>`. The user's phases get **Mark done** and **Make a guide**. |
+| `data-status="todo\|doing\|done"` | Every `claude` phase | Start at `todo`. Update it as you work; the page and the hub follow. |
+| `<ul class="tasks">` | Optional, Claude's phases only | Three to six short lines, each `<li data-status="todo\|doing\|done">`, so the user can see progress inside the phase. Never the user's steps: those go in a guide. |
+| `data-guide="guides/<slug>/index.html"` | A phase done through a guide | The phase shows the guide's name and progress instead of Mark done, links to it, and counts as done when the guide is. The path is relative to the plan. |
+| `<pre data-label="…"><code>` | Shapes worth showing: a folder layout, a config sketch | The label shows in the block's header beside **Copy**. |
+| `<div class="part" id="information\|steps\|questions\|log">` | The plan's parts, in that order; Questions only while a decision is open, the log once anything is decided | Each opens with `<div class="part-h">`: `<p class="part-title" role="heading" aria-level="2">` and one line. Holds sections only. |
+| `<section class="sec" id data-id>` | Each major section, inside a part | Starts with an `<h2>` and its one-sentence lede. One per contents entry. |
+| `<p class="lede">` | Right after every section's `<h2>` | **Every section opens with one sentence saying what it covers and why it's there**, before any steps, phases, tables or lists. Never start a section straight into its content. |
+| `.decision[data-decision="key"]` | Each choice only the user can make | An `<h3>` question, then 2 to 4 radios sharing `name="key"`. Put each option's name in `<b>` with its consequence in one line, and mark your pick with `<span class="rec">Recommended</span>`. Gather them in a "Decisions for you" section in the Questions part. |
+| `<p class="slug">` | Under the `<h1>` | `<span>Plan v1</span><span>For review</span><span>DATE</span>`. Match `<meta name="plan-version">` (start at `1`) and `<meta name="plan-date">` (`YYYY-MM-DD`). |
+| `<div class="progress" data-pm-progress></div>` | The hero, after the lede | Keep it empty: the review layer draws the phases' progress there. |
 
-Write for a reader skimming in a browser: lead each card with its point, keep items to a few lines, and put the reasoning one level down (a row, a sentence) where the user can still mark it.
+**Split the plan into its parts** (`WRITING.md`, "A plan's parts"). Every section goes in exactly one `<div class="part">`, and the parts come in this order, each opening with its `div.part-h`:
 
-## 4. Start the review server
+- **Information** (`id="information"`): all the content. The short version, where things stand, options, the design (what gets built), and the **risks**. A design section's lede says it's the design and names the phase that builds it.
+- **Steps** (`id="steps"`): the phases section and nothing else. No explanation between phases.
+- **Questions** (`id="questions"`): the `.decision` blocks. Leave the part out when nothing is open.
+- **Decision log** (`id="log"`): one `section#decision-log` with a table of what's been settled (question, decision, when) and the project's ADRs if it has any (look in `docs/adr/`, `adr/`, `docs/decisions/`): each with its title and path. Leave it out until there's something in it.
 
-Run it in the background, from the project root, so the conversation stays free:
+The contents rail mirrors this: `<a class="toc-part" href="#information">Information</a>` and the same for each part the plan has, each followed by its sections' links. A part with a single section gets no link beneath it, and Steps gets none at all: the review layer lists the phases there, with their progress. There's no "Contents" title on a plan.
+
+Write for someone skimming in a browser: lead each entry with its point, and keep each phase to what it achieves and why. Write no eyebrow labels and no section or phase numbers yourself (they're drawn for you). Keep heading levels in order: `<h2>` for sections, `<h3>` for entries, phases and decisions. Use sentence case in `<title>`.
+
+**Check the page** before anyone sees it:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/check.mjs" <page path>
+```
+
+Fix every **error** and run it again until it prints `ok` or only warnings. An error means the page is broken or will lose the reader's notes: a second `<body>` or contents list (part of the template pasted twice), a tag left open, a repeated `data-id`, the template's example left in. Fix the **warnings** too, unless there's a reason (say which in your hand-over): they're `WRITING.md` rules, such as a section with no lede or an entry that runs long. Never hand over a page that fails the check.
+
+## 4. Write the guides it needs now
+
+For each phase the user will act on soon, write its guide with `make-guide` at `plans/<slug>/guides/<guide-slug>/index.html`, with `pm-parent` pointing back at the plan and `pm-parent-phase` naming the phase's `data-id`. Then put `data-guide="guides/<guide-slug>/index.html"` on the phase. Check each guide as well. Later phases can wait for the user's **Make a guide**.
+
+## 5. Start the review server
+
+Run it in the background from the project root:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/review.mjs" plans/<slug>/index.html
 ```
 
-It opens the plan in the browser and prints the URL (`http://127.0.0.1:4478/`, or the next free port). If a server is already serving this plan, it reuses it. Add `--no-open` when the user can't use a browser on this machine, and `--host 0.0.0.0` when they'll review from another device (it prints keyed `net →` URLs; see `review-plan`).
+It opens the plan and prints the URL (`http://127.0.0.1:4478/` or the next free port). If a server is already serving this plan, it reuses it.
+- **No browser here:** add `--no-open`.
+- **Another device:** add `--host 0.0.0.0`, which prints keyed `net →` URLs (see `review-plan`).
+- **Network defaults:** if `PLAN_MAKER_HOST` or `PLAN_MAKER_TRUST` is set, the user has chosen them; give them the `net →` URL too.
 
-## 5. Hand over
+A guide's card on the plan opens the guide on its own server; nothing else to start.
+
+## 6. Register it
+
+So it shows in the user's hub (`plan-registry`):
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/registry.mjs" add plans/<slug>/index.html \
+  --name "<short name>" --goal "<the outcome, in one line>" \
+  --description "<two or three sentences: what it covers and why>" --next "You: review the plan"
+```
+
+It starts as `reviewing`. Register each guide you wrote too (`make-guide` says how); the hub nests them under the plan.
+
+## 7. Hand over
 
 Tell the user, briefly:
 
 - the URL and the plan's path;
-- the plan's gist in three to five lines (they read the page for the rest);
-- how to review: select text → **Add note**, **Keep / Change / Cut** on each item, the **draw tools** (top bar) for arrows, boxes, circles, points and sticky notes anywhere, answer the decisions, notes save to `notes.json` as they go;
-- to press **Done reviewing** and say **"process my notes"**.
+- the gist in three to five lines: the phases, which are theirs, and which have guides;
+- how to use it: select text to **Comment**, **Ask Claude** or ask for **More detail**, or use the buttons on any block; **Make a guide** on a phase they want walked through; **Mark done** on their phases; answer the decisions;
+- to press **Done for now** and say **"process my notes"**.
 
-Done when the plan file exists, follows the conventions, the server is running, and the user has the URL.
+Done when `check.mjs` passes on the page, the plan exists, follows the conventions, is registered, the server is running, and the user has the URL.
 
-To share the plan with someone without the server, `node "${CLAUDE_PLUGIN_ROOT}/scripts/bundle.mjs" <plan>` writes a self-contained `<name>.review.html`. It saves notes in that person's browser, and they send back the file from **Download notes.json**.
+To share it without the server, `node "${CLAUDE_PLUGIN_ROOT}/scripts/bundle.mjs" <plan>` writes a self-contained `<name>.review.html`, plus a copy of each linked guide, linked to each other. Each saves notes in that person's browser, and they send back the file from **Download notes.json**.

@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your plans, guides and references</title>
+<!-- plan-styles -->
+<style>
+/* Hub-only layout. Everything else (tokens, pages, step cards, the timeline, chips,
+   entries, light and dark) comes from templates/plan.html, injected above. */
+/* The sidebar follows the usual app-navigation rules: its own full-height surface, one line
+   per item, text labels, a strong marker on the current item, two levels (project, plan),
+   collapsible groups, and the less-used items (done, archived) collapsed at the bottom. */
+.desk { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 0; max-width: none; padding: 0; }
+nav.toc.side { position: sticky; top: 0; align-self: start; height: 100vh; max-height: none; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding: 16px 12px 24px; background: var(--paper); border-right: 1px solid var(--line); font-size: 14px; }
+#sheet { width: 100%; max-width: 860px; margin: 0 auto; padding: 32px 24px 96px; }
+.side .toc-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 2px 8px 12px; font-size: 16px; font-weight: 650; color: var(--ink); }
+.side-toggle { display: none; }
+.find { margin: 0 0 10px; }
+.find input { width: 100%; height: 34px; padding: 0 10px 0 32px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%236e7781' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='4.5'/%3E%3Cpath d='M10.5 10.5 14 14'/%3E%3C/svg%3E") 10px center / 14px no-repeat; color: var(--ink); font: 14px var(--sans); }
+.find input::placeholder { color: var(--muted); }
+.find input:focus { outline: 0; background-color: var(--paper); border-color: var(--ink-2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 12%, transparent); }
+
+/* one row per page: [kind icon] name, and under it what's going on; a blue dot when it waits on you.
+   Every icon sits in one column, every dot in another, whatever the nesting. */
+.row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 34px; padding: 6px 8px 6px 10px; border: 0; border-radius: 8px; background: none; color: var(--ink-2); font: 14px/1.3 var(--sans); text-align: left; cursor: pointer; }
+.row.page { display: grid; grid-template-columns: 16px minmax(0, 1fr) 8px; gap: 1px 10px; align-items: center; padding: 7px 10px; }
+.row.page .kind { grid-row: 1; width: 16px; height: 16px; }
+.row.page .name { grid-column: 2; }
+.row.page .sub { grid-column: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; font-weight: 400; color: var(--muted); }
+.row.page .sub[data-k="waiting"] { color: var(--you-ink); }
+.row.page .sub[data-k="blocked"] { color: var(--warn); }
+.row.page .wait { grid-column: 3; grid-row: 1; width: 8px; height: 8px; border-radius: 50%; background: var(--you); }
+.row.page[aria-current="true"] .sub { color: var(--ink-2); }
+.row:hover { background: var(--paper-2); color: var(--ink); }
+.row[aria-current="true"] { background: var(--line-2); color: var(--ink); font-weight: 600; }
+.row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+/* status dots stay out of the ownership colours (blue, gold): grey, green and amber only */
+.row .dot[data-s="draft"] { background: none; box-shadow: inset 0 0 0 1.5px var(--muted); }
+.row .dot[data-s="reviewing"] { background: var(--muted); }
+.row .dot[data-s="approved"] { background: none; box-shadow: inset 0 0 0 2px var(--good); }
+.row .dot[data-s="in-progress"] { background: var(--good); }
+.row .dot[data-s="blocked"] { background: var(--warn); }
+.row .dot[data-s="done"], .row .dot[data-s="archived"] { background: var(--line); }
+.row .dot[data-s="not-started"] { background: none; box-shadow: inset 0 0 0 1.5px var(--ink-2); }
+.row .dot[data-s="current"] { background: var(--good); }
+/* the page's kind, as a small icon before its name: plan, guide, reference */
+.row .kind { flex: none; width: 14px; height: 14px; background: var(--muted); -webkit-mask: var(--k-plan) center / contain no-repeat; mask: var(--k-plan) center / contain no-repeat; }
+.row .kind[data-k="guide"] { -webkit-mask-image: var(--k-guide); mask-image: var(--k-guide); }
+.row .kind[data-k="reference"] { -webkit-mask-image: var(--k-reference); mask-image: var(--k-reference); }
+:root {
+  --k-plan: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Crect x='2' y='2.5' width='12' height='3' rx='1'/%3E%3Crect x='2' y='6.5' width='8' height='3' rx='1'/%3E%3Crect x='2' y='10.5' width='10' height='3' rx='1'/%3E%3C/svg%3E");
+  --k-guide: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 13.5h3.5V10H9V6.5h3.5V3H14'/%3E%3C/svg%3E");
+  --k-reference: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M3 2.5h7.5L13 5v8.5H3z'/%3E%3Cpath d='M5.5 7h5M5.5 10h5' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+/* a guide made from a plan sits under it, one step in */
+.nav-list .nav-list.kids { margin: 0; padding-left: 26px; }
+/* the type filter: All, Plans, Guides, References */
+.kinds-filter { display: flex; gap: 2px; margin: 0 0 10px; padding: 2px; border-radius: 8px; background: var(--paper-2); }
+.kinds-filter button { flex: 1 1 auto; min-width: 0; height: 28px; padding: 0 4px; border: 0; border-radius: 6px; background: none; color: var(--ink-2); font: 500 12.5px/1 var(--sans); cursor: pointer; white-space: nowrap; }
+.kinds-filter button:hover { color: var(--ink); }
+.kinds-filter button[aria-pressed="true"] { background: var(--paper); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(31, 35, 40, .1); }
+.w-plan h3 .kind-chip { display: inline-flex; align-items: center; height: 20px; margin-left: 8px; padding: 0 7px; border-radius: 6px; background: var(--paper); box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); font: 600 11.5px/1 var(--sans); vertical-align: 2px; }
+.row .ico { flex: none; width: 16px; height: 16px; color: var(--ink-2); }
+.waiting-all { margin-bottom: 2px; }
+.servers-row { margin-bottom: 8px; }
+.servers-row .count, .servers-row .count.zero { color: var(--muted); font-weight: 500; }
+.servers-row .count.warn { color: var(--warn); font-weight: 650; }
+/* running servers: one row per server, its state, and Stop */
+.srv-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 0; }
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); font: 600 13.5px var(--sans); cursor: pointer; white-space: nowrap; }
+.btn:hover { background: var(--paper-2); }
+.btn:disabled { opacity: .55; cursor: default; }
+.btn.small { height: 28px; padding: 0 10px; font-size: 13px; }
+.srv-list { list-style: none; margin: 0; padding: 0; }
+.srv { max-width: none; margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: center; padding: 14px 0; border-top: 1px solid var(--line-2); }
+.srv:first-child { border-top: 0; }
+.srv .srv-name { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 600; color: var(--ink); }
+.srv .srv-name span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.srv .kind { flex: none; width: 14px; height: 14px; background: var(--muted); -webkit-mask: var(--k-plan) center / contain no-repeat; mask: var(--k-plan) center / contain no-repeat; }
+.srv .kind[data-k="guide"] { -webkit-mask-image: var(--k-guide); mask-image: var(--k-guide); }
+.srv .kind[data-k="reference"] { -webkit-mask-image: var(--k-reference); mask-image: var(--k-reference); }
+.srv .srv-meta { grid-column: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 13px; color: var(--muted); }
+.srv .srv-meta code { font-size: 12.5px; overflow-wrap: anywhere; }
+.srv .srv-meta a { color: inherit; }
+.srv .btn { grid-column: 2; grid-row: 1 / span 2; }
+.state { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+.state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.state[data-s="open"]::before { background: var(--good); }
+.state[data-s="orphan"] { color: var(--warn); font-weight: 600; }
+.state[data-s="orphan"]::before { background: var(--warn); }
+.state[data-s="older"]::before { background: none; box-shadow: inset 0 0 0 1.5px var(--muted); }
+@media (max-width: 720px) { .srv { grid-template-columns: minmax(0, 1fr); } .srv .btn { grid-column: 1; grid-row: auto; justify-self: start; } }
+.count { flex: none; min-width: 16px; text-align: right; color: var(--you-ink); font: 650 13px/1 var(--sans); font-variant-numeric: tabular-nums; }
+.count.zero { color: var(--muted); font-weight: 500; }
+/* collapsible project groups */
+/* an open project gets room around it; collapsed ones stack close together */
+.project { margin-top: 4px; }
+.project.open, .project.open + .project { margin-top: 20px; }
+.project:first-child { margin-top: 14px; }
+/* pinned projects come first; a wider gap separates them from the rest */
+.project.pinned + .project:not(.pinned) { margin-top: 36px; }
+.project h2 { position: relative; margin: 0; font: inherit; }
+.grp-pin { position: absolute; top: 3px; right: 4px; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; opacity: 0; }
+.grp-pin svg { width: 14px; height: 14px; }
+.project h2:hover .grp-pin, .grp-pin:focus-visible, .grp-pin[aria-pressed="true"] { opacity: 1; }
+.grp-pin:hover { background: var(--line-2); color: var(--ink); }
+.grp-pin[aria-pressed="true"] { color: var(--ink-2); }
+.grp-pin[aria-pressed="true"] svg path { fill: currentColor; }
+@media (hover: none) { .grp-pin { opacity: 1; } }
+.project h2 .grp { padding-right: 34px; }
+.grp { display: flex; align-items: center; gap: 10px; width: 100%; height: 30px; padding: 0 10px 0 13px; border: 0; border-radius: 8px; background: none; color: var(--ink-2); font: 600 12.5px/1 var(--sans); text-align: left; cursor: pointer; }
+.grp:hover { background: var(--paper-2); color: var(--ink); }
+.grp .chev { flex: none; width: 10px; height: 10px; transition: transform .15s; }
+.grp[aria-expanded="false"] .chev { transform: rotate(-90deg); }
+.grp .grp-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-list { list-style: none; margin: 0 0 6px; padding: 0; }
+.nav-list[hidden] { display: none; }
+.side-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line-2); }
+.side-foot:empty { display: none; }
+.empty-side { margin: 12px 10px; font-size: 14px; color: var(--muted); }
+/* a selected plan: its live page fills the area beside the sidebar */
+#sheet.embed { display: flex; flex-direction: column; max-width: none; height: 100vh; padding: 0; gap: 0; }
+.embed-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 16px; background: var(--paper); border-bottom: 1px solid var(--line); }
+.embed-name { margin: 0; font-size: 16px; font-weight: 650; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40ch; }
+.embed-bar .status-wrap { position: relative; display: inline-flex; align-items: center; height: 28px; border-radius: 999px; background: var(--paper-2); border: 1px solid var(--line-2); }
+.embed-project { font-size: 13px; color: var(--muted); }
+.embed-sp { flex: 1; }
+.embed-bar .open-btn { height: 32px; padding: 0 12px; font-size: 13.5px; }
+.plan-frame { flex: 1; width: 100%; min-height: 0; border: 0; background: var(--ground); }
+.embed-notice { margin: 24px; }
+/* collapse: the sidebar shrinks to a rail with the expand button and the waiting count */
+.side-collapse { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--ink-2); cursor: pointer; }
+.side-collapse:hover { background: var(--paper-2); color: var(--ink); }
+.side-collapse svg { width: 16px; height: 16px; }
+html.side-collapsed .side-collapse .arr { transform: translateX(16px) scaleX(-1); transform-origin: 0 0; }
+html.side-collapsed .desk { grid-template-columns: 56px minmax(0, 1fr); }
+html.side-collapsed nav.toc.side { padding: 12px 8px; align-items: center; }
+html.side-collapsed .side .toc-title { justify-content: center; margin: 0 0 10px; }
+html.side-collapsed .side .title-text, html.side-collapsed .find, html.side-collapsed .kinds-filter, html.side-collapsed #projects, html.side-collapsed #done, html.side-collapsed .waiting-all .name { display: none; }
+html.side-collapsed .waiting-all { flex-direction: column; gap: 4px; justify-content: center; width: 40px; padding: 6px 0; }
+html.side-collapsed .waiting-all .count { min-width: 0; text-align: center; font-size: 12px; }
+.embed .hero { margin: 24px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.log li { max-width: none; }
+@media (prefers-reduced-motion: reduce) { .grp .chev { transition: none; } }
+
+/* one progress bar for a plan: your done steps in blue, Claude's in gold */
+.bar { display: flex; flex: 1; min-width: 40px; max-width: 120px; height: 4px; border-radius: 999px; background: var(--line-2); overflow: hidden; }
+.bar i { height: 100%; }
+.bar i.y, .prog-track i.y { background: var(--you); }
+.bar i.c, .prog-track i.c { background: var(--claude); }
+.prog { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 22px 0 0; font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.prog-track { display: flex; width: min(320px, 100%); height: 8px; border-radius: 999px; background: var(--line-2); overflow: hidden; }
+.prog-track i { height: 100%; }
+.prog b { color: var(--ink); }
+.lanes-txt { display: flex; flex-wrap: wrap; gap: 4px 16px; width: 100%; font-size: 13px; color: var(--muted); }
+.lane { display: inline-flex; align-items: center; gap: 6px; }
+.lane::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--you); }
+.lane.claude::before { background: var(--claude); }
+
+/* the status, as a slug chip you can change */
+.slug .status-wrap { position: relative; display: inline-flex; align-items: center; height: 26px; padding: 0; border-radius: 999px; background: var(--paper-2); border: 1px solid var(--line-2); }
+.status-wrap::before { content: ""; position: absolute; left: 10px; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); pointer-events: none; }
+.status-wrap[data-s="draft"]::before { background: none; box-shadow: inset 0 0 0 1.5px var(--muted); }
+.status-wrap[data-s="in-progress"]::before { background: var(--good); }
+.status-wrap[data-s="reviewing"]::before { background: var(--muted); }
+.status-wrap[data-s="approved"]::before { background: none; box-shadow: inset 0 0 0 2px var(--good); }
+.status-wrap[data-s="done"]::before, .status-wrap[data-s="archived"]::before { background: var(--line); }
+.status-wrap[data-s="blocked"]::before { background: var(--warn); }
+.status-wrap[data-s="current"]::before { background: var(--good); }
+.status-wrap[data-s="not-started"]::before { background: none; box-shadow: inset 0 0 0 1.5px var(--ink-2); }
+.status-wrap select { appearance: none; -webkit-appearance: none; height: 24px; padding: 0 26px 0 23px; border: 0; border-radius: 999px; background: none; color: var(--ink); font: 600 13px var(--sans); cursor: pointer; }
+.status-wrap svg { position: absolute; right: 9px; width: 9px; height: 6px; color: var(--ink-2); pointer-events: none; }
+
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 22px 0 0; }
+.open-btn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 8px; background: var(--ink); color: var(--paper); font: 600 14px var(--sans); text-decoration: none; }
+.open-btn:hover { color: var(--paper); background: color-mix(in srgb, var(--ink) 85%, var(--paper)); }
+.open-btn svg { width: 11px; height: 11px; }
+.link-btn { border: 0; background: none; padding: 0; color: var(--claude-ink); font: 500 14px var(--sans); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; cursor: pointer; }
+.link-btn:hover { color: var(--claude); }
+.path { flex-basis: 100%; font: 12.5px var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.notice { margin: 16px 0 0; padding: 12px 14px; border-radius: 10px; background: var(--paper-2); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); font-size: 14.5px; }
+
+/* waiting cards: the plan's name, why it waits, and the two ways on */
+.w-plan { cursor: pointer; }
+.w-plan .why { margin: 4px 0 0; }
+.w-plan .go { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--o-line); }
+.w-plan .go a { display: inline-flex; align-items: center; gap: 6px; font: 600 14px var(--sans); color: var(--o-ink); text-decoration: none; }
+.w-plan .go a:hover { text-decoration: underline; }
+.w-plan .go a svg { width: 10px; height: 10px; }
+/* hub cards are titled with h3 (they sit straight under a page's h2); give them the plan's owner chip */
+.step > h3 { font-size: 16.5px; font-weight: 600; margin: 0 0 2px; }
+.step > h3::before { content: "You"; display: inline-flex; align-items: center; height: 24px; margin: 0 10px 0 0; padding: 0 10px 0 28px; border-radius: 999px; background: var(--paper) var(--o-icon) 9px center / 14px no-repeat; color: var(--o-ink); box-shadow: inset 0 0 0 1px var(--o-line); font: 650 12.5px/1 var(--sans); vertical-align: 2px; }
+.step[data-who="claude"] > h3::before { content: "Claude"; }
+.step.neutral > h3::before { content: none; }
+.step.neutral { --o: var(--muted); --o-ink: var(--ink-2); --o-tint: var(--paper-2); --o-line: var(--line); }
+.step.neutral > h4::before { content: none; }
+.sec .step.neutral::before { background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--line); color: var(--ink-2); }
+.log .date { display: block; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.toast { position: fixed; z-index: 10; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 9px 14px; border-radius: 10px; background: var(--ink); color: var(--paper); font: 500 14px var(--sans); box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: opacity .2s; }
+.toast.show { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+
+@media (max-width: 1199px) { .desk { grid-template-columns: 248px minmax(0, 1fr); } nav.toc.side { display: flex; } }
+@media (max-width: 720px) {
+  .side-collapse { display: none; }
+  html.side-collapsed .desk { grid-template-columns: minmax(0, 1fr); }
+  html.side-collapsed nav.toc.side { padding: 10px 12px; align-items: stretch; }
+  html.side-collapsed .side .toc-title { justify-content: space-between; margin: 0; }
+  html.side-collapsed .side .title-text, html.side-collapsed .waiting-all .name { display: inline; }
+  html.side-collapsed .find, html.side-collapsed #projects { display: block; }
+  html.side-collapsed .kinds-filter { display: flex; }
+  html.side-collapsed .waiting-all { flex-direction: row; width: 100%; padding: 6px 8px 6px 10px; }
+  #sheet.embed { height: 82vh; }
+  .desk { grid-template-columns: minmax(0, 1fr); }
+  nav.toc.side { position: static; height: auto; overflow: visible; padding: 10px 12px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .side .toc-title { margin: 0; }
+  #sheet { padding: 12px 8px 56px; }
+  .side-foot { margin-top: 8px; }
+  .side-toggle { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); font: 600 14px var(--sans); cursor: pointer; }
+  .side-toggle svg { width: 10px; height: 6px; }
+  #side-body { display: none; margin-top: 12px; padding: 12px 8px; border-radius: 10px; background: var(--paper); box-shadow: var(--shadow); }
+  .side.open #side-body { display: block; }
+}
+</style>
+</head>
+<body>
+<div class="desk">
+  <nav class="toc side" id="side" aria-label="Plans">
+    <div class="toc-title"><span class="title-text">Your work</span><button type="button" class="side-collapse" id="side-collapse" aria-expanded="true" aria-controls="side-body" title="Collapse the sidebar" aria-label="Collapse the sidebar"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="11" rx="2.5"/><path d="M6.5 2.5v11"/><path class="arr" d="M11 6.2 9.2 8l1.8 1.8" stroke-linecap="round"/></svg></button>
+      <button type="button" class="side-toggle" id="side-toggle" aria-expanded="false" aria-controls="side-body">All plans <span class="count zero" id="wcount-m" title="Waiting on you">0</span><svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+    </div>
+    <div id="side-body">
+      <div class="find"><input type="search" id="q" placeholder="Search" aria-label="Search plans, guides and references"></div>
+      <div class="kinds-filter" role="group" aria-label="Show"><button type="button" data-kind="" aria-pressed="true">All</button><button type="button" data-kind="plan" aria-pressed="false">Plans</button><button type="button" data-kind="guide" aria-pressed="false">Guides</button><button type="button" data-kind="reference" aria-pressed="false">References</button></div>
+      <button type="button" class="row waiting-all" data-sel="" aria-current="true"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2 9.5 4 3h8l2 6.5V13H2z"/><path d="M2 9.5h3.5l1 1.5h3l1-1.5H14"/></svg><span class="name">Waiting on you</span><span class="count" id="wcount">0</span></button>
+      <button type="button" class="row servers-row" data-sel="servers" aria-current="false"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="4.5" rx="1.2"/><rect x="2" y="9" width="12" height="4.5" rx="1.2"/><path d="M4.8 4.75h.01M4.8 11.25h.01" stroke-linecap="round" stroke-width="2"/></svg><span class="name">Running servers</span><span class="count zero" id="scount">0</span></button>
+      <div id="projects"></div>
+      <div class="side-foot" id="done"></div>
+    </div>
+  </nav>
+  <main id="sheet" aria-live="polite"><header class="hero"><p class="lede">Loading…</p></header></main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// lib/kinds.mjs: every status any kind of page can have; done and archived are finished.
+const ACTIVE = ['draft', 'reviewing', 'approved', 'not-started', 'in-progress', 'blocked', 'current'];
+const LABEL = { draft: 'Draft', reviewing: 'Reviewing', approved: 'Approved', 'not-started': 'Not started', 'in-progress': 'In progress', blocked: 'Blocked', current: 'Current', done: 'Done', archived: 'Archived' };
+const KIND = { plan: 'Plan', guide: 'Guide', reference: 'Reference' };
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const OUT = '<svg viewBox="0 0 11 11" aria-hidden="true"><path d="M3 1h7v7M10 1 1 10" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
+const CARET = '<svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
+
+let entries = [];
+let servers = null; // null until the first answer from /api/servers
+const view = { q: '', kind: '', collapsed: { '__done': true } };
+try { view.kind = localStorage.getItem('pm-hub-kind') || ''; } catch {}
+try { Object.assign(view.collapsed, JSON.parse(localStorage.getItem('pm-hub-collapsed') || '{}')); } catch {}
+const keep = () => { try { localStorage.setItem('pm-hub-collapsed', JSON.stringify(view.collapsed)); } catch {} };
+// Projects you're working on, pinned to the top of the sidebar (this browser only).
+view.pinned = [];
+try { view.pinned = JSON.parse(localStorage.getItem('pm-hub-pinned') || '[]'); } catch {}
+const keepPins = () => { try { localStorage.setItem('pm-hub-pinned', JSON.stringify(view.pinned)); } catch {} };
+const PIN = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.6 1.8 14.2 6.4 12.6 7l-2.3 2.3.3 3.2-1.2 1.2-2.9-2.9-3.3 3.3-.9-.9 3.3-3.3-2.9-2.9 1.2-1.2 3.2.3L9.3 3.6z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+const CHEV = '<svg class="chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const selected = () => decodeURIComponent(location.hash.slice(1));
+
+const touched = (e) => [e.modified, e.notesUpdated, e.updated].filter(Boolean).sort().pop() || '';
+function ago(iso) {
+  if (!iso) return '';
+  const d = new Date(iso.length === 10 ? iso + 'T12:00:00' : iso);
+  const days = Math.floor((Date.now() - d) / 864e5);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 30) return `${days} days ago`;
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+// "You: check the preview" → owner you, text "check the preview"
+function owned(text) {
+  const m = String(text || '').match(/^\s*(you|claude)\s*:\s*/i);
+  return m ? { who: m[1].toLowerCase(), text: text.slice(m[0].length) } : { who: null, text: text || '' };
+}
+const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+function totals(e) {
+  const y = e.lanes?.you || { done: 0, total: 0 }, c = e.lanes?.claude || { done: 0, total: 0, doing: 0 };
+  return { y, c, total: y.total + c.total, done: y.done + c.done };
+}
+// One bar: your done steps, then Claude's, as shares of every step in the plan.
+function bar(e, cls) {
+  const { y, c, total } = totals(e);
+  if (!total) return '';
+  const w = (n) => ((n / total) * 100).toFixed(1);
+  return `<span class="${cls}" aria-hidden="true"><i class="y" style="width:${w(y.done)}%"></i><i class="c" style="width:${w(c.done)}%"></i></span>`;
+}
+
+// What a page's second line says: what it wants from you, else its status.
+function subline(e) {
+  if (e.missing) return { k: 'blocked', text: 'Page missing' };
+  const w = e.waiting[0];
+  if (e.status === 'blocked') return { k: 'blocked', text: w ? `Blocked: ${w.text.replace(/^\s*you\s*:\s*/i, '')}` : 'Blocked' };
+  if (w) {
+    const steps = w.key === 'steps' && e.nextYouStep;
+    return { k: 'waiting', text: steps ? `Your turn: ${e.nextYouStep}` : w.text.replace(/^Tell Claude /, 'Say ') };
+  }
+  return { k: e.status === 'blocked' ? 'blocked' : '', text: LABEL[e.status] || e.status };
+}
+// One row per page: its kind, the name, what's going on, and a blue dot when it's waiting on you.
+// A guide made from a plan in the same list sits under that plan, its icon under the plan's name.
+function planRow(e, sel, list = []) {
+  const status = e.missing ? 'Page missing' : LABEL[e.status] || e.status;
+  const kind = KIND[e.kind] || 'Plan';
+  const sub = subline(e);
+  const tip = [kind, status, ...e.waiting.map((w) => w.text)].join('. ');
+  const kids = list.filter((k) => k.parentPath && k.parentPath === e.path);
+  return `<li><button type="button" class="row page" data-sel="${e.id}" aria-current="${e.id === sel}" title="${esc(tip)}">
+    <span class="kind" data-k="${esc(e.kind || 'plan')}" aria-hidden="true"></span><span class="name">${esc(e.name)}</span>${e.waiting.length ? '<span class="wait" aria-hidden="true"></span>' : ''}
+    <span class="sub" data-k="${sub.k}">${esc(sub.text)}</span><span class="sr-only">${esc(kind)}, ${esc(status)}${e.waiting.length ? ', waiting on you' : ''}</span></button>
+    ${kids.length ? `<ul class="nav-list kids" aria-label="Guides for ${esc(e.name)}">${kids.map((k) => planRow(k, sel, list)).join('')}</ul>` : ''}</li>`;
+}
+function group(key, title, list, sel) {
+  const open = !view.collapsed[key];
+  const paths = new Set(list.map((e) => e.path));
+  const top = list.filter((e) => !(e.parentPath && paths.has(e.parentPath)));
+  const pinned = view.pinned.includes(key);
+  const pin = key === '__done' ? '' : `<button type="button" class="grp-pin" data-pin="${esc(key)}" aria-pressed="${pinned}" title="${pinned ? 'Unpin' : 'Pin to the top'}" aria-label="${pinned ? 'Unpin' : 'Pin'} ${esc(title)}">${PIN}</button>`;
+  return `<h2><button type="button" class="grp" data-grp="${esc(key)}" aria-expanded="${open}">${CHEV}<span class="grp-name">${esc(title)}</span></button>${pin}</h2>
+    <ul class="nav-list"${open ? '' : ' hidden'}>${top.map((e) => planRow(e, sel, list)).join('')}</ul>`;
+}
+function renderSide() {
+  if ($('#q').value !== view.q) $('#q').value = view.q;
+  const q = view.q.trim().toLowerCase();
+  const match = (e) => (!view.kind || e.kind === view.kind) && (!q || [e.name, e.goal, e.description, e.project, e.next, KIND[e.kind]].join(' ').toLowerCase().includes(q));
+  for (const b of document.querySelectorAll('.kinds-filter button')) b.setAttribute('aria-pressed', String(b.dataset.kind === view.kind));
+  const shown = entries.filter((e) => ACTIVE.includes(e.status) && match(e));
+  const finished = entries.filter((e) => !ACTIVE.includes(e.status) && match(e));
+  shown.sort((a, b) => (b.waiting.length > 0) - (a.waiting.length > 0) || touched(b).localeCompare(touched(a)));
+  finished.sort((a, b) => touched(b).localeCompare(touched(a)));
+  const projects = [...new Set(shown.map((e) => e.project))].sort((a, b) => {
+    const wa = shown.some((e) => e.project === a && e.waiting.length), wb = shown.some((e) => e.project === b && e.waiting.length);
+    const pa = view.pinned.includes(a), pb = view.pinned.includes(b);
+    return pb - pa || wb - wa || a.localeCompare(b);
+  });
+  const sel = selected();
+  // A plan that's selected (or matches a search) shows even inside a collapsed group.
+  const selProject = entries.find((e) => e.id === sel)?.project;
+  if (q || selProject) for (const p of projects) if (q || p === selProject) delete view.collapsed[p];
+  const focusedId = document.activeElement?.closest?.('#side .row, #side .grp')?.dataset;
+  $('#projects').innerHTML = projects.length
+    ? projects.map((p) => `<section class="project${view.pinned.includes(p) ? ' pinned' : ''}${view.collapsed[p] ? '' : ' open'}">${group(p, p, shown.filter((e) => e.project === p), sel)}</section>`).join('')
+    : `<p class="empty-side">${entries.length ? (q || view.kind ? 'Nothing matches.' : 'Nothing active.') : 'Nothing registered yet.'}</p>`;
+  $('#done').innerHTML = finished.length ? `<section class="project done-group">${group('__done', 'Done and archived', finished, sel)}</section>` : '';
+  if (focusedId?.sel) $(`#side .row[data-sel="${focusedId.sel}"]`)?.focus();
+  else if (focusedId?.grp) $(`#side .grp[data-grp="${CSS.escape(focusedId.grp)}"]`)?.focus();
+  const waitingTotal = entries.reduce((n, e) => n + e.waiting.length, 0);
+  for (const el of [$('#wcount'), $('#wcount-m')]) {
+    el.textContent = waitingTotal;
+    el.classList.toggle('zero', !waitingTotal);
+  }
+  $('.waiting-all').setAttribute('aria-current', String(sel !== 'servers' && (!sel || !entries.some((e) => e.id === sel))));
+  $('.servers-row').setAttribute('aria-current', String(sel === 'servers'));
+  if (servers) {
+    const orphans = servers.filter((s) => s.orphan).length;
+    const c = $('#scount');
+    c.textContent = servers.length;
+    c.classList.toggle('warn', orphans > 0);
+    $('.servers-row').title = `${plural(servers.length, 'review server')} running${orphans ? `, ${orphans} orphaned` : ''}`;
+  }
+  if (focusedId) $(`#projects .row[data-sel="${focusedId}"]`)?.focus();
+}
+
+function renderWaiting() {
+  document.title = 'Waiting on you · Your work';
+  if (!entries.length) {
+    $('#sheet').innerHTML = `<header class="hero"><h1>Your plans, guides and references</h1><p class="lede">Nothing registered yet. Ask Claude for a plan, a guide or a reference, or say “register my plans” in a project to add the ones you already have.</p></header>`;
+    return;
+  }
+  const waiting = entries.filter((e) => e.waiting.length);
+  if (!waiting.length) {
+    $('#sheet').innerHTML = `<header class="hero"><h1>Nothing is waiting on you</h1><p class="lede">Everything active is with Claude or finished. Pick something on the left to see where it stands.</p></header>`;
+    return;
+  }
+  const projects = [...new Set(waiting.map((e) => e.project))].sort();
+  const total = waiting.reduce((n, e) => n + e.waiting.length, 0);
+  $('#sheet').innerHTML = `<header class="hero"><h1>Waiting on you</h1>
+      <p class="lede">${plural(total, 'thing')} across ${plural(waiting.length, 'page')}, in ${plural(projects.length, 'project')}. Open one to get on with it.</p></header>
+    ${projects.map((p) => `<section class="sec"><h2>${esc(p)}</h2><div class="steps">${waiting
+      .filter((e) => e.project === p)
+      .sort((a, b) => touched(b).localeCompare(touched(a)))
+      .map((e) => `<div class="step w-plan" data-who="you" data-sel="${e.id}"><h3>${esc(e.name)}<span class="kind-chip">${esc(KIND[e.kind] || 'Plan')}</span></h3>
+          ${e.waiting.map((w) => `<p class="why">${esc(cap(owned(w.text).text))}</p>`).join('')}
+          <div class="go"><button type="button" class="link-btn open-here" data-sel="${e.id}">Open ${esc((KIND[e.kind] || 'Plan').toLowerCase())}</button></div></div>`)
+      .join('')}</div></section>`).join('')}`;
+}
+
+// A selected plan is the plan itself: its live page in a frame, served by its own review
+// server (started on demand by /open). Its name, status and progress are all in the plan.
+function renderPlan(e) {
+  document.title = `${e.name} · Your work`;
+  const sheet = $("#sheet");
+  sheet.classList.add("embed");
+  // Same plan as before (a refresh): never reload the frame under the reader.
+  if (sheet.dataset.embed === e.id) return;
+  sheet.dataset.embed = e.id;
+  sheet.innerHTML = e.missing
+    ? `<header class="hero"><h1>${esc(e.name)}</h1><p class="notice">The page isn’t there any more: it was moved or deleted.</p><p class="meta">${esc(e.path)}</p>
+        <div class="srv-actions"><button type="button" class="btn" data-remove="${e.id}">Remove from hub</button></div></header>`
+    : `<iframe class="plan-frame" src="/open/${e.id}" title="${esc(e.name)}" allow="clipboard-write"></iframe>`;
+}
+
+// ---------- running servers ----------
+function idleText(sec) {
+  if (sec < 3600) return `${Math.max(1, Math.round(sec / 60))} min`;
+  if (sec < 86400) return `${Math.round(sec / 3600)} h`;
+  return plural(Math.round(sec / 86400), 'day');
+}
+function serverState(s) {
+  if (s.why.includes('missing')) return ['orphan', 'Page deleted or moved'];
+  if (s.why.includes('duplicate')) return ['orphan', 'Duplicate: another server has this page'];
+  if (s.older) return ['older', 'Older version: can’t tell if a tab is open'];
+  if (s.unused) return ['idle', `No tab open · idle ${idleText(s.idle)}`];
+  return ['open', 'Open in a tab'];
+}
+const ref = (s) => ({ port: s.port, planHash: s.planHash });
+function renderServers() {
+  document.title = 'Running servers · Your work';
+  const sheet = $('#sheet');
+  if (!servers) {
+    sheet.innerHTML = `<header class="hero"><h1>Running servers</h1><p class="lede">Looking…</p></header>`;
+    return;
+  }
+  const orphans = servers.filter((s) => s.orphan), unused = servers.filter((s) => s.orphan || s.unused), older = servers.filter((s) => s.older);
+  const btn = (key, label, list) => (list.length ? `<button type="button" class="btn" data-stop="${key}">${label} (${list.length})</button>` : '');
+  const row = (s) => {
+    const [st, label] = serverState(s);
+    const name = s.name || (s.page ? s.shown : 'Unknown page');
+    return `<li class="srv"><div class="srv-name">${s.kind ? `<span class="kind" data-k="${esc(s.kind)}" aria-hidden="true"></span>` : ''}<span>${esc(name)}</span></div>
+      <div class="srv-meta"><span class="state" data-s="${st}">${esc(label)}</span>${s.project ? `<span>${esc(s.project)}</span>` : ''}${s.page ? `<code>${esc(s.shown)}</code>` : ''}<a href="http://127.0.0.1:${s.port}/" target="_blank" rel="noopener">port ${s.port}</a>${s.network ? '<span>network mode</span>' : ''}</div>
+      <button type="button" class="btn small" data-stop-port="${s.port}" aria-label="Stop the server for ${esc(name)}">Stop</button></li>`;
+  };
+  sheet.innerHTML = `<header class="hero"><h1>Running servers</h1>
+      <p class="lede">${servers.length ? `${plural(servers.length, 'review server')} running on this machine, one per open page.` : 'No review servers are running.'} A server stops itself after 12 hours with no tab open, and opening a page from here starts it again.</p>
+      ${servers.length ? `<div class="srv-actions">${btn('orphans', 'Stop orphans', orphans)}${btn('unused', 'Stop the ones not in use', unused)}${btn('older', 'Stop older servers', older)}</div>` : ''}</header>
+    ${servers.length ? `<section class="sec"><h2>By page</h2><ul class="srv-list">${servers.map(row).join('')}</ul>
+      ${older.length ? `<p class="meta">Older servers were started before plan-maker could tell whether a tab is open. If you stop one that’s open, open its page again from here.</p>` : ''}</section>` : ''}`;
+  stopSets = { orphans, unused, older };
+}
+let stopSets = {};
+async function loadServers() {
+  try {
+    const r = await fetch('/api/servers', { cache: 'no-store' });
+    servers = (await r.json()).servers;
+  } catch {
+    return;
+  }
+  renderSide();
+  if (selected() === 'servers') renderServers();
+}
+async function stopServers(list, buttons) {
+  if (!list.length) return;
+  buttons.forEach((b) => (b.disabled = true));
+  try {
+    const r = await fetch('/api/servers/stop', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ servers: list.map(ref) }) });
+    const j = await r.json();
+    servers = j.servers;
+    const failed = j.results.filter((x) => x.error);
+    const done = j.results.length - failed.length;
+    toast(failed.length ? `Stopped ${done}. ${failed.length} didn’t stop: ${failed[0].error}` : `Stopped ${plural(done, 'server')}`);
+  } catch {
+    toast('Couldn’t reach the hub');
+  }
+  renderSide();
+  if (selected() === 'servers') renderServers();
+}
+
+function renderMain() {
+  if (document.activeElement?.matches?.('select.status')) return;
+  const sel = selected();
+  const e = entries.find((x) => x.id === sel);
+  if (e) return renderPlan(e);
+  const sheet = $('#sheet');
+  sheet.classList.remove('embed');
+  delete sheet.dataset.embed;
+  if (sel === 'servers') return renderServers();
+  renderWaiting();
+}
+
+function render() {
+  renderSide();
+  renderMain();
+}
+
+function select(id) {
+  if (id) location.hash = id;
+  else history.pushState(null, '', location.pathname + location.search);
+  $('#side').classList.remove('open');
+  $('#side-toggle').setAttribute('aria-expanded', 'false');
+  render();
+  scrollTo({ top: 0 });
+}
+
+async function load() {
+  loadServers();
+  try {
+    const r = await fetch('/api/entries', { cache: 'no-store' });
+    entries = (await r.json()).entries;
+    render();
+  } catch {
+    $('#sheet').innerHTML = `<header class="hero"><h1>The hub isn’t reachable</h1><p class="lede">Start it again with <code>node scripts/hub.mjs</code>.</p></header>`;
+  }
+}
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+document.addEventListener('click', async (ev) => {
+  if (ev.target.closest('a')) return; // Open plan: let the link do its job
+  const kb = ev.target.closest('.kinds-filter button');
+  if (kb) {
+    view.kind = kb.dataset.kind;
+    try { localStorage.setItem('pm-hub-kind', view.kind); } catch {}
+    renderSide();
+    return;
+  }
+  const rb = ev.target.closest('[data-remove]');
+  if (rb) {
+    const e = entries.find((x) => x.id === rb.dataset.remove);
+    if (!e || !confirm(`Remove “${e.name}” from the hub?`)) return;
+    rb.disabled = true;
+    const r = await fetch(`/api/entries/${e.id}`, { method: 'DELETE' });
+    if (!r.ok) {
+      rb.disabled = false;
+      return toast('Not removed: ' + (await r.text()));
+    }
+    toast(`Removed ${e.name} from the hub`);
+    select('');
+    return load();
+  }
+  const sb = ev.target.closest('[data-stop], [data-stop-port]');
+  if (sb && servers) {
+    const list = sb.dataset.stop ? stopSets[sb.dataset.stop] || [] : servers.filter((s) => String(s.port) === sb.dataset.stopPort);
+    return stopServers(list, [sb]);
+  }
+  const sel = ev.target.closest('[data-sel]');
+  if (sel) return select(sel.dataset.sel);
+  const pb = ev.target.closest('.grp-pin');
+  if (pb) {
+    const key = pb.dataset.pin;
+    view.pinned = view.pinned.includes(key) ? view.pinned.filter((k) => k !== key) : [...view.pinned, key];
+    keepPins();
+    renderSide();
+    $(`#side .grp-pin[data-pin="${CSS.escape(key)}"]`)?.focus();
+    return;
+  }
+  const g = ev.target.closest('.grp');
+  if (g) {
+    const key = g.dataset.grp;
+    if (view.collapsed[key]) delete view.collapsed[key];
+    else view.collapsed[key] = true;
+    keep();
+    renderSide();
+    return;
+  }
+  const c = ev.target.closest('button.copy');
+  if (c) {
+    try { await navigator.clipboard.writeText(c.dataset.path); toast('Path copied'); } catch { toast(c.dataset.path); }
+    return;
+  }
+  if (ev.target.closest('#side-toggle')) {
+    const open = $('#side').classList.toggle('open');
+    $('#side-toggle').setAttribute('aria-expanded', String(open));
+  }
+});
+document.addEventListener('change', async (ev) => {
+  if (!ev.target.matches('select.status')) return;
+  const id = ev.target.dataset.id;
+  const r = await fetch(`/api/entries/${id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status: ev.target.value }) });
+  if (!r.ok) return toast('Not saved: ' + (await r.text()));
+  const e = await r.json();
+  entries = entries.map((x) => (x.id === id ? e : x));
+  ev.target.blur();
+  render();
+  toast(`${e.name}: ${LABEL[e.status]}`);
+});
+// Up and down move through the sidebar's rows.
+$('#side').addEventListener('keydown', (ev) => {
+  if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
+  const rows = [...document.querySelectorAll('#side .row, #side .grp')].filter((r) => r.offsetParent);
+  const i = rows.indexOf(document.activeElement);
+  if (i === -1) return;
+  ev.preventDefault();
+  rows[Math.max(0, Math.min(rows.length - 1, i + (ev.key === 'ArrowDown' ? 1 : -1)))].focus();
+});
+$('#q').addEventListener('input', (ev) => { view.q = ev.target.value; renderSide(); });
+addEventListener('hashchange', render);
+// The embedded plan says when its status changes: refresh the sidebar straight away.
+addEventListener('message', (ev) => {
+  if (ev.data?.app !== 'plan-maker') return;
+  if (ev.data.type === 'removed') {
+    toast(`Removed ${ev.data.name || 'it'} from the hub`);
+    history.pushState(null, '', location.pathname + location.search);
+  }
+  load();
+});
+// Collapse the sidebar to a thin rail; the choice is remembered.
+function setCollapsed(on) {
+  document.documentElement.classList.toggle('side-collapsed', on);
+  const b = $('#side-collapse');
+  b.setAttribute('aria-expanded', String(!on));
+  b.title = b.ariaLabel = on ? 'Expand the sidebar' : 'Collapse the sidebar';
+  try { localStorage.setItem('pm-hub-side', on ? 'collapsed' : 'open'); } catch {}
+}
+$('#side-collapse').addEventListener('click', () => setCollapsed(!document.documentElement.classList.contains('side-collapsed')));
+try { if (localStorage.getItem('pm-hub-side') === 'collapsed') setCollapsed(true); } catch {}
+addEventListener('popstate', render);
+
+load();
+// Steps get ticked off in other tabs: refresh when this tab comes back, and now and then.
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && load());
+setInterval(() => document.visibilityState === 'visible' && load(), 15000);
+</script>
+</body>
+</html>

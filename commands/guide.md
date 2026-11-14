@@ -1,6 +1,6 @@
 ---
-description: Write a step-by-step guide you follow and annotate in the browser
+description: Write a guide you follow in the browser, with your steps to tick off
 argument-hint: "<what to guide you through>"
 ---
 
-Use the guide-me skill to guide me through: $ARGUMENTS
+Use the make-guide skill to guide me through: $ARGUMENTS

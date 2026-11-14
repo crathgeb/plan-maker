@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- pm-kind=guide turns on guide mode: Mark done and Ask on steps, a progress bar, copy buttons on code. -->
+<meta name="pm-kind" content="guide">
+<!-- plan-version and plan-date: set on every regeneration. The hero eyebrow shows the same. -->
+<meta name="plan-version" content="1">
+<meta name="plan-date" content="2026-11-07">
+<title>Deploy a Static Site</title>
+<!--
+  guide-me template. Copy it, replace every piece of example content, keep the conventions:
+    <meta name="pm-kind" content="guide">   guide mode (no Keep / Change / Cut)
+    .step[data-id]              one thing the reader does; gets Mark done, Ask and a note; counts toward progress
+    .item[data-id]              anything else worth asking about (a prerequisite, a troubleshooting row); Ask and note
+    <section data-id>           gets a section note
+    .who.you / .claude / .both  who does the step
+    aside.explain[data-q]       an answer to a reader's question, written into the step it was asked on
+    section#glossary            terms the reader asked about, gathered as the guide is regenerated
+    .decision[data-decision]    a pick-one question, as in plan-maker
+    <main data-plan>            the annotatable area
+    data-changed="v2"           on an element revised in v2: shown with a "changed in v2" badge
+  Code goes in <pre><code>: the layer adds a Copy button to each one. Write no JavaScript.
+-->
+<style>
+:root {
+  --bg: #f6f8f7; --paper: #ffffff; --ink: #15201c; --muted: #5a6762; --line: #dbe3e0; --chip: #eef3f1;
+  --accent: #0f7b6c; --accent-soft: #e2f3ef; --accent-ink: #ffffff;
+  --you: #a4430a; --you-soft: #fde8d7;
+  --good: #2b8a3e; --warn: #a35a00; --bad: #c92a2a;
+  --explain: #eef2ff; --explain-line: #5c6ac4;
+  --radius: 12px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1513; --paper: #161e1b; --ink: #e3ebe8; --muted: #94a39d; --line: #283431; --chip: #1d2724;
+    --accent: #4fd1b8; --accent-soft: #173029; --accent-ink: #0c1412;
+    --you: #ffb27a; --you-soft: #3a2414;
+    --good: #51cf66; --warn: #ffa94d; --bad: #ff6b6b;
+    --explain: #1d2340; --explain-line: #8f9bff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1513; --paper: #161e1b; --ink: #e3ebe8; --muted: #94a39d; --line: #283431; --chip: #1d2724;
+  --accent: #4fd1b8; --accent-soft: #173029; --accent-ink: #0c1412;
+  --you: #ffb27a; --you-soft: #3a2414;
+  --good: #51cf66; --warn: #ffa94d; --bad: #ff6b6b;
+  --explain: #1d2340; --explain-line: #8f9bff;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 24px; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15.5px/1.6 var(--font); }
+h1, h2, h3, h4 { line-height: 1.25; letter-spacing: -0.015em; margin: 0; }
+p { margin: 0 0 10px; }
+a { color: var(--accent); }
+code { font: 0.88em var(--mono); background: var(--chip); padding: 1px 5px; border-radius: 4px; }
+pre { font: 13px/1.55 var(--mono); background: var(--chip); border: 1px solid var(--line); padding: 14px 84px 14px 16px; border-radius: 10px; overflow-x: auto; margin: 8px 0; }
+pre code { background: none; padding: 0; }
+
+.layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); max-width: 1180px; margin: 0 auto; }
+nav.toc { position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; padding: 36px 12px 24px 20px; font-size: 13.5px; }
+html.pm-has-top nav.toc { top: var(--pm-top-h); max-height: calc(100vh - var(--pm-top-h)); }
+nav.toc .toc-title { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 8px 8px; }
+nav.toc a { display: flex; gap: 8px; color: var(--muted); text-decoration: none; padding: 4px 8px; border-radius: 6px; }
+nav.toc a:hover { background: var(--chip); color: var(--ink); }
+nav.toc .n { color: var(--accent); font-weight: 700; min-width: 16px; }
+main { padding: 28px 40px 80px; min-width: 0; max-width: 900px; }
+
+.hero { padding: 34px 34px 28px; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; border-top: 4px solid var(--accent); }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+.hero h1 { font-size: 36px; margin-bottom: 12px; }
+.lede { font-size: 16.5px; color: var(--muted); max-width: 700px; }
+.howto { margin-top: 18px; padding: 12px 14px; border-radius: 10px; background: var(--accent-soft); font-size: 14px; }
+.meta { margin-top: 14px; font-size: 13px; color: var(--muted); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 12px; }
+
+section.sec { padding: 40px 0 8px; }
+section.sec + section.sec { border-top: 1px solid var(--line); }
+section.sec h2 { font-size: 25px; margin-bottom: 6px; }
+
+/* steps */
+.steps { display: grid; gap: 12px; margin: 16px 0; }
+.step { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 14px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+.step > .num { grid-row: span 3; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.step h4 { font-size: 17px; }
+.step .when { font-size: 13px; color: var(--muted); }
+.step ol, .step ul { margin: 6px 0 4px; padding-left: 20px; }
+.step li { margin-bottom: 4px; }
+.step > .pm-ctl { grid-column: 1 / -1; }
+.who { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; margin-left: 6px; vertical-align: 2px; }
+.who.you { background: var(--you-soft); color: var(--you); }
+.who.claude { background: var(--accent-soft); color: var(--accent); }
+.who.both { background: var(--chip); color: var(--good); }
+
+/* answers to the reader's questions, written into the step they were asked on */
+aside.explain { border-left: 4px solid var(--explain-line); background: var(--explain); padding: 10px 14px; border-radius: 0 10px 10px 0; margin: 10px 0; font-size: 14.5px; }
+aside.explain .q { display: block; font-weight: 700; margin-bottom: 4px; }
+aside.explain .q::before { content: "You asked: "; color: var(--explain-line); }
+aside.explain p:last-child { margin-bottom: 0; }
+
+.callout { border-left: 4px solid var(--warn); background: var(--chip); padding: 10px 14px; border-radius: 0 10px 10px 0; margin: 10px 0; font-size: 14px; }
+.table-wrap { overflow-x: auto; margin: 12px 0 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--chip); font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+dl.glossary { display: grid; grid-template-columns: minmax(0, 180px) minmax(0, 1fr); gap: 8px 16px; margin: 12px 0; }
+dl.glossary dt { font-weight: 700; }
+dl.glossary dd { margin: 0; color: var(--muted); }
+
+.decision { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; margin: 12px 0; }
+.decision h4 { font-size: 16px; margin-bottom: 4px; }
+.decision .opts { display: grid; gap: 6px; margin-top: 10px; }
+.decision label { display: flex; gap: 10px; align-items: flex-start; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; font-size: 14px; }
+.decision input { margin-top: 4px; accent-color: var(--accent); flex: none; }
+.rec { display: inline-block; font-size: 10.5px; font-weight: 700; color: var(--good); margin-left: 8px; text-transform: uppercase; letter-spacing: .05em; }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  nav.toc { display: none; }
+  main { padding: 16px 16px 60px; }
+  .hero { padding: 22px 18px 20px; }
+  .hero h1 { font-size: 27px; }
+  .step { grid-template-columns: 32px minmax(0, 1fr); padding: 14px; }
+  .step > .num { width: 32px; height: 32px; }
+  dl.glossary { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  dl.glossary dd { margin-bottom: 8px; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc" aria-label="Contents">
+  <div class="toc-title">Contents</div>
+  <a href="#before"><span class="n">1</span>Before you start</a>
+  <a href="#build"><span class="n">2</span>Build and preview</a>
+  <a href="#ship"><span class="n">3</span>Put it online</a>
+  <a href="#trouble"><span class="n">4</span>If something goes wrong</a>
+  <a href="#glossary"><span class="n">5</span>Glossary</a>
+</nav>
+
+<main data-plan>
+
+<header class="hero" data-id="hero">
+  <div class="eyebrow">Guide v1 · 7 Nov 2026</div>
+  <h1>Put your static site online</h1>
+  <p class="lede">Build the site on your machine, check it, then publish it to a free host with your own domain. About 30 minutes.</p>
+  <div class="howto"><b>How to use this guide:</b> click <b>Mark done</b> on each step as you finish it. Ask about anything: select text and choose <b>? Ask</b>, or use <b>? Ask</b> on a step. The draw tools in the bar at the top circle or point at anything on the page, in one click. When you have questions, click <b>Regenerate guide</b> and tell Claude <b>“regenerate my guide”</b>. The answers appear in the guide, right where you asked, and your progress is kept.</div>
+  <div class="legend">
+    <span><span class="who you">You</span> needs your login or a click only you can make</span>
+    <span><span class="who claude">Claude</span> Claude runs it after you hand off</span>
+    <span><span class="who both">Both</span> Claude prepares, you confirm</span>
+  </div>
+</header>
+
+<section class="sec" id="before" data-id="before">
+  <div class="eyebrow">1 · About 5 minutes</div>
+  <h2>Before you start</h2>
+  <ul>
+    <li class="item" data-id="pre-node"><b>Node 18 or later.</b> Check with <code>node -v</code>.</li>
+    <li class="item" data-id="pre-account"><b>A free account with the host.</b> Sign up before step 3.</li>
+  </ul>
+</section>
+
+<section class="sec" id="build" data-id="build">
+  <div class="eyebrow">2 · About 10 minutes</div>
+  <h2>Build and preview</h2>
+  <div class="steps">
+    <div class="step" data-id="s1-install"><div class="num">1</div>
+      <h4>Install the host's command-line tool <span class="who you">You</span></h4><div class="when">~2 min</div>
+      <div>
+        <p>The command-line tool uploads your site and connects your domain.</p>
+        <pre><code>npm install -g example-cli
+example-cli login</code></pre>
+        <!-- An answered question looks like this (written in on regeneration, with data-changed="vN"): -->
+        <aside class="explain" data-q="what-is-a-cli"><span class="q">What is a command-line tool?</span><p>A program you run by typing in the terminal instead of clicking. This one talks to the host for you, so you never upload files by hand.</p></aside>
+      </div>
+    </div>
+    <div class="step" data-id="s2-build"><div class="num">2</div>
+      <h4>Build the site <span class="who claude">Claude</span></h4><div class="when">~1 min</div>
+      <div>
+        <pre><code>npm run build</code></pre>
+        <p>This writes the finished pages to <code>dist/</code>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="ship" data-id="ship">
+  <div class="eyebrow">3 · About 15 minutes</div>
+  <h2>Put it online</h2>
+  <div class="steps">
+    <div class="step" data-id="s3-deploy"><div class="num">3</div>
+      <h4>Publish <span class="who both">Both</span></h4><div class="when">~5 min</div>
+      <div>
+        <pre><code>example-cli deploy dist/</code></pre>
+        <div class="callout">Your site is public as soon as this finishes.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="decision" data-decision="domain" data-id="d-domain">
+    <h4>Which address should the site use?</h4>
+    <div class="opts">
+      <label><input type="radio" name="domain" value="apex"><span><b>example.com</b><span class="rec">Recommended</span><br>Shorter; www redirects to it.</span></label>
+      <label><input type="radio" name="domain" value="www"><span><b>www.example.com</b><br>Simpler DNS on some registrars.</span></label>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="trouble" data-id="trouble">
+  <div class="eyebrow">4 · Reference</div>
+  <h2>If something goes wrong</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>You see</th><th>Do this</th></tr></thead>
+    <tbody>
+      <tr class="item" data-id="t-login"><td>"Not logged in"</td><td>Run <code>example-cli login</code> again.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="sec" id="glossary" data-id="glossary">
+  <div class="eyebrow">5 · Reference</div>
+  <h2>Glossary</h2>
+  <p class="lede">Terms you asked about, gathered as the guide was regenerated.</p>
+  <dl class="glossary">
+    <dt data-id="g-cli">Command-line tool</dt><dd>A program you run by typing in the terminal.</dd>
+  </dl>
+</section>
+
+</main>
+</div>
+</body>
+</html>

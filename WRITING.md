@@ -1,0 +1,83 @@
+# Writing a plan-maker page
+
+The rules every page follows: plans, guides and references alike. `make-plan`, `make-guide`, `make-reference` and `process-notes` read this before they write. `DESIGN.md` says how the page looks; this says what goes on it. `scripts/check.mjs` checks a written page against both: the structure, the template's example left in, and the rules here it can test (ledes, owners on steps, entries that run long, headings numbered by hand).
+
+## Two kinds of block: content and steps
+
+Everything on a page is one or the other, and the reader must always be able to tell which at a glance.
+
+| | **Steps** (and a plan's **phases**) | **Content** |
+|---|---|---|
+| What it is | Something someone has to do | Something to understand: what, why, how it works, what we found |
+| Looks like | A card coloured by its owner, numbered on a line (2.1, 2.2), with **Mark done** or Claude's status | Flush on the page: no number, no line, no owner, no card colour |
+| Markup | `.step` in `.steps`, `.phase` in `.phases` | `.entry`, `ul.tight`, a table, `dl.defs`, a paragraph, `.note-box` |
+| Heading | The action, verb first: "Add the CNAME record" | The point, as a statement: "Agents use keys without ever seeing them" |
+
+- **Only steps and phases are numbered.** Never number content, and never imitate a step for it (no "1." in a heading, no owner chip, no blue or gold).
+- **Never mix the two in one block.** If an explanation ends in "so now run…", the run is a step of its own. If a step needs background, give it one sentence inside the step, or put the background in a content section before the steps.
+- **Content comes before the steps that need it.** A section of explanation, then a section of steps. Each section is one or the other.
+- **In a plan,** a content section that describes what gets built says so in its lede and names the phase that builds it. See [Ledes](#ledes).
+
+## A plan's parts: Information, Steps, Questions, Decision log
+
+A plan's sections sit in parts, in this order. The contents rail lists them as headings, so the reader always knows which kind of thing they're looking at and where the work stands.
+
+| Part | When | Holds | Never holds |
+|---|---|---|---|
+| **Information** | Always | Everything to understand: the short version, where things stand, the options compared, the design (how it works, what it looks like), **the risks**, and What changed in vN (first) | Phases, steps, open decisions |
+| **Steps** | Always | The phases, in order, and nothing else. They're numbered 1, 2, 3 across the part | Explanation: a phase that needs background gets one sentence, or a pointer to the section in Information |
+| **Questions** | Only while a decision is open | The decisions only the user can make (`.decision`) | Anything already decided |
+| **Decision log** (`id="log"`) | Once anything is decided | One section, `#decision-log`: a table of every settled question (question, what was decided, when: "Before v1", "v2"…), newest first, and the project's decision records (ADRs in `docs/adr/` or similar), each with its title and path | Open questions |
+
+- **Each part opens with its heading** (`div.part-h`): the part's name and one line on what's in it. Keep the template's lines unless the plan needs its own.
+- **The contents rail** lists each part as a heading and its sections beneath. A part with one section gets no link beneath it (the heading goes there). Under Steps, the review layer lists every phase with its progress, so write no links there.
+- **Risks are information**, never their own part or a step. A mitigation that's real work is a phase (or a task in one) in Steps; the risk names it.
+- **A question that came up in a phase** goes to Questions, and the phase says "Waits on the decision about…" in a sentence.
+- **When a decision is answered**, it leaves Questions and gets a row in the Decision log. When the last one leaves, so does the Questions part, with its link. A choice Claude made during research that the user should know about (a library, a host) can go in the log too, marked "Before v1".
+- **Claude's answers** (`aside.explain`) stay where the question was asked, in whichever part that is.
+- Guides and references don't have parts: a guide is mostly steps already, and a reference is all content. In a guide's rail, each section is a heading and the review layer lists its steps beneath, with their progress: link the sections, never the steps.
+
+## Ledes
+
+Every section opens with a one-sentence lede (`<p class="lede">` right after its `<h2>`): what the section covers and why it's there. Never open a section straight into its steps, entries or table.
+
+- A content section's lede says what the reader will learn: "What SnackVault is, what's built, and what today's run proves."
+- A steps section's lede says what the steps get done and who does them: "The two DNS records that point the domain at the new site. Claude prepares them; you add them."
+- In a plan, a design section's lede says it's the design and names the phase: "What the finished hub shows. The Hub phase builds it."
+
+## Writing content clearly and concisely
+
+Assume the reader skims. Each block should be understood from its heading alone, with the body as backup.
+
+1. **Heading states the point.** A full statement a skimmer could stop at ("All of it is built; it has only run in test mode"), not a topic ("Status").
+2. **Body: two sentences at most**, about 40 words. Give the one fact or reason that backs up the heading. Don't repeat the heading.
+3. **One idea per block.** Two ideas means two blocks.
+4. **Choose the lightest form that fits:**
+
+   | You have | Use |
+   |---|---|
+   | One explanation | A paragraph |
+   | A few parallel facts, each with a short name ("The problem", "What it does", "Where it stands") | `.entry` blocks: a label in `.k`, the point as `<h3>`, one or two sentences |
+   | Three or more short parallel points | `ul.tight`: each item leads with its point in `<b>` |
+   | Things compared on the same attributes | A table |
+   | Terms, commands or fields to look up | `dl.defs` |
+   | One caveat or warning the reader must not miss | `.note-box`, at most one per section |
+
+5. **Lists inside an entry: three short items at most.** More than that and it's its own list or a table.
+6. **Plain words.** Name things the way the reader does. Define a term the first time, or link it. No jargon you wouldn't say out loud.
+7. **Concrete over abstract.** "247 automated tests pass", not "it's well tested". Real names, numbers and paths.
+8. **Cut** anything the reader doesn't need to decide, do or understand the next step.
+
+## The cover
+
+The cover (the hero) says what the page is and where it stands, and nothing more: the title, the lede, the progress panel the review layer draws (progress and **Next step**), and on a guide, **What you need**.
+
+- **No boxes on the cover.** A caveat the reader must know before starting is one **Good to know** line at the end of What you need. Anything longer is a content section.
+- **What you need** is things to have ready: time, logins, values, tools. Not steps, not background.
+
+## Writing steps
+
+- One action per step, with an `<h4>` that is that action, verb first.
+- The exact thing to paste in its own `<pre data-label>` block; "You should see" and "If it fails" where they help (guides).
+- Claude's steps are short hand-offs; the user's carry the detail.
+- Every step and phase has an owner (`data-who`). Content never does.

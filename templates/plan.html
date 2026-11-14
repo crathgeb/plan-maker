@@ -3,233 +3,467 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- plan-version and plan-date: set on every revision. The hero eyebrow shows the same. -->
+<meta name="pm-kind" content="plan">
+<!-- plan-version and plan-date: set on every revision. The slug under the title shows the same. -->
 <meta name="plan-version" content="1">
-<meta name="plan-date" content="2026-11-07">
-<title>Docs Site Migration</title>
+<meta name="plan-date" content="2026-11-09">
+<title>Docs site migration</title>
 <!--
-  plan-maker template. Copy it, replace every piece of example content, keep the conventions:
-    data-id="…"                 every block a reader can comment on (unique, stable, kebab-case)
-    class="item"                gets Keep / Change / Cut: cards, phases, table rows, key paragraphs
-    <section data-id>           gets a section note
-    .decision[data-decision]    a pick-one question: radio inputs sharing a name, .rec marks the recommendation
-    <main data-plan>            the annotatable area
-    data-changed="v2"           on an element revised in v2: shown with a "changed in v2" badge
-    section#changes             from v2 on, "What changed in vN" first: see templates/changes-section.html
-  The review server injects the annotation layer; this file stays plain HTML.
+  plan-maker plan template (DESIGN.md). A plan breaks a larger idea into a high-level sequence of phases.
+  It says what and why, and who owns each phase; the steps a person follows belong in a guide (templates/guide.html).
+  Copy it, replace every piece of example content, keep the conventions:
+    <meta name="pm-kind" content="plan">  what kind of page this is (plan, guide, reference)
+    data-id="…"                     every block the reader might comment on: unique, kebab-case, permanent
+    class="item"                    gets Comment and More detail (entries, rows, list items, code, risks)
+    <div class="phases">            the plan's sequence: one <article class="phase"> per phase
+    class="phase" data-who="you"    a phase the reader owns: a blue card with Mark done (or its guide's progress)
+    class="phase" data-who="claude" a phase Claude owns: a gold card; data-status="todo|doing|done" (Claude updates it)
+    data-who="both"                 Claude prepares, the reader confirms; a blue card
+    data-guide="guides/<slug>/index.html"  the phase is done through that guide: its card links there and shows its progress
+    <p class="outcome">             how you'll know the phase is done
+    <ul class="tasks">              optional, Claude's phases only: a short checklist, <li data-status="todo|doing|done">
+    <pre data-label="Terminal">     a code block; the label shows in its header ("Terminal", "redirects.json"…)
+    <div class="part" id="information|steps|questions|log">  the plan's parts, in that order, each opening with its .part-h;
+                                    every section sits in one (WRITING.md, "A plan's parts")
+                                    Information: all content (summary, context, design, risks). Steps: the phases, nothing else.
+                                    Questions: open decisions only; leave the part out when none are open.
+                                    log: the Decision log (decisions made, the project's ADRs); leave it out until there is one.
+    <a class="toc-part" href="#information">  the contents rail: one per part, its sections' links beneath it; a part with one
+                                    section gets no link beneath it. The review layer lists the phases under Steps.
+    <section class="sec" id data-id> a major part; gets a section comment; one per contents entry
+    <p class="lede"> after a section's h2   one sentence: what the section covers and why it's here
+    .decision[data-decision]        a pick-one question; .rec marks the recommendation
+    aside.explain[data-q]           Claude's answer to a reader's question, written where it was asked
+    data-changed="v2"               an element revised in v2: shown with an "Updated in v2" chip
+    <main data-plan>                the annotatable area
+  The style block is shared by all three templates, word for word: change it in all three or none.
+  Write no JavaScript.
 -->
 <style>
 :root {
-  --bg: #f7f7f8; --paper: #ffffff; --ink: #15171c; --muted: #5d6470; --line: #e3e5ea; --chip: #f0f1f4;
-  --accent: #3b5bdb; --accent-soft: #e8edfd; --accent-ink: #ffffff;
-  --good: #2b8a3e; --warn: #a35a00; --bad: #c92a2a;
-  --radius: 12px;
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --ground: #f1f3f6; --paper: #ffffff; --paper-2: #f6f7f9;
+  --ink: #1f2328; --ink-2: #57606a; --muted: #6e7781; --line: #d8dee4; --line-2: #eaeef2;
+  --you: #7da7d4; --you-ink: #516d8a; --you-tint: #f2f6fb; --you-line: #d3e1f0;
+  --claude: #aa8546; --claude-ink: #6f572e; --claude-tint: #f7f3ed; --claude-line: #e2d6c0;
+  --good: #1a7f37; --warn: #7d5300; --bad: #cf222e;
+  --code-bg: #1f2430; --code-head: #2a3040; --code-ink: #e6e9ef; --code-muted: #9aa3b2;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --shadow: 0 1px 2px rgba(31, 35, 40, .06), 0 4px 16px rgba(31, 35, 40, .08);
+  /* owner icons: a person for you, a sparkle for Claude (colour baked in per theme) */
+  --i-you: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%237da7d4' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='5.5' r='2.7'/%3E%3Cpath d='M2.8 14c.6-2.8 2.7-4.3 5.2-4.3s4.6 1.5 5.2 4.3'/%3E%3C/svg%3E");
+  --i-claude: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23aa8546'%3E%3Cpath d='M8 1.5c.4 3.3 1.9 4.9 5.2 5.3v.4C9.9 7.6 8.4 9.2 8 12.5h-.4C7.2 9.2 5.7 7.6 2.4 7.2v-.4c3.3-.4 4.8-2 5.2-5.3z'/%3E%3Cpath d='M12.6 10.3c.2 1.4.8 2 2.2 2.2v.2c-1.4.2-2 .8-2.2 2.2h-.2c-.2-1.4-.8-2-2.2-2.2v-.2c1.4-.2 2-.8 2.2-2.2z'/%3E%3C/svg%3E");
+  --i-done-you: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.6' fill='%237da7d4'/%3E%3Cpath d='M5 8.3l2 2 4-4.4' fill='none' stroke='%231f2328' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --i-done-claude: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.6' fill='%23aa8546'/%3E%3Cpath d='M5 8.3l2 2 4-4.4' fill='none' stroke='%231f2328' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --i-check-w: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%231f2328' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+  /* part icons: an i for information, a staircase for steps, a question mark for questions */
+  --i-info: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6.3'/%3E%3Cpath d='M8 7.3v4'/%3E%3Ccircle cx='8' cy='4.9' r='.5' fill='%2357606a'/%3E%3C/svg%3E");
+  --i-steps: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 13.5h4v-3.5h4v-3.5h4v-4'/%3E%3C/svg%3E");
+  --i-log: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 2.5h8.5L13 4v9.5H3z'/%3E%3Cpath d='M5.5 6.5l1.2 1.2L9 5.5M5.5 10.5h5'/%3E%3C/svg%3E");
+  --i-ask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6.3'/%3E%3Cpath d='M6.2 6.3a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.5'/%3E%3Ccircle cx='8' cy='11.4' r='.5' fill='%2357606a'/%3E%3C/svg%3E");
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #111317; --paper: #181b20; --ink: #e8eaee; --muted: #9aa1ad; --line: #2b3039; --chip: #20242b;
-    --accent: #7c94f4; --accent-soft: #232c4a; --accent-ink: #10131a;
-    --good: #51cf66; --warn: #ffa94d; --bad: #ff6b6b;
+    --ground: #0f1115; --paper: #171a21; --paper-2: #1d2129;
+    --ink: #e6e8eb; --ink-2: #aab1bb; --muted: #8b94a0; --line: #2c313a; --line-2: #232830;
+    --you: #a4c1e1; --you-ink: #b8cfe7; --you-tint: #303c4c; --you-line: #455a72;
+    --claude: #c4aa7e; --claude-ink: #d0bc99; --claude-tint: #3a342a; --claude-line: #594a32;
+    --good: #4ac26b; --warn: #d29922; --bad: #ff7b72;
+    --code-bg: #12151b; --code-head: #1a1e26;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 4px 16px rgba(0, 0, 0, .35);
+    --i-you: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23a4c1e1' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='5.5' r='2.7'/%3E%3Cpath d='M2.8 14c.6-2.8 2.7-4.3 5.2-4.3s4.6 1.5 5.2 4.3'/%3E%3C/svg%3E");
+    --i-claude: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23c4aa7e'%3E%3Cpath d='M8 1.5c.4 3.3 1.9 4.9 5.2 5.3v.4C9.9 7.6 8.4 9.2 8 12.5h-.4C7.2 9.2 5.7 7.6 2.4 7.2v-.4c3.3-.4 4.8-2 5.2-5.3z'/%3E%3Cpath d='M12.6 10.3c.2 1.4.8 2 2.2 2.2v.2c-1.4.2-2 .8-2.2 2.2h-.2c-.2-1.4-.8-2-2.2-2.2v-.2c1.4-.2 2-.8 2.2-2.2z'/%3E%3C/svg%3E");
+    --i-done-you: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.6' fill='%23a4c1e1'/%3E%3Cpath d='M5 8.3l2 2 4-4.4' fill='none' stroke='%23171a21' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    --i-done-claude: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.6' fill='%23c4aa7e'/%3E%3Cpath d='M5 8.3l2 2 4-4.4' fill='none' stroke='%23171a21' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    --i-check-w: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23171a21' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+    /* part icons: an i for information, a staircase for steps, a question mark for questions */
+    --i-info: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23aab1bb' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6.3'/%3E%3Cpath d='M8 7.3v4'/%3E%3Ccircle cx='8' cy='4.9' r='.5' fill='%23aab1bb'/%3E%3C/svg%3E");
+    --i-steps: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23aab1bb' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 13.5h4v-3.5h4v-3.5h4v-4'/%3E%3C/svg%3E");
+    --i-log: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23aab1bb' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 2.5h8.5L13 4v9.5H3z'/%3E%3Cpath d='M5.5 6.5l1.2 1.2L9 5.5M5.5 10.5h5'/%3E%3C/svg%3E");
+    --i-ask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23aab1bb' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6.3'/%3E%3Cpath d='M6.2 6.3a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.5'/%3E%3Ccircle cx='8' cy='11.4' r='.5' fill='%23aab1bb'/%3E%3C/svg%3E");
     color-scheme: dark;
   }
 }
-:root[data-theme="dark"] {
-  --bg: #111317; --paper: #181b20; --ink: #e8eaee; --muted: #9aa1ad; --line: #2b3039; --chip: #20242b;
-  --accent: #7c94f4; --accent-soft: #232c4a; --accent-ink: #10131a;
-  --good: #51cf66; --warn: #ffa94d; --bad: #ff6b6b;
-  color-scheme: dark;
-}
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 24px; -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 15.5px/1.6 var(--font); }
-h1, h2, h3, h4 { line-height: 1.25; letter-spacing: -0.015em; margin: 0; }
-p { margin: 0 0 12px; }
-a { color: var(--accent); }
-code { font: 0.88em var(--mono); background: var(--chip); padding: 1px 5px; border-radius: 4px; }
-pre { font: 13px/1.55 var(--mono); background: var(--chip); border: 1px solid var(--line); padding: 14px 16px; border-radius: var(--radius); overflow-x: auto; }
-pre code { background: none; padding: 0; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: 24px; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 16px/1.65 var(--sans); -webkit-font-smoothing: antialiased; }
+::selection { background: color-mix(in srgb, var(--ink) 14%, transparent); }
+:focus-visible { outline: 2px solid var(--ink-2); outline-offset: 2px; }
+h1, h2, h3, h4 { line-height: 1.3; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+p { margin: 0 0 14px; }
+a { color: var(--ink); text-decoration-color: var(--muted); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--ink); }
+b, strong { font-weight: 600; }
+code { overflow-wrap: anywhere; font: 0.86em var(--mono); background: var(--paper-2); border: 1px solid var(--line-2); padding: 1px 6px; border-radius: 6px; }
+table, .prog { font-variant-numeric: tabular-nums; }
 
-.layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); max-width: 1180px; margin: 0 auto; }
-nav.toc { position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; padding: 36px 12px 24px 20px; font-size: 13.5px; }
-html.pm-has-top nav.toc { top: var(--pm-top-h); max-height: calc(100vh - var(--pm-top-h)); }
-nav.toc .toc-title { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 8px 8px; }
-nav.toc a { display: flex; gap: 8px; color: var(--muted); text-decoration: none; padding: 4px 8px; border-radius: 6px; }
-nav.toc a:hover { background: var(--chip); color: var(--ink); }
-nav.toc .n { color: var(--accent); font-weight: 700; min-width: 16px; }
-main { padding: 28px 40px 80px; min-width: 0; max-width: 900px; }
+/* ---------- code blocks: a dark block with a header bar for the label (and Copy) ---------- */
+pre { position: relative; margin: 14px 0 16px; padding: 50px 18px 16px; background: var(--code-bg); color: var(--code-ink); border-radius: 10px; font: 13.5px/1.65 var(--mono); overflow-x: auto; white-space: pre; }
+pre::before { content: attr(data-label); position: absolute; top: 0; left: 0; right: 0; height: 36px; padding: 0 16px; display: flex; align-items: center; background: var(--code-head); color: var(--code-muted); font: 600 12px/1 var(--sans); border-radius: 10px 10px 0 0; }
+pre:not([data-label])::before { content: "Code"; }
+pre code { background: none; border: 0; padding: 0; color: inherit; font-size: 1em; overflow-wrap: normal; }
 
-/* hero */
-.hero { padding: 36px 36px 30px; margin-bottom: 8px; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; border-top: 4px solid var(--accent); }
-.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
-.hero h1 { font-size: 38px; margin-bottom: 12px; }
-.hero .lede { font-size: 17.5px; color: var(--muted); max-width: 680px; }
-.howto { margin-top: 18px; padding: 12px 14px; border-radius: 10px; background: var(--accent-soft); font-size: 14px; }
-.meta { margin-top: 14px; font-size: 13px; color: var(--muted); }
+/* ---------- the desk: contents beside a rounded page ---------- */
+.desk { display: grid; grid-template-columns: 200px minmax(0, 860px); justify-content: center; gap: 32px; padding: 32px 24px 96px; }
+nav.toc { position: sticky; top: 32px; align-self: start; max-height: calc(100vh - 64px); overflow-y: auto; overscroll-behavior: contain; padding-top: 8px; font-size: 14px; }
+html.pm-has-top nav.toc { top: calc(var(--pm-top-h) + 32px); }
+nav.toc .toc-title { font-weight: 650; margin: 0 0 8px 10px; }
+nav.toc a { display: block; padding: 6px 10px; border-radius: 8px; color: var(--ink-2); text-decoration: none; }
+nav.toc a:hover { background: var(--paper); color: var(--ink); }
+/* every section is its own page, stacked like a document's pages */
+main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; counter-reset: sec page; }
+.hero, .sec { position: relative; counter-increment: page; background: var(--paper); border-radius: 12px; box-shadow: var(--shadow); padding: 48px 56px 56px; }
+.hero::after, .sec::after { content: "Page " counter(page); position: absolute; right: 24px; bottom: 16px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+main :is(p, li, dd) { max-width: 62ch; }
 
-/* sections */
-section.sec { padding: 40px 0 8px; }
-section.sec + section.sec { border-top: 1px solid var(--line); }
-section.sec h2 { font-size: 26px; margin-bottom: 6px; }
-section.sec h3 { font-size: 18px; margin: 22px 0 8px; }
-.lede { font-size: 16.5px; color: var(--muted); max-width: 720px; }
+/* ---------- a plan's parts: Information, Steps, then Questions and the Decision log when they have anything ---------- */
+/* Each part is a run of pages under a heading on the desk; the contents rail groups its links under the same three. */
+.part { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; scroll-margin-top: 24px; }
+.part + .part { margin-top: 32px; }
+.part-h { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 2px 12px; align-items: center; padding: 8px 4px 0; scroll-margin-top: 24px; }
+.part-h::before { content: ""; width: 34px; height: 34px; border-radius: 50%; background: var(--paper) center / 18px no-repeat; box-shadow: var(--shadow); }
+.part-title { margin: 0; font-size: 22px; font-weight: 650; line-height: 1.3; letter-spacing: -0.01em; }
+main .part-h > p:not(.part-title) { grid-column: 2; max-width: none; margin: 0; color: var(--ink-2); font-size: 15px; }
+.part#information > .part-h::before { background-image: var(--i-info); }
+.part#steps > .part-h::before { background-image: var(--i-steps); }
+.part#questions > .part-h::before { background-image: var(--i-ask); }
+.part#log > .part-h::before { background-image: var(--i-log); }
+nav.toc .toc-part { margin-top: 14px; color: var(--ink); font-weight: 650; }
+nav.toc .toc-part:first-child { margin-top: 0; }
+nav.toc:has(.toc-part) a:not(.toc-part) { padding-left: 34px; }
+/* in Steps, phases count 1, 2, 3 across the whole part, not per section */
+.part#steps { counter-reset: sub; }
+.part#steps .sec { counter-reset: none; }
+.part#steps .sec :is(.step, .phase)::before { content: counter(sub); font-size: 13px; }
 
-/* cards */
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 14px; margin: 16px 0; }
-.card { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 16px 12px; }
-.card .k { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-.card h4 { font-size: 16px; margin-bottom: 6px; }
-.card p { font-size: 14.5px; margin-bottom: 6px; }
-.stat { font-size: 30px; font-weight: 700; line-height: 1.1; margin: 2px 0 6px; }
+/* ---------- hero: the cover page ---------- */
+.hero h1 { font-size: 34px; font-weight: 650; line-height: 1.2; margin-bottom: 12px; }
+.slug { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; }
+.slug span { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; background: var(--paper-2); border: 1px solid var(--line-2); color: var(--ink-2); font-size: 13px; font-weight: 500; }
+.slug span:first-child { color: var(--ink); font-weight: 600; }
+.lede { font-size: 18px; line-height: 1.6; color: var(--ink-2); }
+/* the plan's progress, filled in by the review layer: one bar, your share and Claude's */
+.progress { margin: 22px 0 0; }
+.progress:empty { display: none; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px 0 8px; border-radius: 999px; font: 650 13px/1 var(--sans); white-space: nowrap; }
+.chip::before { content: ""; width: 15px; height: 15px; background: center / contain no-repeat; }
+.chip.you { background: var(--you-tint); color: var(--you-ink); box-shadow: inset 0 0 0 1px var(--you-line); }
+.chip.you::before { background-image: var(--i-you); }
+.chip.claude { background: var(--claude-tint); color: var(--claude-ink); box-shadow: inset 0 0 0 1px var(--claude-line); }
+.chip.claude::before { background-image: var(--i-claude); }
+.meta { margin: 14px 0 0; font-size: 13.5px; color: var(--muted); }
 
-/* tables */
-.table-wrap { overflow-x: auto; margin: 12px 0 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { background: var(--chip); font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
-tr:last-child td { border-bottom: 0; }
+/* ---------- sections ---------- */
+.sec { counter-increment: page sec; counter-reset: sub; }
+.sec > h2 { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 650; margin-bottom: 18px; }
+.sec > h2::before { content: counter(sec); flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; background: var(--paper-2); box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.sec#changes > h2::before { content: ""; background: var(--claude-tint) var(--i-claude) center / 16px no-repeat; box-shadow: inset 0 0 0 1px var(--claude-line); }
+.sec#changes { counter-increment: page; }
+.sec > h3 { font-size: 18px; font-weight: 600; margin: 28px 0 10px; }
+.sec > p:not(.lede) { color: var(--ink); }
 
-/* callouts and tags */
-.callout { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 14px 0; }
-.tag { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); white-space: nowrap; }
-.tag.good { color: var(--good); } .tag.warn { color: var(--warn); } .tag.bad { color: var(--bad); }
+/* ---------- entries: label and content side by side ---------- */
+.entry { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 2px 20px; padding: 14px 0; border-top: 1px solid var(--line-2); }
+.entry:last-of-type { border-bottom: 1px solid var(--line-2); }
+.entry > .k { grid-row: 1 / span 3; padding-top: 2px; font-size: 14px; color: var(--muted); }
+.entry > :not(.k) { grid-column: 2; }
+.entry h3 { font-size: 16.5px; font-weight: 600; margin: 0 0 2px; }
+.entry p { margin: 0; color: var(--ink-2); }
+.entry .stat { font-size: 22px; font-weight: 650; line-height: 1.3; }
+main .note-box { max-width: none; }
+.note-box { margin: 16px 0 0; padding: 14px 16px; background: var(--paper-2); border-radius: 10px; }
+ul.tight { list-style: none; padding: 0; margin: 0 0 14px; }
+ul.tight > li { position: relative; padding: 12px 0; border-top: 1px solid var(--line-2); }
+ul.tight > li:last-child { border-bottom: 1px solid var(--line-2); }
 
-/* phases */
-.phases { display: grid; gap: 12px; margin: 16px 0; }
-.phase { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 14px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
-.phase .num { grid-row: span 3; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font-weight: 700; }
-.phase h4 { font-size: 17px; }
-.phase .when { font-size: 13px; color: var(--muted); }
-.phase ul { margin: 6px 0 2px; padding-left: 20px; }
-.phase > .pm-ctl { grid-column: 1 / -1; }
+/* ---------- the timeline: only things to do (steps, phases) are numbered nodes on a line ----------
+   Content (entries, lists, callouts, decisions, tables) sits flush, with no numbers, so it
+   never reads as part of the sequence. */
+.sec :is(.step, .phase) { --tl-top: 14px; --tl-gap: 12px; position: relative; counter-increment: sub; margin-left: 52px; }
+.sec .phase { --tl-top: 18px; --tl-gap: 14px; }
+.sec :is(.step, .phase)::before {
+  content: counter(sec) "." counter(sub); position: absolute; z-index: 1; left: -52px; top: var(--tl-top); width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--line); color: var(--ink-2);
+  font: 650 11.5px/1 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.sec :is(.step, .phase)::after {
+  content: ""; position: absolute; left: -36px; width: 2px; border-radius: 1px; background: var(--line-2);
+  top: calc(var(--tl-top) + 34px); bottom: calc(-1 * (var(--tl-gap) + var(--tl-top) + 0px)); }
+/* the line stops at the last node of each run */
+.sec .steps > .step:last-child::after, .sec .phases > .phase:last-child::after { display: none; }
+.sec .phase-h { margin-left: 52px; }
+/* a callout among steps lines up with the step cards */
+.sec .steps + .note-box, .sec .phases + .note-box { margin-left: 52px; }
 
-/* decisions */
-.decision { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; margin: 12px 0; }
-.decision h4 { font-size: 16px; margin-bottom: 4px; }
-.decision .why { font-size: 14px; color: var(--muted); }
-.decision .opts { display: grid; gap: 6px; margin-top: 10px; }
-.decision label { display: flex; gap: 10px; align-items: flex-start; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; font-size: 14px; }
-.decision label:hover { border-color: var(--muted); }
-.decision input { margin-top: 4px; accent-color: var(--accent); flex: none; }
-.rec { display: inline-block; font-size: 10.5px; font-weight: 700; color: var(--good); margin-left: 8px; text-transform: uppercase; letter-spacing: .05em; }
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; margin: 0 0 14px; border: 1px solid var(--line); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; line-height: 1.5; }
+th { text-align: left; font-size: 13px; font-weight: 600; color: var(--ink-2); padding: 10px 14px; background: var(--paper-2); border-bottom: 1px solid var(--line); }
+td { padding: 12px 14px; border-bottom: 1px solid var(--line-2); vertical-align: top; }
+tbody tr:last-child td { border-bottom: 0; }
+.tag { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; vertical-align: 1px; }
+.tag.good { color: var(--good); background: color-mix(in srgb, var(--good) 12%, transparent); }
+.tag.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.tag.bad { color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
 
-/* "What changed in vN" (revisions only) */
-#changes .table-wrap { border-color: var(--accent); }
-#changes td:first-child { width: 40%; color: var(--muted); }
-#changes ul.decided { margin: 10px 0 0; padding-left: 20px; font-size: 14px; }
+/* ---------- steps and phases: one card each, coloured by who does it ---------- */
+.phase-h { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin: 30px 0 12px; }
+.phase-h:first-of-type { margin-top: 6px; }
+.phase-h h3 { font-size: 18px; font-weight: 600; }
+.phase-h .when { font-size: 14px; color: var(--muted); }
+.steps { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 0 0 8px; }
+.steps > * { min-width: 0; }
+.step, .phase { --o: var(--you); --o-ink: var(--you-ink); --o-tint: var(--you-tint); --o-line: var(--you-line); --o-icon: var(--i-you); --o-done: var(--i-done-you);
+  position: relative; padding: 16px 18px; background: var(--o-tint); border: 1px solid var(--o-line); border-radius: 10px; }
+.phase { padding: 18px 20px; border-radius: 12px; }
+:is(.step, .phase)[data-who="claude"] { --o: var(--claude); --o-ink: var(--claude-ink); --o-tint: var(--claude-tint); --o-line: var(--claude-line); --o-icon: var(--i-claude); --o-done: var(--i-done-claude); }
+/* on the timeline, a step's node takes its owner's colour, fills with a check when done,
+   and the next step to do gets a ring; the line below a done step is coloured too */
+.sec :is(.step, .phase)::before { background: var(--o-tint); box-shadow: inset 0 0 0 1.5px var(--o); color: var(--o-ink); }
+.sec :is(.step, .phase).pm-step-done::before, .sec :is(.step, .phase)[data-who="claude"][data-status="done"]::before { background: var(--o) var(--i-check-w) center / 16px no-repeat; box-shadow: none; color: transparent; }
+.sec :is(.step, .phase).pm-current::before { box-shadow: inset 0 0 0 2px var(--o), 0 0 0 5px color-mix(in srgb, var(--o) 20%, transparent); }
+.sec :is(.step, .phase).pm-step-done::after, .sec :is(.step, .phase)[data-who="claude"][data-status="done"]::after { background: var(--o); }
+/* the owner chip, before the title */
+.step > h4 { font-size: 16.5px; font-weight: 600; margin: 0 0 2px; }
+.phase > h3 { font-size: 17.5px; font-weight: 600; margin: 0 0 4px; }
+:is(.step > h4, .phase > h3)::before { content: "You"; display: inline-flex; align-items: center; height: 24px; margin: 0 10px 0 0; padding: 0 10px 0 28px; border-radius: 999px; background: var(--paper) var(--o-icon) 9px center / 14px no-repeat; color: var(--o-ink); box-shadow: inset 0 0 0 1px var(--o-line); font: 650 12.5px/1 var(--sans); vertical-align: 2px; }
+:is(.step, .phase)[data-who="claude"] > :is(h3, h4)::before { content: "Claude"; }
+:is(.step, .phase)[data-who="both"] > :is(h3, h4)::before { content: "You, with Claude"; }
+:is(.step, .phase).pm-step-done > :is(h3, h4)::before, :is(.step, .phase)[data-who="claude"][data-status="done"] > :is(h3, h4)::before { background-image: var(--o-done); }
+:is(.step, .phase) .when { font-size: 13.5px; color: var(--muted); margin: 0 0 8px; }
+:is(.step, .phase) p { margin: 6px 0 0; }
+.step pre { margin: 12px 0 0; }
+:is(.step, .phase) > .pm-ctl { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--o-line); }
 
-ul.tight { padding-left: 20px; margin: 6px 0 12px; }
-ul.tight li { margin-bottom: 5px; }
+/* ---------- Claude's answers, decisions, what changed ---------- */
+aside.explain { margin: 12px 0 4px; padding: 12px 14px; background: var(--claude-tint); border: 1px solid var(--claude-line); border-radius: 10px; }
+:is(.step, .phase) aside.explain { background: var(--paper); border-color: transparent; }
+aside.explain .q { display: block; font-size: 13.5px; font-weight: 600; color: var(--claude-ink); margin-bottom: 4px; }
+aside.explain .q::before { content: "You asked: "; font-weight: 500; color: var(--muted); }
+aside.explain p { margin: 0 0 8px; } aside.explain p:last-child { margin: 0; }
+.decision { margin: 26px 0 0; }
+.decision h3 { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
+.decision .why { color: var(--ink-2); font-size: 15px; margin-bottom: 8px; }
+.opts { display: grid; gap: 8px; margin-top: 10px; }
+.opts label { display: grid; grid-template-columns: 20px 1fr; gap: 12px; padding: 12px 14px; border: 1px solid var(--line-2); border-radius: 10px; cursor: pointer; font-size: 15px; line-height: 1.5; }
+.opts label:hover { border-color: var(--line); background: var(--paper-2); }
+.opts input { appearance: none; width: 18px; height: 18px; margin: 2px 0 0; border: 1.5px solid var(--muted); border-radius: 50%; display: grid; place-items: center; cursor: pointer; }
+.opts input:checked { border-color: var(--you); }
+.opts input:checked::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--you); }
+.rec { display: inline-flex; align-items: center; height: 20px; margin-left: 8px; padding: 0 8px; border-radius: 999px; background: var(--claude-tint); color: var(--claude-ink); font-size: 11.5px; font-weight: 650; vertical-align: 1px; }
+.decided { list-style: none; padding: 0; margin: 12px 0 0; }
 
-@media (max-width: 900px) {
-  .layout { grid-template-columns: minmax(0, 1fr); }
-  nav.toc { display: none; }
-  main { padding: 16px 16px 60px; }
-  .hero { padding: 24px 18px 20px; }
-  .hero h1 { font-size: 28px; }
-  section.sec { padding-top: 30px; }
-  section.sec h2 { font-size: 22px; }
+/* ---------- plans: a phase's outcome, and Claude's short checklist inside it ---------- */
+.phases { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin: 0 0 8px; }
+.phases > * { min-width: 0; }
+.phase .outcome { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--paper); color: var(--ink-2); font-size: 15px; }
+.phase .outcome b { color: var(--ink); }
+ul.tasks { list-style: none; display: grid; gap: 4px; margin: 12px 0 0; padding: 0; font-size: 15px; }
+ul.tasks li { display: flex; align-items: baseline; gap: 10px; }
+ul.tasks li::before { content: ""; flex: none; width: 14px; height: 14px; translate: 0 2px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--claude); }
+ul.tasks li[data-status="doing"]::before { background: linear-gradient(90deg, var(--claude) 50%, transparent 50%); }
+ul.tasks li[data-status="done"]::before { background: var(--claude) var(--i-check-w) center / 10px no-repeat; box-shadow: none; }
+ul.tasks li[data-status="done"] { color: var(--ink-2); }
+
+/* ---------- guides: what you need first, then what you should see and what to do if it fails ---------- */
+/* "What you need": a checklist to gather before starting, under a hairline; no box, no colour */
+.needs { margin: 28px 0 0; padding: 22px 0 0; border-top: 1px solid var(--line-2); }
+.needs h2 { margin: 0 0 10px; font-size: 15px; font-weight: 650; color: var(--ink); }
+.needs ul { list-style: none; display: grid; gap: 6px; margin: 0; padding: 0; }
+.needs li { position: relative; max-width: none; margin: 0; padding-left: 26px; font-size: 15px; line-height: 1.5; }
+.needs li::before { content: ""; position: absolute; left: 5px; top: 9px; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+/* one caveat on the cover ("Good to know"): a line with an info icon, never a box */
+.hero .note-box, .needs > p { position: relative; margin: 18px 0 0; padding: 0 0 0 26px; background: none; border-radius: 0; color: var(--ink-2); font-size: 15px; }
+.hero .note-box::before, .needs > p::before { content: ""; position: absolute; left: 0; top: 3px; width: 16px; height: 16px; background: var(--i-info) center / contain no-repeat; }
+.step :is(.expect, .iffail) { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; font-size: 15px; }
+.step .expect { background: var(--paper); }
+.step .expect > b:first-child { color: var(--good); }
+.step .iffail { background: color-mix(in srgb, var(--warn) 8%, var(--paper)); }
+.step .iffail > b:first-child { color: var(--warn); }
+
+/* ---------- references: built for lookup, so the contents sit on the page ---------- */
+.contents { margin: 22px 0 0; padding: 14px 18px; border-radius: 10px; background: var(--paper-2); }
+.contents h2 { margin: 0 0 6px; font-size: 15px; font-weight: 650; }
+.contents ol { columns: 2 200px; column-gap: 24px; margin: 0; padding-left: 22px; }
+.contents li { padding: 2px 0; break-inside: avoid; }
+dl.defs { display: grid; grid-template-columns: minmax(110px, 200px) minmax(0, 1fr); margin: 0 0 14px; }
+dl.defs > dt, dl.defs > dd { margin: 0; padding: 12px 0; border-top: 1px solid var(--line-2); }
+dl.defs > dt { padding-right: 20px; font-weight: 600; overflow-wrap: anywhere; }
+dl.defs > dd { color: var(--ink-2); }
+dl.defs > dd p { margin: 6px 0 0; }
+.sig { margin: 0 0 10px; padding: 10px 12px; border-radius: 8px; background: var(--paper-2); border: 1px solid var(--line-2); font: 14px/1.5 var(--mono); overflow-x: auto; white-space: pre; }
+
+/* On a pointer screen, a block's Comment button floats at its top right instead of taking a line. */
+@media (hover: hover) and (min-width: 721px) {
+  main .item:not(.step) { position: relative; }
+  main .item:not(.step):not(tr) > .pm-ctl { position: absolute; top: 10px; right: 0; margin: 0; }
+  main .note-box.item > .pm-ctl { top: 8px; right: 8px; }
+  main tr.item { position: relative; }
+  main tr.item > td:last-child > .pm-ctl { position: absolute; top: 7px; right: 8px; margin: 0; }
+  main .item:not(.step):not(tr) { padding-right: 130px; }
+  main .entry.item { padding-right: 130px; }
+  main li.item { padding-right: 130px; }
+  main tr.item > td:last-child { padding-right: 130px; }
+  main .pm-ctl[data-for] { margin: -8px 0 12px; justify-content: flex-end; }
+  main .sec > .pm-sec-note { position: absolute; top: 51px; right: 56px; margin: 0; }
 }
+
+/* ---------- narrower ---------- */
+@media (max-width: 1199px) { .desk { grid-template-columns: minmax(0, 860px); } nav.toc { display: none; } }
+@media (max-width: 720px) {
+  .desk { padding: 12px 8px 56px; }
+  main { gap: 12px; }
+  .hero, .sec { border-radius: 10px; padding: 26px 16px 44px; }
+  .hero::after, .sec::after { right: 16px; bottom: 14px; }
+  .part + .part { margin-top: 20px; }
+  .part-title { font-size: 20px; }
+  .hero h1 { font-size: 27px; }
+  .lede { font-size: 17px; }
+  .sec > h2 { font-size: 21px; }
+  .sec > h2::before { width: 30px; height: 30px; font-size: 14px; }
+  .sec :is(.step, .phase) { margin-left: 38px; }
+  .sec :is(.step, .phase)::before { left: -38px; width: 28px; height: 28px; font-size: 10.5px; }
+  .sec :is(.step, .phase)::after { left: -25px; top: calc(var(--tl-top) + 28px); }
+  .sec .phase-h, .sec .steps + .note-box, .sec .phases + .note-box { margin-left: 38px; }
+  .entry { grid-template-columns: minmax(0, 1fr); }
+  .entry > .k, .entry > :not(.k) { grid-column: 1; grid-row: auto; }
+  .step, .phase { padding: 14px; }
+  dl.defs { grid-template-columns: minmax(0, 1fr); }
+  dl.defs > dd { padding-top: 0; border-top: 0; }
+  pre { margin-left: -2px; margin-right: -2px; }
+  table { font-size: 14.5px; }
+}
+@media print { body { background: none; } .hero, .sec { box-shadow: none; break-before: page; } nav.toc { display: none; } :is(.step, .phase) { break-inside: avoid; } }
 </style>
 </head>
 <body>
-<div class="layout">
-
+<div class="desk">
 <nav class="toc" aria-label="Contents">
-  <div class="toc-title">Contents</div>
-  <a href="#summary"><span class="n">1</span>Summary</a>
-  <a href="#context"><span class="n">2</span>Where we are</a>
-  <a href="#approach"><span class="n">3</span>Approach</a>
-  <a href="#phases"><span class="n">4</span>Phases</a>
-  <a href="#risks"><span class="n">5</span>Risks</a>
-  <a href="#decisions"><span class="n">6</span>Decisions for you</a>
+  <a class="toc-part" href="#information">Information</a>
+  <a href="#summary">The short version</a>
+  <a href="#context">Where we are</a>
+  <a href="#approach">How it works</a>
+  <a href="#risks">What could go wrong</a>
+  <a class="toc-part" href="#steps">Steps</a>
+  <a class="toc-part" href="#questions">Questions</a>
+  <a class="toc-part" href="#log">Decision log</a>
 </nav>
 
 <main data-plan>
 
 <header class="hero" data-id="hero">
-  <div class="eyebrow">Plan v1 · for review · 7 Nov 2026</div>
   <h1>Move the docs site to a static generator</h1>
+  <p class="slug"><span>Plan v1</span><span>For review</span><span>9 Nov 2026</span></p>
   <p class="lede">Replace the hand-maintained docs pages with a static site built from the Markdown already in the repo, so docs ship with the code that they describe.</p>
-  <div class="howto"><b>How to review:</b> select any text and click <b>Add note</b> · mark each card or row <b>Keep / Change / Cut</b> · answer the <a href="#decisions">decisions</a> at the end · press <b>Done reviewing</b>, then tell Claude <b>“process my notes”</b>.</div>
-  <div class="meta">Based on: the current docs folder, last quarter's support tickets, the build pipeline.</div>
+  <div class="progress" data-pm-progress></div>
+  <p class="meta">Based on the current docs folder, last quarter's support tickets and the build pipeline.</p>
 </header>
 
+<div class="part" id="information">
+<div class="part-h"><p class="part-title" role="heading" aria-level="2">Information</p><p>What you need to know: why, what gets built and what could go wrong. Nothing here is a step.</p></div>
+
 <section class="sec" id="summary" data-id="summary">
-  <div class="eyebrow">1 · Summary</div>
   <h2>The short version</h2>
   <p class="lede">Docs drift because they live apart from the code. Generating them from the repo fixes that and cuts publishing from a day to a merge.</p>
-  <div class="cards">
-    <div class="card item" data-id="sum-goal"><div class="k">Goal</div><h4>Docs ship with the code</h4><p>Every merged change can update its docs in the same pull request.</p></div>
-    <div class="card item" data-id="sum-scope"><div class="k">Scope</div><h4>Guides and reference</h4><p>About 60 pages. The blog and changelog stay where they are.</p></div>
-    <div class="card item" data-id="sum-cost"><div class="k">Effort</div><h4>About three weeks</h4><p>One engineer, with a writer reviewing the migrated pages in week two.</p></div>
-  </div>
-  <div class="callout item" data-id="sum-nongoal"><b>Not in this plan:</b> a redesign. The new site copies today's look; design changes come after.</div>
+  <div class="entry item" data-id="sum-goal"><div class="k">Goal</div><h3>Docs ship with the code</h3><p>Every merged change can update its docs in the same pull request.</p></div>
+  <div class="entry item" data-id="sum-scope"><div class="k">Scope</div><h3>Guides and reference</h3><p>About 60 pages. The blog and changelog stay where they are.</p></div>
+  <div class="entry item" data-id="sum-cost"><div class="k">Effort</div><h3>About three weeks</h3><p>Claude does the conversion; you review the migrated pages in week two and switch the domain over in week three.</p></div>
+  <p class="note-box item" data-id="sum-nongoal"><b>Not in this plan:</b> a redesign. The new site copies today's look; design changes come after.</p>
 </section>
 
 <section class="sec" id="context" data-id="context">
-  <div class="eyebrow">2 · Where we are</div>
-  <h2>What I found</h2>
-  <div class="cards">
-    <div class="card item" data-id="ctx-stale"><div class="k">Stale pages</div><div class="stat">18 of 60</div><p>Pages describing options that have since changed.</p></div>
-    <div class="card item" data-id="ctx-time"><div class="k">Time to publish</div><div class="stat">~1 day</div><p>Edits go through a separate CMS and a manual deploy.</p></div>
-  </div>
+  <h2>Where we are</h2>
+  <p class="lede">How the docs work today, and the options we compared before picking one.</p>
+  <div class="entry item" data-id="ctx-stale"><div class="k">Stale pages</div><div class="stat">18 of 60</div><p>Pages describing options that have since changed.</p></div>
+  <div class="entry item" data-id="ctx-time"><div class="k">Time to publish</div><div class="stat">About a day</div><p>Edits go through a separate CMS and a manual deploy.</p></div>
   <h3>Options compared</h3>
   <div class="table-wrap"><table>
     <thead><tr><th>Option</th><th>Build time</th><th>Fit</th></tr></thead>
     <tbody>
-      <tr class="item" data-id="opt-astro"><td><b>Astro</b></td><td>~20 s</td><td>Markdown first, components where needed. <span class="tag good">best fit</span></td></tr>
-      <tr class="item" data-id="opt-docusaurus"><td><b>Docusaurus</b></td><td>~60 s</td><td>Docs features built in, heavier to theme. <span class="tag warn">ok</span></td></tr>
+      <tr class="item" data-id="opt-astro"><td><b>Astro</b></td><td>20 s</td><td>Markdown first, components where needed. <span class="tag good">best fit</span></td></tr>
+      <tr class="item" data-id="opt-docusaurus"><td><b>Docusaurus</b></td><td>60 s</td><td>Docs features built in, heavier to theme. <span class="tag warn">workable</span></td></tr>
       <tr class="item" data-id="opt-cms"><td><b>Keep the CMS</b></td><td>n/a</td><td>No migration, but drift continues. <span class="tag bad">poor</span></td></tr>
     </tbody>
   </table></div>
 </section>
 
 <section class="sec" id="approach" data-id="approach">
-  <div class="eyebrow">3 · Approach</div>
   <h2>How it works</h2>
+  <p class="lede">What the finished docs site does: the design, not the work. The <a href="#phases">phases</a> build it, starting with Scaffold and import.</p>
   <ul class="tight">
     <li class="item" data-id="ap-source"><b>One source.</b> Pages are Markdown files in <code>docs/</code>, next to the code.</li>
     <li class="item" data-id="ap-preview"><b>Preview on every pull request.</b> Reviewers see the rendered page before merging.</li>
     <li class="item" data-id="ap-redirects"><b>Every old URL keeps working.</b> A redirect map is generated from the old sitemap.</li>
   </ul>
-  <pre class="item" data-id="ap-tree"><code>docs/
+  <pre class="item" data-id="ap-tree" data-label="Folder layout"><code>docs/
   guides/        how-to pages
   reference/     generated from the API schema
   redirects.json old URL → new URL</code></pre>
 </section>
 
-<section class="sec" id="phases" data-id="phases">
-  <div class="eyebrow">4 · Phases</div>
-  <h2>Rollout</h2>
-  <div class="phases">
-    <div class="phase item" data-id="ph-1"><div class="num">1</div><h4>Scaffold and import</h4><div class="when">Week 1</div><ul><li>Set up the generator and the preview deploys.</li><li>Convert the existing pages with a script; fix by hand what it misses.</li></ul></div>
-    <div class="phase item" data-id="ph-2"><div class="num">2</div><h4>Review and redirect</h4><div class="when">Week 2</div><ul><li>The writer reviews every page.</li><li>Generate and test the redirect map.</li></ul></div>
-    <div class="phase item" data-id="ph-3"><div class="num">3</div><h4>Switch over</h4><div class="when">Week 3</div><ul><li>Point the domain at the new site; keep the CMS read-only for a month.</li></ul></div>
-  </div>
-</section>
-
 <section class="sec" id="risks" data-id="risks">
-  <div class="eyebrow">5 · Risks</div>
   <h2>What could go wrong</h2>
+  <p class="lede">What could stop the move going smoothly, how likely each is, and what guards against it.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>Risk</th><th>Likelihood</th><th>Mitigation</th></tr></thead>
     <tbody>
       <tr class="item" data-id="risk-seo"><td>Search traffic dips after the switch</td><td><span class="tag warn">medium</span></td><td>Redirect every old URL; submit the new sitemap on day one.</td></tr>
-      <tr class="item" data-id="risk-convert"><td>Converted pages lose formatting</td><td><span class="tag warn">medium</span></td><td>Writer review in phase 2; visual diff of the top 20 pages.</td></tr>
+      <tr class="item" data-id="risk-convert"><td>Converted pages lose formatting</td><td><span class="tag warn">medium</span></td><td>Your review in week 2; a visual diff of the top 20 pages.</td></tr>
     </tbody>
   </table></div>
 </section>
 
+</div>
+
+<div class="part" id="steps">
+<div class="part-h"><p class="part-title" role="heading" aria-level="2">Steps</p><p>The work, in order. Yours are blue, Claude’s are gold.</p></div>
+
+<section class="sec" id="phases" data-id="phases">
+  <h2>Phases</h2>
+  <p class="lede">The work, in order: four phases over three weeks, yours in blue and Claude’s in gold. Your part in the switch-over has its own guide.</p>
+  <div class="phases">
+    <article class="phase" data-id="ph-scaffold" data-who="claude" data-status="doing">
+      <h3>Scaffold and import</h3>
+      <div class="when">Week 1</div>
+      <p>Set up the generator with preview deploys, then convert every existing page and list what the converter couldn't handle.</p>
+      <p class="outcome"><b>Done when</b> all 60 pages build, and every pull request gets a preview link.</p>
+      <ul class="tasks">
+        <li data-status="done">Set up the generator and preview deploys</li>
+        <li data-status="doing">Convert the 60 pages</li>
+        <li data-status="todo">Fix by hand what the converter missed</li>
+      </ul>
+    </article>
+    <article class="phase" data-id="ph-review" data-who="you">
+      <h3>Review the migrated pages</h3>
+      <div class="when">Week 2 · about 2 hours</div>
+      <p>Read every page on the preview site and comment on this plan wherever something looks wrong.</p>
+      <p class="outcome"><b>Done when</b> you've read every page and nothing you flagged is still open.</p>
+    </article>
+    <article class="phase" data-id="ph-switch" data-who="both" data-guide="guides/dns-cutover/index.html">
+      <h3>Switch the domain over</h3>
+      <div class="when">Week 3 · about 30 minutes</div>
+      <p>Claude prepares the DNS records and the redirect map; you add them at your registrar and check the site.</p>
+      <p class="outcome"><b>Done when</b> docs.example.com serves the new site and old links redirect.</p>
+    </article>
+    <article class="phase" data-id="ph-retire" data-who="claude" data-status="todo">
+      <h3>Retire the CMS</h3>
+      <div class="when">A month after the switch</div>
+      <p>Keep the CMS read-only for a month in case anything was missed, then shut it down.</p>
+    </article>
+  </div>
+</section>
+
+</div>
+
+<div class="part" id="questions">
+<div class="part-h"><p class="part-title" role="heading" aria-level="2">Questions</p><p>What only you can decide. Answer these before the work starts.</p></div>
+
 <section class="sec" id="decisions" data-id="decisions">
-  <div class="eyebrow">6 · Decisions for you</div>
   <h2>Decisions for you</h2>
-  <p class="lede">Pick one in each. Add a note if none fits.</p>
+  <p class="lede">Choices only you can make before the work starts. Pick one in each, or add a comment if none fits.</p>
 
   <div class="decision" data-decision="generator" data-id="d-generator">
-    <h4>Which generator?</h4>
+    <h3>Which generator?</h3>
     <p class="why">Both work; they differ in build speed and how much is built in.</p>
     <div class="opts">
       <label><input type="radio" name="generator" value="astro"><span><b>Astro</b><span class="rec">Recommended</span><br>Fastest builds, plain Markdown, easy to match today's look.</span></label>
@@ -238,13 +472,33 @@ ul.tight li { margin-bottom: 5px; }
   </div>
 
   <div class="decision" data-decision="cutover" data-id="d-cutover">
-    <h4>How do we switch over?</h4>
+    <h3>How do we switch over?</h3>
     <div class="opts">
       <label><input type="radio" name="cutover" value="big-bang"><span><b>All at once in week 3</b><span class="rec">Recommended</span><br>Simplest; the redirect map covers old links.</span></label>
       <label><input type="radio" name="cutover" value="gradual"><span><b>Section by section</b><br>Lower risk, but two sites to maintain for a while.</span></label>
     </div>
   </div>
 </section>
+</div>
+
+<div class="part" id="log">
+<div class="part-h"><p class="part-title" role="heading" aria-level="2">Decision log</p><p>What’s been decided, when, and where it’s written down.</p></div>
+
+<section class="sec" id="decision-log" data-id="decision-log">
+  <h2>Decisions made</h2>
+  <p class="lede">Every question this plan has settled, newest first, and the project’s decision records.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Question</th><th>Decided</th><th>When</th></tr></thead>
+    <tbody>
+      <tr class="item" data-id="dl-urls"><td>Do the docs keep their URLs?</td><td><b>Yes: every old URL redirects</b> (as recommended)</td><td>Before v1</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Decision records</h3>
+  <ul class="tight">
+    <li class="item" data-id="adr-0004"><b>ADR-0004: Docs are built from the repo.</b> <code>docs/adr/0004-docs-from-repo.md</code></li>
+  </ul>
+</section>
+</div>
 
 </main>
 </div>

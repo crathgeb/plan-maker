@@ -114,19 +114,18 @@ export async function waitForNotes(path, check, timeout = 4000) {
   throw new Error('notes.json never matched; last saw:\n' + JSON.stringify(last, null, 2));
 }
 
-/** Turn the live template (v1) into v2, the way process-plan-notes does. */
+/** Turn the live template (v1) into v2, the way process-notes does. */
 export function writeV2(plan) {
   let html = readFileSync(plan, 'utf8');
   html = html
     .replace('<meta name="plan-version" content="1">', '<meta name="plan-version" content="2">')
     .replace('<meta name="plan-date" content="2026-11-07">', '<meta name="plan-date" content="2026-11-09">')
-    .replace('Plan v1 · for review · 7 Nov 2026', 'Plan v2 · your v1 notes applied · 9 Nov 2026')
-    .replace('<div class="phase item" data-id="ph-2">', '<div class="phase item" data-id="ph-2" data-changed="v2">')
+    .replace('<span>Plan v1</span><span>For review</span><span>7 Nov 2026</span>', '<span>Plan v2</span><span>Your v1 notes applied</span><span>9 Nov 2026</span>')
+    .replace('data-id="ph-2" data-who="claude"', 'data-id="ph-2" data-changed="v2" data-who="claude"')
     .replace(
       '<section class="sec" id="summary"',
       `<section class="sec" id="changes" data-id="changes">
-  <div class="eyebrow">What changed in v2</div>
-  <h2>Your notes, applied</h2>
+  <h2>What changed in v2</h2>
   <div class="table-wrap"><table><thead><tr><th>You said</th><th>What changed</th></tr></thead><tbody>
     <tr class="item" data-id="chg-v2-seo"><td>Cut the SEO risk</td><td>Removed. <a href="#risks">§5</a></td></tr>
   </tbody></table></div>
