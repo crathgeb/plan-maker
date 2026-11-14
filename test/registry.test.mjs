@@ -280,6 +280,31 @@ describe('hub', () => {
     assert.equal((await http(url, `/open/${id}`)).headers.location, r.headers.location); // reused
   });
 
+  test('a pinned project moves to the top and stays there after a reload; collapsed projects sit close', async () => {
+    const pg = await newPage(browser, []);
+    await pg.goto(url);
+    await pg.waitForSelector('#projects .row');
+    const names = () => pg.$$eval('#projects .project .grp-name', (n) => n.map((x) => x.textContent));
+    const last = (await names()).at(-1);
+    await pg.hover(`.grp[data-grp="${last}"]`);
+    await pg.click(`.grp-pin[data-pin="${last}"]`);
+    assert.equal((await names())[0], last);
+    assert.equal(await pg.getAttribute(`.grp-pin[data-pin="${last}"]`, 'aria-pressed'), 'true');
+    await pg.reload();
+    await pg.waitForSelector('#projects .row');
+    assert.equal((await names())[0], last);
+    // The first unpinned project starts after a wider gap; collapse both and the gap between them is small.
+    const second = (await names())[1];
+    assert.equal(await pg.$eval('#projects .project:nth-child(2)', (n) => getComputedStyle(n).marginTop), '36px');
+    await pg.click(`.grp[data-grp="${last}"]`);
+    await pg.click(`.grp[data-grp="${second}"]`);
+    assert.equal(await pg.$eval('#projects .project:nth-child(2)', (n) => getComputedStyle(n).marginTop), '36px');
+    await pg.click(`.grp-pin[data-pin="${last}"]`);
+    assert.equal(await pg.$eval('#projects .project:nth-child(2)', (n) => getComputedStyle(n).marginTop), '4px');
+    await pg.evaluate(() => localStorage.clear());
+    await pg.close();
+  });
+
   test('the page: projects in the sidebar, waiting plans first, a plan’s detail, status and hash', async () => {
     const errors = [];
     const pg = await newPage(browser, errors);

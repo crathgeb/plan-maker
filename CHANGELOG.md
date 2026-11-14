@@ -4,7 +4,7 @@
 
 - **The rail shows where you are.** Under a plan's Steps, every phase is listed with a ring, a half ring, or a check once it's done; the next one is in bold. A guide's sections get the same markers.
 - **Questions only when something is open, and a Decision log.** A plan leaves out Questions when nothing's open, and gains a Decision log part: every settled question (what was decided, and when) and the project's ADRs. `process-notes` moves each answered decision there; `check.mjs` warns about an empty Questions part, or decisions made with no log.
-- **The hub's projects read as groups,** with more space between them.
+- **The hub's projects read as groups,** with more space around an open one and little between collapsed ones. **Pin** the projects you're working on: they move to the top, with a wider gap before the rest.
 - **A calmer hub sidebar.** Each page is a two-line row: its kind icon and name, then what it wants from you ("Your turn: Make a folder to work in") or its status. A blue dot marks what's waiting on you; the per-row and per-project counts are gone, and every icon and dot lines up in one column, guides included.
 - **A cleaner guide cover.** Progress and Next step share one outlined panel; What you need is a plain list under a hairline, with one optional **Good to know** line; the cover has no tinted boxes. `check.mjs` warns about a box on the cover.
 - **Next step, from the top.** On plans and guides, under the progress bar: the next step (or phase) to do, its owner and its title. Press it to jump there; the step rings once and its Mark done gets focus.
