@@ -23,11 +23,13 @@
     <p class="outcome">             how you'll know the phase is done
     <ul class="tasks">              optional, Claude's phases only: a short checklist, <li data-status="todo|doing|done">
     <pre data-label="Terminal">     a code block; the label shows in its header ("Terminal", "redirects.json"…)
-    <div class="part" id="information|steps|questions">  the plan's three parts, always all three, in that order,
-                                    each opening with its .part-h; every section sits in one (WRITING.md, "A plan's three parts")
+    <div class="part" id="information|steps|questions|log">  the plan's parts, in that order, each opening with its .part-h;
+                                    every section sits in one (WRITING.md, "A plan's parts")
                                     Information: all content (summary, context, design, risks). Steps: the phases, nothing else.
-                                    Questions: the decisions, nothing else (or one line saying there's nothing to decide)
-    <a class="toc-part" href="#information">  the contents rail: one per part, its sections' links beneath it
+                                    Questions: open decisions only; leave the part out when none are open.
+                                    log: the Decision log (decisions made, the project's ADRs); leave it out until there is one.
+    <a class="toc-part" href="#information">  the contents rail: one per part, its sections' links beneath it; a part with one
+                                    section gets no link beneath it. The review layer lists the phases under Steps.
     <section class="sec" id data-id> a major part; gets a section comment; one per contents entry
     <p class="lede"> after a section's h2   one sentence: what the section covers and why it's here
     .decision[data-decision]        a pick-one question; .rec marks the recommendation
@@ -57,6 +59,7 @@
   /* part icons: an i for information, a staircase for steps, a question mark for questions */
   --i-info: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6.3'/%3E%3Cpath d='M8 7.3v4'/%3E%3Ccircle cx='8' cy='4.9' r='.5' fill='%2357606a'/%3E%3C/svg%3E");
   --i-steps: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 13.5h4v-3.5h4v-3.5h4v-4'/%3E%3C/svg%3E");
+  --i-log: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 2.5h8.5L13 4v9.5H3z'/%3E%3Cpath d='M5.5 6.5l1.2 1.2L9 5.5M5.5 10.5h5'/%3E%3C/svg%3E");
   --i-ask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6.3'/%3E%3Cpath d='M6.2 6.3a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.5'/%3E%3Ccircle cx='8' cy='11.4' r='.5' fill='%2357606a'/%3E%3C/svg%3E");
   color-scheme: light;
 }
@@ -77,6 +80,7 @@
     /* part icons: an i for information, a staircase for steps, a question mark for questions */
     --i-info: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23aab1bb' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6.3'/%3E%3Cpath d='M8 7.3v4'/%3E%3Ccircle cx='8' cy='4.9' r='.5' fill='%23aab1bb'/%3E%3C/svg%3E");
     --i-steps: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23aab1bb' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 13.5h4v-3.5h4v-3.5h4v-4'/%3E%3C/svg%3E");
+    --i-log: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23aab1bb' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 2.5h8.5L13 4v9.5H3z'/%3E%3Cpath d='M5.5 6.5l1.2 1.2L9 5.5M5.5 10.5h5'/%3E%3C/svg%3E");
     --i-ask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23aab1bb' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6.3'/%3E%3Cpath d='M6.2 6.3a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.5'/%3E%3Ccircle cx='8' cy='11.4' r='.5' fill='%23aab1bb'/%3E%3C/svg%3E");
     color-scheme: dark;
   }
@@ -113,7 +117,7 @@ main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 
 .hero::after, .sec::after { content: "Page " counter(page); position: absolute; right: 24px; bottom: 16px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 main :is(p, li, dd) { max-width: 62ch; }
 
-/* ---------- a plan's three parts: Information, Steps, Questions ---------- */
+/* ---------- a plan's parts: Information, Steps, then Questions and the Decision log when they have anything ---------- */
 /* Each part is a run of pages under a heading on the desk; the contents rail groups its links under the same three. */
 .part { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; scroll-margin-top: 24px; }
 .part + .part { margin-top: 32px; }
@@ -124,6 +128,7 @@ main .part-h > p:not(.part-title) { grid-column: 2; max-width: none; margin: 0; 
 .part#information > .part-h::before, nav.toc .toc-part[href="#information"]::before { background-image: var(--i-info); }
 .part#steps > .part-h::before, nav.toc .toc-part[href="#steps"]::before { background-image: var(--i-steps); }
 .part#questions > .part-h::before, nav.toc .toc-part[href="#questions"]::before { background-image: var(--i-ask); }
+.part#log > .part-h::before, nav.toc .toc-part[href="#log"]::before { background-image: var(--i-log); }
 nav.toc .toc-part { display: flex; align-items: center; gap: 8px; margin-top: 14px; color: var(--ink); font-weight: 650; }
 nav.toc .toc-part:first-child { margin-top: 0; }
 nav.toc .toc-part::before { content: ""; flex: none; width: 16px; height: 16px; background: center / contain no-repeat; }
@@ -341,9 +346,8 @@ dl.defs > dd p { margin: 6px 0 0; }
   <a href="#approach">How it works</a>
   <a href="#risks">What could go wrong</a>
   <a class="toc-part" href="#steps">Steps</a>
-  <a href="#phases">Phases</a>
   <a class="toc-part" href="#questions">Questions</a>
-  <a href="#decisions">Decisions for you</a>
+  <a class="toc-part" href="#log">Decision log</a>
 </nav>
 
 <main data-plan>
@@ -475,6 +479,25 @@ dl.defs > dd p { margin: 6px 0 0; }
       <label><input type="radio" name="cutover" value="gradual"><span><b>Section by section</b><br>Lower risk, but two sites to maintain for a while.</span></label>
     </div>
   </div>
+</section>
+</div>
+
+<div class="part" id="log">
+<div class="part-h"><p class="part-title" role="heading" aria-level="2">Decision log</p><p>What’s been decided, when, and where it’s written down.</p></div>
+
+<section class="sec" id="decision-log" data-id="decision-log">
+  <h2>Decisions made</h2>
+  <p class="lede">Every question this plan has settled, newest first, and the project’s decision records.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Question</th><th>Decided</th><th>When</th></tr></thead>
+    <tbody>
+      <tr class="item" data-id="dl-urls"><td>Do the docs keep their URLs?</td><td><b>Yes: every old URL redirects</b> (as recommended)</td><td>Before v1</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Decision records</h3>
+  <ul class="tight">
+    <li class="item" data-id="adr-0004"><b>ADR-0004: Docs are built from the repo.</b> <code>docs/adr/0004-docs-from-repo.md</code></li>
+  </ul>
 </section>
 </div>
 

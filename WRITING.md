@@ -18,21 +18,24 @@ Everything on a page is one or the other, and the reader must always be able to 
 - **Content comes before the steps that need it.** A section of explanation, then a section of steps. Each section is one or the other.
 - **In a plan,** a content section that describes what gets built says so in its lede and names the phase that builds it. See [Ledes](#ledes).
 
-## A plan's three parts: Information, Steps, Questions
+## A plan's parts: Information, Steps, Questions, Decision log
 
-Every plan is split into three parts, always all three, in this order. The contents rail lists each part's sections under its heading, so the reader always knows which kind of thing they're looking at, and can go straight to the work or straight to what's waiting on them.
+A plan's sections sit in parts, in this order. The contents rail lists them as headings, so the reader always knows which kind of thing they're looking at and where the work stands.
 
-| Part | Holds | Never holds |
-|---|---|---|
-| **Information** | Everything to understand: the short version, where things stand, the options compared, the design (how it works, what it looks like), **the risks**, and What changed in vN (first) | Phases, steps, decisions |
-| **Steps** | The phases, in order, and nothing else. They're numbered 1, 2, 3 across the part | Explanation: a phase that needs background gets one sentence, or a pointer to the section in Information |
-| **Questions** | The decisions only the user can make (`.decision`) | Anything already decided. When nothing is open, the part says "Nothing for you to decide right now." with no section |
+| Part | When | Holds | Never holds |
+|---|---|---|---|
+| **Information** | Always | Everything to understand: the short version, where things stand, the options compared, the design (how it works, what it looks like), **the risks**, and What changed in vN (first) | Phases, steps, open decisions |
+| **Steps** | Always | The phases, in order, and nothing else. They're numbered 1, 2, 3 across the part | Explanation: a phase that needs background gets one sentence, or a pointer to the section in Information |
+| **Questions** | Only while a decision is open | The decisions only the user can make (`.decision`) | Anything already decided |
+| **Decision log** (`id="log"`) | Once anything is decided | One section, `#decision-log`: a table of every settled question (question, what was decided, when: "Before v1", "v2"…), newest first, and the project's decision records (ADRs in `docs/adr/` or similar), each with its title and path | Open questions |
 
 - **Each part opens with its heading** (`div.part-h`): the part's name and one line on what's in it. Keep the template's lines unless the plan needs its own.
+- **The contents rail** lists each part as a heading and its sections beneath. A part with one section gets no link beneath it (the heading goes there). Under Steps, the review layer lists every phase with its progress, so write no links there.
 - **Risks are information**, never their own part or a step. A mitigation that's real work is a phase (or a task in one) in Steps; the risk names it.
 - **A question that came up in a phase** goes to Questions, and the phase says "Waits on the decision about…" in a sentence.
+- **When a decision is answered**, it leaves Questions and gets a row in the Decision log. When the last one leaves, so does the Questions part, with its link. A choice Claude made during research that the user should know about (a library, a host) can go in the log too, marked "Before v1".
 - **Claude's answers** (`aside.explain`) stay where the question was asked, in whichever part that is.
-- Guides and references don't have parts: a guide is mostly steps already, and a reference is all content.
+- Guides and references don't have parts: a guide is mostly steps already, and a reference is all content. In a guide's rail, each section with steps shows its progress (drawn by the review layer).
 
 ## Ledes
 

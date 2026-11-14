@@ -95,9 +95,12 @@ nav.toc.side { position: sticky; top: 0; align-self: start; height: 100vh; max-h
 .count { flex: none; min-width: 16px; text-align: right; color: var(--you-ink); font: 650 13px/1 var(--sans); font-variant-numeric: tabular-nums; }
 .count.zero { color: var(--muted); font-weight: 500; }
 /* collapsible project groups */
-.project { margin-top: 10px; }
+.project { margin-top: 20px; }
+.project:first-child { margin-top: 14px; }
+/* a project's pages sit one step in from its heading */
+.project > .nav-list { padding-left: 14px; }
 .project h2 { margin: 0; font: inherit; }
-.grp { display: flex; align-items: center; gap: 10px; width: 100%; height: 30px; padding: 0 10px 0 13px; border: 0; border-radius: 8px; background: none; color: var(--ink-2); font: 600 12.5px/1 var(--sans); text-align: left; cursor: pointer; }
+.grp { display: flex; align-items: center; gap: 8px; width: 100%; height: 30px; padding: 0 10px 0 8px; border: 0; border-radius: 8px; background: none; color: var(--ink-2); font: 600 12.5px/1 var(--sans); text-align: left; cursor: pointer; }
 .grp:hover { background: var(--paper-2); color: var(--ink); }
 .grp .chev { flex: none; width: 10px; height: 10px; transition: transform .15s; }
 .grp[aria-expanded="false"] .chev { transform: rotate(-90deg); }

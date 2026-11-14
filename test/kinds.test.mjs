@@ -148,6 +148,13 @@ describe('a plan: phases, a linked guide, Make a guide, More detail', () => {
     assert.equal(await page.locator('[data-id="ph-switch"] .pm-guide-prog').textContent(), 'Done');
     assert.equal(await page.locator('[data-id="ph-switch"]').evaluate((n) => n.classList.contains('pm-step-done')), true);
     assert.equal(await page.locator('#pm-prog').getAttribute('data-you'), '1/2');
+    // The rail lists every phase under Steps, with where each one stands.
+    const rail = await page.$$eval('nav.toc a.pm-rail-step', (as) => as.map((a) => `${a.dataset.pmState}:${a.textContent}`));
+    assert.deepEqual(rail, ['current:Scaffold and import', 'todo:Review the migrated pages', 'done:Switch the domain over', 'todo:Retire the CMS']);
+    await page.click('nav.toc a.pm-rail-step:has-text("Retire the CMS")');
+    await page.waitForTimeout(700);
+    const top = await page.locator('[data-id="ph-retire"]').evaluate((n) => n.getBoundingClientRect().top);
+    assert.ok(top >= 0 && top < (await page.evaluate(() => innerHeight)) - 100, `phase at ${top}`);
     const d = show(plan);
     assert.equal(d.unit, 'phase');
     assert.deepEqual(d.lanes.you, { done: 1, total: 2 });

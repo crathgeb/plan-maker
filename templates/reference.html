@@ -46,6 +46,7 @@
   /* part icons: an i for information, a staircase for steps, a question mark for questions */
   --i-info: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6.3'/%3E%3Cpath d='M8 7.3v4'/%3E%3Ccircle cx='8' cy='4.9' r='.5' fill='%2357606a'/%3E%3C/svg%3E");
   --i-steps: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 13.5h4v-3.5h4v-3.5h4v-4'/%3E%3C/svg%3E");
+  --i-log: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 2.5h8.5L13 4v9.5H3z'/%3E%3Cpath d='M5.5 6.5l1.2 1.2L9 5.5M5.5 10.5h5'/%3E%3C/svg%3E");
   --i-ask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357606a' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6.3'/%3E%3Cpath d='M6.2 6.3a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.5'/%3E%3Ccircle cx='8' cy='11.4' r='.5' fill='%2357606a'/%3E%3C/svg%3E");
   color-scheme: light;
 }
@@ -66,6 +67,7 @@
     /* part icons: an i for information, a staircase for steps, a question mark for questions */
     --i-info: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23aab1bb' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6.3'/%3E%3Cpath d='M8 7.3v4'/%3E%3Ccircle cx='8' cy='4.9' r='.5' fill='%23aab1bb'/%3E%3C/svg%3E");
     --i-steps: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23aab1bb' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 13.5h4v-3.5h4v-3.5h4v-4'/%3E%3C/svg%3E");
+    --i-log: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23aab1bb' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 2.5h8.5L13 4v9.5H3z'/%3E%3Cpath d='M5.5 6.5l1.2 1.2L9 5.5M5.5 10.5h5'/%3E%3C/svg%3E");
     --i-ask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23aab1bb' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6.3'/%3E%3Cpath d='M6.2 6.3a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.5'/%3E%3Ccircle cx='8' cy='11.4' r='.5' fill='%23aab1bb'/%3E%3C/svg%3E");
     color-scheme: dark;
   }
@@ -102,7 +104,7 @@ main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 
 .hero::after, .sec::after { content: "Page " counter(page); position: absolute; right: 24px; bottom: 16px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 main :is(p, li, dd) { max-width: 62ch; }
 
-/* ---------- a plan's three parts: Information, Steps, Questions ---------- */
+/* ---------- a plan's parts: Information, Steps, then Questions and the Decision log when they have anything ---------- */
 /* Each part is a run of pages under a heading on the desk; the contents rail groups its links under the same three. */
 .part { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; scroll-margin-top: 24px; }
 .part + .part { margin-top: 32px; }
@@ -113,6 +115,7 @@ main .part-h > p:not(.part-title) { grid-column: 2; max-width: none; margin: 0; 
 .part#information > .part-h::before, nav.toc .toc-part[href="#information"]::before { background-image: var(--i-info); }
 .part#steps > .part-h::before, nav.toc .toc-part[href="#steps"]::before { background-image: var(--i-steps); }
 .part#questions > .part-h::before, nav.toc .toc-part[href="#questions"]::before { background-image: var(--i-ask); }
+.part#log > .part-h::before, nav.toc .toc-part[href="#log"]::before { background-image: var(--i-log); }
 nav.toc .toc-part { display: flex; align-items: center; gap: 8px; margin-top: 14px; color: var(--ink); font-weight: 650; }
 nav.toc .toc-part:first-child { margin-top: 0; }
 nav.toc .toc-part::before { content: ""; flex: none; width: 16px; height: 16px; background: center / contain no-repeat; }

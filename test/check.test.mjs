@@ -95,7 +95,7 @@ test("a plan's three parts: none, out of order, or something in the wrong part w
   const warn = (html) => check(page(html)).warnings.join('\n');
   // An older plan, with no parts at all.
   const flat = plan.replace(/<div class="part" id="\w+">\n<div class="part-h">.*<\/div>\n/g, '').replace(/<\/section>\n<\/div>\n/g, '</section>\n');
-  assert.match(warn(flat), /isn't split into its three parts/);
+  assert.match(warn(flat), /isn't split into its parts/);
   // Risks moved into Steps: content among the phases.
   const risks = plan.match(/<section class="sec" id="risks"[\s\S]*?<\/section>\n\n/)[0];
   const misplaced = plan.replace(risks, '').replace('<section class="sec" id="phases"', risks + '<section class="sec" id="phases"');
@@ -105,7 +105,12 @@ test("a plan's three parts: none, out of order, or something in the wrong part w
   const stray = plan.replace(decision, '').replace('<section class="sec" id="risks"', `<section class="sec" id="q2" data-id="q2"><h2>Also</h2><p class="lede">One more thing to settle.</p>${decision}</section>\n<section class="sec" id="risks"`);
   assert.match(warn(stray), /decision sits outside the Questions part/);
   // Parts out of order.
-  assert.match(warn(plan.replace('id="questions"', 'id="later"')), /information, steps and questions, once each/);
+  assert.match(warn(plan.replace('id="questions"', 'id="later"')), /use information and steps, then questions and log/);
+  // Questions and the log are optional, but an empty Questions part warns.
+  const noQ = plan.replace(/<div class="part" id="questions">[\s\S]*?<\/section>\n<\/div>\n\n/, '').replace('  <a class="toc-part" href="#questions">Questions</a>\n', '');
+  assert.doesNotMatch(warn(noQ), /parts are|Questions/);
+  const emptyQ = plan.replace(/(<div class="part" id="questions">\n<div class="part-h">.*<\/div>\n)[\s\S]*?<\/section>\n/, '$1');
+  assert.match(warn(emptyQ), /Questions part has nothing open/);
 });
 
 test('markup written as text (escaped code) is not counted as a phase or decision', () => {

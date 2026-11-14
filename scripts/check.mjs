@@ -109,14 +109,17 @@ export function check(path) {
   return { path, kind, errors, warnings };
 }
 
-/** A plan's three parts (WRITING.md): Information holds the content, Steps the phases, Questions the decisions. */
-const PARTS = ['information', 'steps', 'questions'];
+/** A plan's parts (WRITING.md): Information holds the content, Steps the phases, Questions the open
+ *  decisions (only when there are some), the Decision log what's been decided (once anything has). */
+const PARTS = ['information', 'steps', 'questions', 'log'];
 function planParts(body) {
   const out = [];
   const parts = [...body.matchAll(/<div[^>]*class=["']part["'][^>]*id=["']([^"']+)["'][^>]*>|<div[^>]*id=["']([^"']+)["'][^>]*class=["']part["'][^>]*>/g)]
     .map((m) => ({ id: m[1] || m[2], at: m.index }));
-  if (!parts.length) return ["This plan isn't split into its three parts: wrap its sections in Information, Steps and Questions (div.part)."];
-  if (parts.map((p) => p.id).join() !== PARTS.join()) out.push(`The plan's parts are ${parts.map((p) => p.id).join(', ')}: there must be information, steps and questions, once each, in that order.`);
+  if (!parts.length) return ["This plan isn't split into its parts: wrap its sections in Information and Steps, plus Questions and the Decision log when it has them (div.part)."];
+  const ids = parts.map((p) => p.id);
+  const inOrder = ids.every((id, i) => PARTS.includes(id) && ids.indexOf(id) === i && (i === 0 || PARTS.indexOf(id) > PARTS.indexOf(ids[i - 1])));
+  if (!inOrder || ids[0] !== 'information' || ids[1] !== 'steps') out.push(`The plan's parts are ${ids.join(', ')}: use information and steps, then questions and log if it has them, once each, in that order.`);
   const end = body.search(/<\/main>/i);
   parts.forEach((p, i) => (p.end = i + 1 < parts.length ? parts[i + 1].at : end));
   const partOf = (at) => parts.find((p) => at >= p.at && at < p.end)?.id;
@@ -126,10 +129,13 @@ function planParts(body) {
     const part = partOf(m.index);
     if (!part) out.push(`Section "${h2}" is outside the three parts: put it in Information, Steps or Questions.`);
     else if (part === 'steps' && !/<[a-z]+\b[^>]*class=["'][^"']*\b(phases|steps)\b/.test(m[1])) out.push(`Section "${h2}" is in Steps but has no phases: explanation goes in Information.`);
-    else if (part === 'questions' && !/<[a-z]+\b[^>]*class=["'][^"']*\bdecision\b/.test(m[1])) out.push(`Section "${h2}" is in Questions but asks nothing: move it to Information.`);
+    else if (part === 'questions' && !/<[a-z]+\b[^>]*class=["'][^"']*\bdecision\b/.test(m[1])) out.push(`Section "${h2}" is in Questions but asks nothing: move it to Information, or to the Decision log if it records what was decided.`);
   }
   if (where(/<[a-z]+\b[^>]*class=["'](?:[^"']*\s)?(phase|step)(?:\s[^"']*)?["']/g).some((p) => p !== 'steps')) out.push('A phase or step sits outside the Steps part.');
   if (where(/<[a-z]+\b[^>]*class=["'][^"']*\bdecision\b/g).some((p) => p !== 'questions')) out.push('A decision sits outside the Questions part: gather them there.');
+  const q = parts.find((p) => p.id === 'questions');
+  if (q && !/<[a-z]+\b[^>]*class=["'][^"']*\bdecision\b/.test(body.slice(q.at, q.end))) out.push('The Questions part has nothing open: leave it out, with its link in the contents.');
+  if (/<b>Decided:<\/b>/.test(body) && !ids.includes('log')) out.push('Decisions have been made but there is no Decision log: add the log part and record them there.');
   if (!/class=["']toc-part["']/.test(body)) out.push('The contents rail has no part headings: list each section under <a class="toc-part" href="#information">Information</a>, Steps and Questions.');
   return out;
 }
