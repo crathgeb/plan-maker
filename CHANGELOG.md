@@ -2,7 +2,6 @@
 
 ## Unreleased
 
-- **Long steps fade.** In a guide, a long step you're not on shows its top part, fading out, with **Show all** under it; the step you're on is always shown in full.
 - **Finished work folds away.** A section whose steps are all done folds to its heading and one line ("All 4 steps done · Show"); a finished group of steps or a finished phase folds the same way; the rail folds each group's done steps into one row. One click opens any of them.
 - **The contents rail scrolls on its own** (it used to scroll only with the page, so a long rail's end was out of reach), and opens at the next step.
 - **Mark Claude's work done yourself.** A Claude step or phase that isn't done has its own **Mark done**: progress, the rail, Next step and the hub all count it, and `process-notes` writes it into the page.
