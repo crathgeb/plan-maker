@@ -92,6 +92,9 @@
 .pm-ctl .pm-done-btn { --pm-m: var(--pm-i-box); border-color: var(--pm-you-line); background: var(--pm-paper); color: var(--pm-you-ink); font-weight: 600; }
 .pm-ctl .pm-done-btn:hover { border-color: var(--pm-you); color: var(--pm-you-ink); }
 .pm-ctl .pm-done-btn.pm-on { --pm-m: var(--pm-i-check); background: var(--pm-you); border-color: var(--pm-you); color: var(--pm-on-fill); }
+.pm-ctl .pm-done-btn[data-who="claude"] { border-color: var(--pm-claude-line); color: var(--pm-claude-ink); }
+.pm-ctl .pm-done-btn[data-who="claude"]:hover { border-color: var(--pm-claude); color: var(--pm-claude-ink); }
+.pm-ctl .pm-done-btn[data-who="claude"].pm-on { background: var(--pm-claude); border-color: var(--pm-claude); color: var(--pm-on-fill); }
 /* Claude's status: read-only, in its gold */
 .pm-status-tag { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px 0 9px; border-radius: 8px; background: var(--pm-paper); border: 1px solid var(--pm-claude-line); color: var(--pm-claude-ink); font-weight: 600; }
 .pm-status-tag::before { content: ""; width: 15px; height: 15px; background: var(--pm-claude); -webkit-mask: var(--pm-i-ring) center / contain no-repeat; mask: var(--pm-i-ring) center / contain no-repeat; }

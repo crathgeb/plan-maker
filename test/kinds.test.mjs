@@ -88,7 +88,7 @@ describe('a plan: phases, a linked guide, Make a guide, More detail', () => {
   test('each phase gets the controls its owner needs', async () => {
     const ph = (id) => page.locator(`[data-id="${id}"]`);
     assert.equal(await ph('ph-scaffold').locator('.pm-status-tag').textContent(), 'In progress');
-    assert.equal(await ph('ph-scaffold').locator('.pm-done-btn').count(), 0);
+    assert.equal(await ph('ph-scaffold').locator('.pm-done-btn[data-who="claude"]').count(), 1); // the reader can close Claude's phase
     assert.equal(await ph('ph-review').locator('.pm-done-btn').count(), 1);
     assert.equal(await ph('ph-review').locator('.pm-guide-btn').count(), 1);
     assert.equal(await ph('ph-review').locator('.pm-detail-btn').count(), 1);

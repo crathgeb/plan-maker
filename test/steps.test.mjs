@@ -46,13 +46,30 @@ describe('steps and lanes on the plan template', () => {
   test('your steps get Mark done, Claude\'s show their status, every block gets Comment', async () => {
     assert.equal(await page.locator('[data-id="s1-pages-project"] .pm-done-btn').count(), 1);
     assert.equal(await page.locator('[data-id="s6-dns"] .pm-done-btn').count(), 1); // both: the reader confirms
-    assert.equal(await page.locator('[data-id="s2-scaffold"] .pm-done-btn').count(), 0);
+    assert.equal(await page.locator('[data-id="s2-scaffold"] .pm-done-btn:not([data-who="claude"])').count(), 0);
     assert.equal(await page.locator('[data-id="s2-scaffold"] .pm-status-tag').textContent(), 'To do');
+    // Claude's unfinished steps can be marked done by the reader too.
+    assert.equal(await page.locator('[data-id="s2-scaffold"] .pm-done-btn[data-who="claude"]').count(), 1);
     assert.equal(await page.locator('.pm-v, .pm-ask-btn').count(), 0);
     assert.equal(await page.locator('[data-id="s1-pages-project"] .pm-note-btn').count(), 1);
     assert.equal(await page.locator('[data-id="sum-goal"] .pm-note-btn').count(), 1);
     assert.equal(await page.locator('[data-id="sum-goal"] .pm-done-btn').count(), 0);
     assert.equal((await page.locator('#pm-done').textContent()).replace(/\s+/g, ' ').trim(), 'Done for now');
+  });
+
+  test("marking Claude's step done yourself counts it, and undoing it doesn't", async () => {
+    const lane = () => page.locator('#pm-prog').getAttribute('data-claude');
+    const btn = page.locator('[data-id="s2-scaffold"] .pm-done-btn[data-who="claude"]');
+    await btn.click();
+    await waitForNotes(files.notes, (n) => n.steps?.['s2-scaffold']?.done);
+    assert.equal(await lane(), '1/4');
+    assert.equal(await btn.textContent(), 'Marked done by you');
+    assert.equal(await page.locator('[data-id="s2-scaffold"]').evaluate((n) => n.classList.contains('pm-step-done')), true);
+    assert.equal(await page.locator('[data-id="s2-scaffold"] .pm-status-tag').isHidden(), true);
+    await btn.click();
+    await waitForNotes(files.notes, (n) => !n.steps?.['s2-scaffold']);
+    assert.equal(await lane(), '0/4');
+    assert.equal(await page.locator('[data-id="s2-scaffold"] .pm-status-tag').textContent(), 'To do');
   });
 
   test('the top bar shows one bar for the whole plan, split by owner', async () => {
@@ -162,7 +179,7 @@ describe('a plan-maker 0.2 guide still works', () => {
     const page = await newPage(browser, errors);
     await open(page, server.url);
     assert.equal(await page.locator('[data-id="s1-install"] .pm-done-btn').textContent(), 'Done');
-    assert.equal(await page.locator('[data-id="s2-build"] .pm-done-btn').count(), 0);
+    assert.equal(await page.locator('[data-id="s2-build"] .pm-done-btn:not([data-who="claude"])').count(), 0);
     assert.equal(await page.locator('[data-id="s2-build"] .pm-status-tag').count(), 1);
     assert.equal(await page.locator('[data-id="s3-deploy"] .pm-done-btn').count(), 1);
     assert.equal(await page.locator('#pm-prog').getAttribute('data-you'), '1/2');

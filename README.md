@@ -236,7 +236,7 @@ Drawings are anchored to the block under where you start drawing (or the page), 
 | `highlights[]` | A note on selected text: `quote` is the exact text inside the element whose `data-id` is `blockId`, at characters `start`–`end` of that element's text. `n` is the number shown on the page. `kind` is `note`, `question` or `detail`. `orphaned` is set when the text can no longer be found. |
 | `decisions.<key>` | `question`, the `choice` (radio value), its `label`, Claude's `recommended` value, and an optional `note` |
 | `drawings[]` | A mark drawn on the page: `shape` (`arrow`, `box`, `circle`, `point`, `note` for a sticky note), the block it sits on (`blockId`, `null` for the page, with `where` and `excerpt`), `x1, y1, x2, y2` as fractions of that block's box (an arrow points from 1 to 2), `n` (shared numbering with highlights) and `note` |
-| `steps` | `steps.<data-id>` is `{ done, doneAt, where }` for each of your steps or phases marked done. It carries over to the next version. |
+| `steps` | `steps.<data-id>` is `{ done, doneAt, where }` for each step or phase marked done: yours, or one of Claude's you marked done yourself. It carries over to the next version. |
 | `autoIds` | `true` when the ids were assigned in the browser |
 | `doneAt` | When **Done for now** was last pressed |
 
