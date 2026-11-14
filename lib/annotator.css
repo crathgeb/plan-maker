@@ -223,8 +223,8 @@ html.pm-has-top nav.toc { max-height: calc(100vh - var(--pm-top-h) - 64px); }
 .pm-rail-fold[hidden] { display: none; }
 .pm-rail-fold:hover { background: var(--pm-paper); color: var(--pm-ink); }
 .pm-rail-fold::before { content: ""; position: absolute; left: 12px; top: calc(6px + 0.5lh - 7px); width: 14px; height: 14px; background: var(--pm-good); -webkit-mask: var(--pm-i-check-c) center / contain no-repeat; mask: var(--pm-i-check-c) center / contain no-repeat; }
-.pm-rail-fold::after { content: ""; width: 8px; height: 8px; margin-left: 2px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); transition: transform .15s; }
-.pm-rail-fold[aria-expanded="true"]::after { transform: rotate(45deg) translate(-2px, -2px); }
+.pm-rail-fold::after { content: ""; flex: none; width: 5px; height: 5px; margin: 0 4px 0 auto; border: solid currentColor; border-width: 0 1.3px 1.3px 0; transform: rotate(-45deg); transition: transform .15s; }
+.pm-rail-fold[aria-expanded="true"]::after { transform: rotate(45deg) translate(-1px, -1px); }
 nav.toc a.pm-rail-step[hidden] { display: none; }
 
 /* on the page: finished work folds behind one line */
