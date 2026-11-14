@@ -241,6 +241,13 @@ section.sec.pm-folded > :not(h2):not(.lede):not(.pm-fold):not(.pm-ui) { display:
 .steps.pm-folded { display: none; }
 .phase.pm-folded > :not(h3):not(.pm-fold) { display: none; }
 .phase.pm-folded { padding-bottom: 14px; }
+/* a long step that isn't the one you're on: its top part, cut to a fixed height, fading out */
+.pm-step-body.pm-clamped { max-height: 96px; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, #000 35%, transparent); mask-image: linear-gradient(to bottom, #000 35%, transparent); }
+.pm-more { display: inline-flex; align-items: center; gap: 6px; margin: 6px 0 0; padding: 4px 10px 4px 8px; border: 0; border-radius: 8px; background: none; color: var(--pm-ink-2); font: 600 13px/1.4 var(--pm-sans); cursor: pointer; }
+.pm-more[hidden] { display: none; }
+.pm-more:hover { background: color-mix(in srgb, var(--pm-ink) 7%, transparent); color: var(--pm-ink); }
+.pm-more::before { content: ""; width: 5px; height: 5px; margin: 0 2px; border: solid currentColor; border-width: 0 1.4px 1.4px 0; transform: translateY(-1px) rotate(45deg); }
+.pm-more[aria-expanded="true"]::before { transform: translateY(1px) rotate(-135deg); }
 .pm-flash { animation: pm-flash 1.5s ease-out; }
 @keyframes pm-flash { 0%, 30% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--pm-you) 45%, transparent); } 100% { box-shadow: 0 0 0 4px transparent; } }
 .pm-flash[data-who="claude"] { animation-name: pm-flash-c; }

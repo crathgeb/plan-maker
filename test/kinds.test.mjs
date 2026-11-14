@@ -226,6 +226,24 @@ describe('a guide: its plan above the title, steps to follow', () => {
     assert.equal(await page.locator('nav.toc').evaluate((n) => getComputedStyle(n).overflowY), 'auto');
   });
 
+  test('long steps other than the current one show their top part, faded, and open with one click', async () => {
+    assert.equal(await page.locator('.step.pm-current > .pm-step-body.pm-clamped').count(), 0);
+    assert.equal(await page.locator('.step.pm-current > .pm-more:visible').count(), 0);
+    // The long steps are in the finished section, folded away: open it to see them.
+    const fold = page.locator('.pm-fold[data-fold="sec:records"]');
+    if ((await fold.getAttribute('aria-expanded')) !== 'true') await fold.click();
+    const step = page.locator('[data-id="g-cname"]');
+    const more = step.locator(':scope > .pm-more');
+    assert.equal(await step.locator(':scope > .pm-step-body.pm-clamped').count(), 1);
+    assert.equal(await more.textContent(), 'Show all');
+    const before = (await step.boundingBox()).height;
+    await more.click();
+    assert.equal(await more.textContent(), 'Show less');
+    assert.ok((await step.boundingBox()).height > before);
+    await more.click();
+    assert.equal(await step.locator(':scope > .pm-step-body.pm-clamped').count(), 1);
+  });
+
   test('the rail: each section with steps is a heading, its steps beneath with where each stands', async () => {
     const rail = await page.$$eval('nav.toc a', (as) => as.map((a) => (a.classList.contains('pm-rail-sec') ? '# ' : a.dataset.pmState ? `${a.dataset.pmState}:` : '') + a.textContent.trim()));
     assert.equal(rail[0], '# Add the records');
