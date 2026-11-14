@@ -21,6 +21,7 @@
   --pm-accent: var(--pm-you); --pm-draw: var(--pm-you); --pm-sticky: #fff8d6; --pm-sticky-ink: #5c4400;
   /* icons, drawn as masks so they take the current colour */
   --pm-i-comment: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z'/%3E%3C/svg%3E");
+  --pm-i-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2.5v11M3.5 9l4.5 4.5L12.5 9'/%3E%3C/svg%3E");
   --pm-i-box: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6'%3E%3Crect x='2' y='2' width='12' height='12' rx='3.5'/%3E%3C/svg%3E");
   --pm-i-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
   --pm-i-ring: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6'%3E%3Ccircle cx='8' cy='8' r='5.8'/%3E%3C/svg%3E");
@@ -179,6 +180,21 @@ html.pm-has-top { padding-top: var(--pm-top-h); scroll-padding-top: calc(var(--p
 .pm-lane::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--pm-you); }
 .pm-lane[data-who="claude"]::before { background: var(--pm-claude); }
 .pm-progress-slot { margin: 16px 0 20px; }
+/* under the bar: the next step to do, whoever owns it; pressing it scrolls there */
+.pm-next { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; width: 100%; max-width: 560px; margin: 14px 0 0; padding: 10px 14px; border: 1px solid var(--pm-you-line); border-radius: 10px; background: var(--pm-you-tint); color: var(--pm-ink); font: 14.5px/1.4 var(--pm-sans); text-align: left; cursor: pointer; }
+.pm-next[hidden] { display: none; }
+.pm-next[data-who="claude"] { border-color: var(--pm-claude-line); background: var(--pm-claude-tint); }
+.pm-next:hover { border-color: var(--pm-you); }
+.pm-next[data-who="claude"]:hover { border-color: var(--pm-claude); }
+.pm-next-k { color: var(--pm-ink-2); font-size: 13px; font-weight: 600; }
+.pm-next-who { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; background: var(--pm-paper); box-shadow: inset 0 0 0 1px var(--pm-you-line); color: var(--pm-you-ink); font-size: 12px; font-weight: 650; }
+.pm-next[data-who="claude"] .pm-next-who { box-shadow: inset 0 0 0 1px var(--pm-claude-line); color: var(--pm-claude-ink); }
+.pm-next-t { flex: 1 1 200px; min-width: 0; font-weight: 600; }
+.pm-next-go { flex: none; width: 16px; height: 16px; margin-left: auto; background: currentColor; -webkit-mask: var(--pm-i-down) center / contain no-repeat; mask: var(--pm-i-down) center / contain no-repeat; color: var(--pm-ink-2); }
+.pm-flash { animation: pm-flash 1.5s ease-out; }
+@keyframes pm-flash { 0%, 30% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--pm-you) 45%, transparent); } 100% { box-shadow: 0 0 0 4px transparent; } }
+.pm-flash[data-who="claude"] { animation-name: pm-flash-c; }
+@keyframes pm-flash-c { 0%, 30% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--pm-claude) 45%, transparent); } 100% { box-shadow: 0 0 0 4px transparent; } }
 /* a guide's way back to its plan, above its title */
 .pm-parent { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; margin: 0 0 12px; color: var(--pm-ink-2); font: 500 13.5px/1.4 var(--pm-sans); text-decoration: none; }
 .pm-parent::before { content: "←"; }
@@ -298,7 +314,7 @@ pre.pm-has-copy { position: relative; }
 .pm-copy:hover { background: color-mix(in srgb, var(--pm-code-ink) 20%, transparent); }
 .pm-copy.pm-ok { color: #8ee09f; }
 
-@media (prefers-reduced-motion: reduce) { .pm-prog-fill, .pm-ctl, .pm-ctl button, .pm-sec-note { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .pm-flash { animation: none; } .pm-prog-fill, .pm-ctl, .pm-ctl button, .pm-sec-note { transition: none !important; } }
 
 /* phones: the panel becomes a bottom sheet, the top bar takes two rows */
 @media (max-width: 760px) {

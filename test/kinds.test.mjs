@@ -191,6 +191,19 @@ describe('a guide: its plan above the title, steps to follow', () => {
     assert.equal(await page.locator('.pm-current').getAttribute('data-id'), 'g-dig');
   });
 
+  test('Next step, under the progress bar, names the next step and jumps to it', async () => {
+    await page.evaluate(() => scrollTo(0, 0));
+    const next = page.locator('#pm-next');
+    assert.equal(await next.locator('.pm-next-k').textContent(), 'Next step');
+    assert.equal(await next.getAttribute('data-who'), 'you');
+    assert.equal(await next.locator('.pm-next-t').textContent(), await page.locator('[data-id="g-dig"] h4').evaluate((h) => h.textContent.trim()));
+    await next.click();
+    await page.waitForTimeout(800);
+    const top = await page.locator('[data-id="g-dig"]').evaluate((n) => n.getBoundingClientRect().top);
+    assert.ok(top > 0 && top < 700, `next step at ${top}`);
+    assert.equal(await page.evaluate(() => document.activeElement.closest('[data-id]')?.dataset.id), 'g-dig');
+  });
+
   test('the registry: a guide that starts not started, lists its parent', () => {
     const d = show(guide);
     assert.equal(d.kind, 'guide');

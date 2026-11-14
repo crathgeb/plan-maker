@@ -162,7 +162,7 @@ All three templates share one style block, word for word, and the hub wears it t
 - **Claude's answer** (`aside.explain`): a gold-tinted rounded box headed "You asked: …".
 - **What changed in vN:** a two-column table, "You said" against "What changed". Changed blocks get a small gold "Updated in vN" chip.
 - **Top bar:** white, 1px bottom line. On the left, the kind chip (Plan, Guide, Reference: neutral, with its icon), the page's name and its status as a pill you can change, offering only that kind's statuses (saved to the registry through the review server). Then the draw tools, the version menu, save status, **Comments (n)** and **Done for now** (ink fill).
-- **Progress:** on the cover page, under the lede: one bar for the whole page ("2 of 4 phases done" on a plan, "3 of 7 steps done" on a guide), filled with a blue segment for yours and a gold one for Claude's, with "You: 1 of 3" and "Claude: 2 of 4" beneath. A reference has none. There is no "how to use this page" box.
+- **Progress:** on the cover page, under the lede: one bar for the whole page ("2 of 4 phases done" on a plan, "3 of 7 steps done" on a guide), filled with a blue segment for yours and a gold one for Claude's, with "You: 1 of 3" and "Claude: 2 of 4" beneath. Under them, **Next step** (or **Next phase**): a card tinted in the owner's colour with the owner chip, the step's title and a down arrow. Pressing it centres that step on screen, rings it once in its owner's colour, and moves focus to its Mark done. It disappears when everything is done. A reference has none. There is no "how to use this page" box.
 
 ## Do's and Don'ts
 
