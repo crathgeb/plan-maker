@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 (2026-11-14)
+
+Three kinds of page, one hub, and pages that show you where you are: plans, guides and references on one engine; a hub across every project; plans split into Information, Steps, Questions and a Decision log; a contents rail that ticks off every step; finished work that folds away; and writing rules every page is checked against.
 
 - **Finished work folds away.** A section whose steps are all done folds to its heading and one line ("All 4 steps done · Show"); a finished group of steps or a finished phase folds the same way; the rail folds each group's done steps into one row. One click opens any of them.
 - **The contents rail scrolls on its own** (it used to scroll only with the page, so a long rail's end was out of reach), and opens at the next step.
@@ -11,7 +13,7 @@
 - **A calmer hub sidebar.** Each page is a two-line row: its kind icon and name, then what it wants from you ("Your turn: Make a folder to work in") or its status. A blue dot marks what's waiting on you; the per-row and per-project counts are gone, and every icon and dot lines up in one column, guides included.
 - **A cleaner guide cover.** Progress and Next step share one outlined panel; What you need is a plain list under a hairline, with one optional **Good to know** line; the cover has no tinted boxes. `check.mjs` warns about a box on the cover.
 - **Next step, from the top.** On plans and guides, under the progress bar: the next step (or phase) to do, its owner and its title. Press it to jump there; the step rings once and its Mark done gets focus.
-- **A plan comes in three parts: Information, Steps and Questions.** Explanation, risks included, sits in Information; Steps holds only the phases, numbered 1, 2, 3; Questions holds the decisions. Each part opens with a heading on the desk, and the contents rail groups the sections under the three instead of one "Contents" list. `make-plan` writes plans this way, `process-notes` splits older plans the next time it revises them, and `check.mjs` warns about a plan without parts or with content, phases or decisions in the wrong one. Rules in `WRITING.md`, "A plan's three parts".
+- **A plan comes in parts: Information, Steps, Questions and a Decision log.** Explanation, risks included, sits in Information; Steps holds only the phases, numbered 1, 2, 3; Questions holds the open decisions; the log holds what's settled. Each part opens with a heading on the desk, and the contents rail groups the sections under the parts instead of one "Contents" list. `make-plan` writes plans this way, `process-notes` splits older plans the next time it revises them, and `check.mjs` warns about a plan without parts or with content, phases or decisions in the wrong one. Rules in `WRITING.md`, "A plan's parts".
 - **Plans, guides and references: three kinds of page on one engine.** A page says which it is with `<meta name="pm-kind" content="plan|guide|reference">`; a page without one is a plan. All three are reviewed, versioned and listed the same way, in the same design.
   - **Plans** break an idea into **phases** (`.phase[data-who]` in `<div class="phases">`), each owned by you, Claude or both, with an outcome ("Done when…"). Claude's phases can carry a short checklist (`ul.tasks`). Your phases get **Mark done**.
   - **Make a guide** on any phase asks Claude for a guide in the next round (`kind: "guide"` in `notes.json`). A phase linked to a guide (`data-guide`) shows the guide's name and progress, opens it, and is done when the guide is. Guides made from a plan live in its folder (`plans/<plan>/guides/<slug>/`) and link back (`pm-parent`, `pm-parent-phase`): "Part of <plan> › <phase>" above the title.
@@ -25,7 +27,7 @@
 - **New design** (DESIGN.md, PRODUCT.md): a calm, rounded page in the manner of Google Docs, in the system sans at 16px.
   - Every step is its own card: **blue for you**, **gold for Claude**, with an owner chip and icon. The same two colours run through the top-bar lanes and the hub.
   - Code blocks are dark, with a header showing their label (`<pre data-label="Terminal">`) and **Copy**.
-  - No section or gutter numbers. The comment panel starts closed. "Updated in vN" chips mark revised blocks.
+  - Numbers only where there's an order: a badge on each section, and the steps' and phases' timeline. Content is never numbered. The comment panel starts closed. "Updated in vN" chips mark revised blocks.
   - **Breaking for page styling:** the layer's tokens are now `--pm-you`, `--pm-claude`, `--pm-paper`, `--pm-ink` and friends. The old `--pm-accent` and `--pm-bg` are still honoured.
 - **Registry and hub**: every plan, guide and reference across all projects in one list (`~/.plan-maker/registry.json`, or `$PLAN_MAKER_HOME`). The hub nests a plan's guides under it, marks each page's kind, and filters by kind; `registry.mjs list --kind`.
   - `scripts/registry.mjs`: `add`, `update`, `list`, `show`, `remove`, `scan` and `prune`. Each entry has a name, goal, description, status (draft, reviewing, approved, in-progress, blocked, done, archived), next action and a dated progress log. Live facts are read from the page and `notes.json`: each owner's steps done, open decisions, unprocessed notes and why it's waiting on you.

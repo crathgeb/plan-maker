@@ -127,7 +127,7 @@ function planParts(body) {
   for (const m of body.matchAll(/<section[^>]*class=["'][^"']*\bsec\b[^>]*>([\s\S]*?)<\/section>/gi)) {
     const h2 = text(m[1].match(/<h2[^>]*>([\s\S]*?)<\/h2>/i)?.[1] || '?');
     const part = partOf(m.index);
-    if (!part) out.push(`Section "${h2}" is outside the three parts: put it in Information, Steps or Questions.`);
+    if (!part) out.push(`Section "${h2}" is outside the parts: put it in Information, Steps, Questions or the Decision log.`);
     else if (part === 'steps' && !/<[a-z]+\b[^>]*class=["'][^"']*\b(phases|steps)\b/.test(m[1])) out.push(`Section "${h2}" is in Steps but has no phases: explanation goes in Information.`);
     else if (part === 'questions' && !/<[a-z]+\b[^>]*class=["'][^"']*\bdecision\b/.test(m[1])) out.push(`Section "${h2}" is in Questions but asks nothing: move it to Information, or to the Decision log if it records what was decided.`);
   }

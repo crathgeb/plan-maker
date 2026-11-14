@@ -1,6 +1,6 @@
 {
   "name": "plan-maker",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Plans, guides and references as HTML pages you review and work through in the browser, like a shared doc. Plans break an idea into phases and link to guides; guides walk you through your steps; references explain a system and say when they're out of date. Comment, ask questions or ask for more detail anywhere, tick off your part (blue) while Claude keeps its own (gold) up to date, and draw on the page. A local server saves to notes.json and Claude writes the next version from it. A hub lists everything across your projects, with what's waiting on you first.",
   "author": {
     "name": "TechSnack LLC"
