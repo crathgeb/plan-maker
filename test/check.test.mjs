@@ -107,3 +107,9 @@ test("a plan's three parts: none, out of order, or something in the wrong part w
   // Parts out of order.
   assert.match(warn(plan.replace('id="questions"', 'id="later"')), /information, steps and questions, once each/);
 });
+
+test('markup written as text (escaped code) is not counted as a phase or decision', () => {
+  const plan = tpl('plan').replace('<p class="lede">How the docs work today', '<p>Phases are <code>&lt;article class="phase"&gt;</code>; decisions are <code>class="decision"</code>.</p>\n  <p class="lede">How the docs work today');
+  const w = check(page(plan)).warnings.join('\n');
+  assert.doesNotMatch(w, /outside the (Steps|Questions) part/);
+});

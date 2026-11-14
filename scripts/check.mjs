@@ -123,11 +123,11 @@ function planParts(body) {
     const h2 = text(m[1].match(/<h2[^>]*>([\s\S]*?)<\/h2>/i)?.[1] || '?');
     const part = partOf(m.index);
     if (!part) out.push(`Section "${h2}" is outside the three parts: put it in Information, Steps or Questions.`);
-    else if (part === 'steps' && !/class=["'][^"']*\b(phases|steps)\b/.test(m[1])) out.push(`Section "${h2}" is in Steps but has no phases: explanation goes in Information.`);
-    else if (part === 'questions' && !/class=["'][^"']*\bdecision\b/.test(m[1])) out.push(`Section "${h2}" is in Questions but asks nothing: move it to Information.`);
+    else if (part === 'steps' && !/<[a-z]+\b[^>]*class=["'][^"']*\b(phases|steps)\b/.test(m[1])) out.push(`Section "${h2}" is in Steps but has no phases: explanation goes in Information.`);
+    else if (part === 'questions' && !/<[a-z]+\b[^>]*class=["'][^"']*\bdecision\b/.test(m[1])) out.push(`Section "${h2}" is in Questions but asks nothing: move it to Information.`);
   }
-  if (where(/class=["'](?:[^"']*\s)?(phase|step)(?:\s[^"']*)?["']/g).some((p) => p !== 'steps')) out.push('A phase or step sits outside the Steps part.');
-  if (where(/class=["'][^"']*\bdecision\b/g).some((p) => p !== 'questions')) out.push('A decision sits outside the Questions part: gather them there.');
+  if (where(/<[a-z]+\b[^>]*class=["'](?:[^"']*\s)?(phase|step)(?:\s[^"']*)?["']/g).some((p) => p !== 'steps')) out.push('A phase or step sits outside the Steps part.');
+  if (where(/<[a-z]+\b[^>]*class=["'][^"']*\bdecision\b/g).some((p) => p !== 'questions')) out.push('A decision sits outside the Questions part: gather them there.');
   if (!/class=["']toc-part["']/.test(body)) out.push('The contents rail has no part headings: list each section under <a class="toc-part" href="#information">Information</a>, Steps and Questions.');
   return out;
 }
