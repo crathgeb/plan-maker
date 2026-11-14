@@ -197,7 +197,12 @@ html.pm-has-top { padding-top: var(--pm-top-h); scroll-padding-top: calc(var(--p
 .pm-next:hover .pm-next-go { color: var(--pm-ink); }
 @media (max-width: 560px) { .pm-next { grid-template-columns: auto minmax(0, 1fr) auto; } .pm-next-k { display: none; } .pm-next-go::before { content: none; } }
 /* the contents rail: a ring to do, half done, the next one in ink, a check when done */
-nav.toc.pm-rail a:not(.toc-part) { position: relative; padding-left: 34px; }
+nav.toc.pm-rail a:not(.toc-part):not(.pm-rail-sec) { position: relative; padding-left: 34px; }
+/* a guide's rail: each section with steps is a heading, its steps beneath; no "Contents" title */
+nav.toc.pm-rail-grouped .toc-title { display: none; }
+nav.toc.pm-rail-grouped a.pm-rail-sec { margin-top: 14px; color: var(--pm-ink); font-weight: 650; }
+nav.toc.pm-rail-grouped a:not(.pm-rail-sec):not(.pm-rail-step) { margin-top: 14px; color: var(--pm-ink); font-weight: 650; padding-left: 10px; }
+nav.toc.pm-rail-grouped > a:first-of-type { margin-top: 0; }
 nav.toc.pm-rail a[data-pm-state]::before { content: ""; position: absolute; left: 12px; top: 9px; width: 14px; height: 14px; background: var(--pm-line); -webkit-mask: var(--pm-i-ring) center / contain no-repeat; mask: var(--pm-i-ring) center / contain no-repeat; }
 nav.toc.pm-rail a[data-pm-state="partial"]::before { background: var(--pm-ink-2); -webkit-mask-image: var(--pm-i-half); mask-image: var(--pm-i-half); }
 nav.toc.pm-rail a[data-pm-state="current"] { color: var(--pm-ink); font-weight: 600; }

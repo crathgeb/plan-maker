@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **The rail shows where you are.** Under a plan's Steps, every phase is listed with a ring, a half ring, or a check once it's done; the next one is in bold. A guide's sections get the same markers.
+- **The rail shows where you are.** Under a plan's Steps, every phase is listed with a ring, a half ring, or a check once it's done; the next one is in bold. A guide's rail works the same way: each section is a heading with its steps listed beneath, ticked off as you go. The rail's part headings have no icons.
 - **Questions only when something is open, and a Decision log.** A plan leaves out Questions when nothing's open, and gains a Decision log part: every settled question (what was decided, and when) and the project's ADRs. `process-notes` moves each answered decision there; `check.mjs` warns about an empty Questions part, or decisions made with no log.
 - **The hub's projects read as groups,** with more space around an open one and little between collapsed ones. **Pin** the projects you're working on: they move to the top, with a wider gap before the rest.
 - **A calmer hub sidebar.** Each page is a two-line row: its kind icon and name, then what it wants from you ("Your turn: Make a folder to work in") or its status. A blue dot marks what's waiting on you; the per-row and per-project counts are gone, and every icon and dot lines up in one column, guides included.

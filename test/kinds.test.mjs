@@ -198,6 +198,14 @@ describe('a guide: its plan above the title, steps to follow', () => {
     assert.equal(await page.locator('.pm-current').getAttribute('data-id'), 'g-dig');
   });
 
+  test('the rail: each section with steps is a heading, its steps beneath with where each stands', async () => {
+    const rail = await page.$$eval('nav.toc a', (as) => as.map((a) => (a.classList.contains('pm-rail-sec') ? '# ' : a.dataset.pmState ? `${a.dataset.pmState}:` : '') + a.textContent.trim()));
+    assert.equal(rail[0], '# Add the records');
+    assert.ok(rail.includes('done:Open the DNS settings for example.com'), rail.join(' | '));
+    assert.ok(rail.includes('current:Check where docs points'), rail.join(' | '));
+    assert.equal(await page.locator('nav.toc .toc-title').isVisible(), false);
+  });
+
   test('Next step, under the progress bar, names the next step and jumps to it', async () => {
     await page.evaluate(() => scrollTo(0, 0));
     const next = page.locator('#pm-next');

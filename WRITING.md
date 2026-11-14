@@ -35,7 +35,7 @@ A plan's sections sit in parts, in this order. The contents rail lists them as h
 - **A question that came up in a phase** goes to Questions, and the phase says "Waits on the decision about…" in a sentence.
 - **When a decision is answered**, it leaves Questions and gets a row in the Decision log. When the last one leaves, so does the Questions part, with its link. A choice Claude made during research that the user should know about (a library, a host) can go in the log too, marked "Before v1".
 - **Claude's answers** (`aside.explain`) stay where the question was asked, in whichever part that is.
-- Guides and references don't have parts: a guide is mostly steps already, and a reference is all content. In a guide's rail, each section with steps shows its progress (drawn by the review layer).
+- Guides and references don't have parts: a guide is mostly steps already, and a reference is all content. In a guide's rail, each section is a heading and the review layer lists its steps beneath, with their progress: link the sections, never the steps.
 
 ## Ledes
 

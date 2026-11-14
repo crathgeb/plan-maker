@@ -125,13 +125,12 @@ main :is(p, li, dd) { max-width: 62ch; }
 .part-h::before { content: ""; width: 34px; height: 34px; border-radius: 50%; background: var(--paper) center / 18px no-repeat; box-shadow: var(--shadow); }
 .part-title { margin: 0; font-size: 22px; font-weight: 650; line-height: 1.3; letter-spacing: -0.01em; }
 main .part-h > p:not(.part-title) { grid-column: 2; max-width: none; margin: 0; color: var(--ink-2); font-size: 15px; }
-.part#information > .part-h::before, nav.toc .toc-part[href="#information"]::before { background-image: var(--i-info); }
-.part#steps > .part-h::before, nav.toc .toc-part[href="#steps"]::before { background-image: var(--i-steps); }
-.part#questions > .part-h::before, nav.toc .toc-part[href="#questions"]::before { background-image: var(--i-ask); }
-.part#log > .part-h::before, nav.toc .toc-part[href="#log"]::before { background-image: var(--i-log); }
-nav.toc .toc-part { display: flex; align-items: center; gap: 8px; margin-top: 14px; color: var(--ink); font-weight: 650; }
+.part#information > .part-h::before { background-image: var(--i-info); }
+.part#steps > .part-h::before { background-image: var(--i-steps); }
+.part#questions > .part-h::before { background-image: var(--i-ask); }
+.part#log > .part-h::before { background-image: var(--i-log); }
+nav.toc .toc-part { margin-top: 14px; color: var(--ink); font-weight: 650; }
 nav.toc .toc-part:first-child { margin-top: 0; }
-nav.toc .toc-part::before { content: ""; flex: none; width: 16px; height: 16px; background: center / contain no-repeat; }
 nav.toc:has(.toc-part) a:not(.toc-part) { padding-left: 34px; }
 /* in Steps, phases count 1, 2, 3 across the whole part, not per section */
 .part#steps { counter-reset: sub; }
