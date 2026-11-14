@@ -180,17 +180,21 @@ html.pm-has-top { padding-top: var(--pm-top-h); scroll-padding-top: calc(var(--p
 .pm-lane::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--pm-you); }
 .pm-lane[data-who="claude"]::before { background: var(--pm-claude); }
 .pm-progress-slot { margin: 16px 0 20px; }
-/* under the bar: the next step to do, whoever owns it; pressing it scrolls there */
-.pm-next { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; width: 100%; max-width: 560px; margin: 14px 0 0; padding: 10px 14px; border: 1px solid var(--pm-you-line); border-radius: 10px; background: var(--pm-you-tint); color: var(--pm-ink); font: 14.5px/1.4 var(--pm-sans); text-align: left; cursor: pointer; }
+/* progress and the next step share one outlined panel on the cover: the bar on top, Next step as its bottom row */
+[data-pm-progress]:has(#pm-prog:not([hidden])) { border: 1px solid var(--pm-line); border-radius: 12px; overflow: hidden; }
+[data-pm-progress] .pm-prog { padding: 14px 16px; }
+.pm-next { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; width: 100%; margin: 0; padding: 12px 16px; border: 0; border-top: 1px solid var(--pm-line-2); border-radius: 0; background: none; color: var(--pm-ink); font: 14.5px/1.4 var(--pm-sans); text-align: left; cursor: pointer; }
 .pm-next[hidden] { display: none; }
-.pm-next[data-who="claude"] { border-color: var(--pm-claude-line); background: var(--pm-claude-tint); }
-.pm-next:hover { border-color: var(--pm-you); }
-.pm-next[data-who="claude"]:hover { border-color: var(--pm-claude); }
-.pm-next-k { color: var(--pm-ink-2); font-size: 13px; font-weight: 600; }
-.pm-next-who { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; background: var(--pm-paper); box-shadow: inset 0 0 0 1px var(--pm-you-line); color: var(--pm-you-ink); font-size: 12px; font-weight: 650; }
-.pm-next[data-who="claude"] .pm-next-who { box-shadow: inset 0 0 0 1px var(--pm-claude-line); color: var(--pm-claude-ink); }
-.pm-next-t { flex: 1 1 200px; min-width: 0; font-weight: 600; }
-.pm-next-go { flex: none; width: 16px; height: 16px; margin-left: auto; background: currentColor; -webkit-mask: var(--pm-i-down) center / contain no-repeat; mask: var(--pm-i-down) center / contain no-repeat; color: var(--pm-ink-2); }
+.pm-next:hover { background: var(--pm-paper-2); }
+.pm-next-k { color: var(--pm-muted); font-size: 13px; font-weight: 500; }
+.pm-next-who { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; background: var(--pm-you-tint); box-shadow: inset 0 0 0 1px var(--pm-you-line); color: var(--pm-you-ink); font-size: 12px; font-weight: 650; white-space: nowrap; }
+.pm-next[data-who="claude"] .pm-next-who { background: var(--pm-claude-tint); box-shadow: inset 0 0 0 1px var(--pm-claude-line); color: var(--pm-claude-ink); }
+.pm-next-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.pm-next-go { display: inline-flex; align-items: center; gap: 6px; color: var(--pm-ink-2); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.pm-next-go::before { content: "Go to it"; }
+.pm-next-go::after { content: ""; width: 14px; height: 14px; background: currentColor; -webkit-mask: var(--pm-i-down) center / contain no-repeat; mask: var(--pm-i-down) center / contain no-repeat; }
+.pm-next:hover .pm-next-go { color: var(--pm-ink); }
+@media (max-width: 560px) { .pm-next { grid-template-columns: auto minmax(0, 1fr) auto; } .pm-next-k { display: none; } .pm-next-go::before { content: none; } }
 .pm-flash { animation: pm-flash 1.5s ease-out; }
 @keyframes pm-flash { 0%, 30% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--pm-you) 45%, transparent); } 100% { box-shadow: 0 0 0 4px transparent; } }
 .pm-flash[data-who="claude"] { animation-name: pm-flash-c; }

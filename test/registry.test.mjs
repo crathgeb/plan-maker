@@ -314,7 +314,7 @@ describe('hub', () => {
     assert.equal(await pg.getAttribute('#sheet .plan-frame', 'data-mark'), '1');
     // Changing the status inside the plan saves it, and the hub's sidebar follows straight away.
     await frame.locator('#pm-status-sel').selectOption('blocked');
-    await pg.waitForFunction(() => document.querySelector('#projects .row[aria-current="true"] .dot')?.dataset.s === 'blocked');
+    await pg.waitForFunction(() => /^Blocked: check the preview$/.test(document.querySelector('#projects .row[aria-current="true"] .sub[data-k="blocked"]')?.textContent || ''));
     assert.equal(entry('Docs Site Migration').status, 'blocked');
     // The selection survives a reload.
     await pg.reload();

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **A calmer hub sidebar.** Each page is a two-line row: its kind icon and name, then what it wants from you ("Your turn: Make a folder to work in") or its status. A blue dot marks what's waiting on you; the per-row and per-project counts are gone, and every icon and dot lines up in one column, guides included.
+- **A cleaner guide cover.** Progress and Next step share one outlined panel; What you need is a plain list under a hairline, with one optional **Good to know** line; the cover has no tinted boxes. `check.mjs` warns about a box on the cover.
 - **Next step, from the top.** On plans and guides, under the progress bar: the next step (or phase) to do, its owner and its title. Press it to jump there; the step rings once and its Mark done gets focus.
 - **A plan comes in three parts: Information, Steps and Questions.** Explanation, risks included, sits in Information; Steps holds only the phases, numbered 1, 2, 3; Questions holds the decisions. Each part opens with a heading on the desk, and the contents rail groups the sections under the three instead of one "Contents" list. `make-plan` writes plans this way, `process-notes` splits older plans the next time it revises them, and `check.mjs` warns about a plan without parts or with content, phases or decisions in the wrong one. Rules in `WRITING.md`, "A plan's three parts".
 - **Plans, guides and references: three kinds of page on one engine.** A page says which it is with `<meta name="pm-kind" content="plan|guide|reference">`; a page without one is a plan. All three are reviewed, versioned and listed the same way, in the same design.

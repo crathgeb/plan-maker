@@ -251,10 +251,15 @@ ul.tasks li[data-status="done"]::before { background: var(--claude) var(--i-chec
 ul.tasks li[data-status="done"] { color: var(--ink-2); }
 
 /* ---------- guides: what you need first, then what you should see and what to do if it fails ---------- */
-.needs { margin: 22px 0 0; padding: 16px 18px; border-radius: 10px; background: var(--you-tint); border: 1px solid var(--you-line); }
-.needs h2 { margin: 0 0 6px; font-size: 15px; font-weight: 650; color: var(--you-ink); }
-.needs ul { margin: 0; padding-left: 20px; }
-.needs li { margin: 2px 0; }
+/* "What you need": a checklist to gather before starting, under a hairline; no box, no colour */
+.needs { margin: 28px 0 0; padding: 22px 0 0; border-top: 1px solid var(--line-2); }
+.needs h2 { margin: 0 0 10px; font-size: 15px; font-weight: 650; color: var(--ink); }
+.needs ul { list-style: none; display: grid; gap: 6px; margin: 0; padding: 0; }
+.needs li { position: relative; max-width: none; margin: 0; padding-left: 26px; font-size: 15px; line-height: 1.5; }
+.needs li::before { content: ""; position: absolute; left: 5px; top: 9px; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+/* one caveat on the cover ("Good to know"): a line with an info icon, never a box */
+.hero .note-box, .needs > p { position: relative; margin: 18px 0 0; padding: 0 0 0 26px; background: none; border-radius: 0; color: var(--ink-2); font-size: 15px; }
+.hero .note-box::before, .needs > p::before { content: ""; position: absolute; left: 0; top: 3px; width: 16px; height: 16px; background: var(--i-info) center / contain no-repeat; }
 .step :is(.expect, .iffail) { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; font-size: 15px; }
 .step .expect { background: var(--paper); }
 .step .expect > b:first-child { color: var(--good); }

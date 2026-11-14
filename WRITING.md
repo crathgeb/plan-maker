@@ -65,6 +65,13 @@ Assume the reader skims. Each block should be understood from its heading alone,
 7. **Concrete over abstract.** "247 automated tests pass", not "it's well tested". Real names, numbers and paths.
 8. **Cut** anything the reader doesn't need to decide, do or understand the next step.
 
+## The cover
+
+The cover (the hero) says what the page is and where it stands, and nothing more: the title, the lede, the progress panel the review layer draws (progress and **Next step**), and on a guide, **What you need**.
+
+- **No boxes on the cover.** A caveat the reader must know before starting is one **Good to know** line at the end of What you need. Anything longer is a content section.
+- **What you need** is things to have ready: time, logins, values, tools. Not steps, not background.
+
 ## Writing steps
 
 - One action per step, with an `<h4>` that is that action, verb first.

@@ -113,3 +113,8 @@ test('markup written as text (escaped code) is not counted as a phase or decisio
   const w = check(page(plan)).warnings.join('\n');
   assert.doesNotMatch(w, /outside the (Steps|Questions) part/);
 });
+
+test('a box on the cover warns', () => {
+  const html = own().replace('<p class="lede">Swap the old key for a new one without downtime.</p>', '<p class="lede">Swap the old key for a new one without downtime.</p><p class="note-box">Nothing else changes.</p>');
+  assert.match(check(page(html)).warnings.join('\n'), /A box on the cover/);
+});

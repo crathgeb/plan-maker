@@ -44,7 +44,7 @@ Copy `${CLAUDE_PLUGIN_ROOT}/templates/guide.html` and replace every piece of exa
 | Mark | Put it on | Rules |
 |---|---|---|
 | `<meta name="pm-parent" content="../../index.html">` and `<meta name="pm-parent-phase" content="<phase id>">` | A guide made from a plan's phase | The plan's path relative to this page, and the phase's `data-id`. The page then shows "Part of <plan> › <phase>" above the title, linked. Leave both out for a guide on its own. |
-| `<div class="needs item" data-id="needs">` | The hero, after the progress slot | `<h2>What you need</h2>` and a short list: time, logins, values, tools. |
+| `<div class="needs item" data-id="needs">` | The hero, after the progress slot | `<h2>What you need</h2>` and a short list: time, logins, values, tools. One caveat the reader must know before starting goes after the list as `<p><b>Good to know:</b> …</p>`. **Nothing else on the cover:** no `.note-box`, no extra boxes; more background is a content section of its own. |
 | `<p class="lede">` | Right after every section's `<h2>` | **Every section opens with one sentence saying what it covers and why it's there**, before its first group of steps: what this part gets done ("The two DNS records that point the domain at the new site."). Never start a section straight into its content. |
 | `<div class="steps">` under `<div class="phase-h"><h3>…</h3><span class="when">…</span></div>` | Each group of steps | Inside a `<section class="sec" id data-id>` with an `<h2>` and its one-sentence lede. |
 | `class="step item" data-who="you\|claude\|both"` | Every step | An `<h4>` title that's the action ("Point docs at the new site"), `<div class="when">` for time and what it needs, then the body. |

@@ -101,6 +101,8 @@ export function check(path) {
     if (words(paras) > 60) warnings.push(`Entry "${head || text(m[1]).slice(0, 40)}" runs ${words(paras)} words: keep the body to two sentences, about 40.`);
   }
   if (kind === 'plan') warnings.push(...planParts(body));
+  const hero = body.match(/<header[^>]*class=["'][^"']*\bhero\b[\s\S]*?<\/header>/i)?.[0] || '';
+  if (/<[a-z]+\b[^>]*class=["'][^"']*\b(note-box|callout)\b/.test(hero)) warnings.push('A box on the cover: put one caveat in What you need as <p><b>Good to know:</b> …</p>, or give it a section.');
   // Content numbered by hand, imitating steps.
   if (/<h[2-4][^>]*>\s*(?:Step\s+)?\d+[.)]\s/i.test(body)) warnings.push('A heading is numbered by hand: steps are numbered for you, and content is never numbered.');
 
