@@ -83,15 +83,17 @@ For each phase the user will act on soon, write its guide with `make-guide` at `
 Run it in the background from the project root:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/review.mjs" plans/<slug>/index.html
+node "${CLAUDE_PLUGIN_ROOT}/scripts/review.mjs" plans/<slug>/index.html --replace
 ```
 
-It opens the plan and prints the URL (`http://127.0.0.1:4478/` or the next free port). If a server is already serving this plan, it reuses it.
+It opens the plan and prints the URL (`http://127.0.0.1:4478/` or the next free port). Run it as a background task of this session: `--replace` takes over any server already serving the plan, so the one Claude listens to is this session's (`review-plan`, step 2).
 - **No browser here:** add `--no-open`.
 - **Another device:** add `--host 0.0.0.0`, which prints keyed `net →` URLs (see `review-plan`).
 - **Network defaults:** if `PLAN_MAKER_HOST` or `PLAN_MAKER_TRUST` is set, the user has chosen them; give them the `net →` URL too.
 
 A guide's card on the plan opens the guide on its own server; nothing else to start.
+
+Then **connect Claude** (`review-plan`, step 3) so **Send to Claude** on the page reaches this session.
 
 ## 6. Register it
 
@@ -112,8 +114,8 @@ Tell the user, briefly:
 - the URL and the plan's path;
 - the gist in three to five lines: the phases, which are theirs, and which have guides;
 - how to use it: select text to **Comment**, **Ask Claude** or ask for **More detail**, or use the buttons on any block; **Make a guide** on a phase they want walked through; **Mark done** on their phases; answer the decisions;
-- to press **Done for now** and say **"process my notes"**.
+- to press **Send to Claude** when they're done: you write the next version and the page reloads into it (or they can say **"process my notes"**).
 
-Done when `check.mjs` passes on the page, the plan exists, follows the conventions, is registered, the server is running, and the user has the URL.
+Done when `check.mjs` passes on the page, the plan exists, follows the conventions, is registered, the server is running, Claude is listening, and the user has the URL.
 
 To share it without the server, `node "${CLAUDE_PLUGIN_ROOT}/scripts/bundle.mjs" <plan>` writes a self-contained `<name>.review.html`, plus a copy of each linked guide, linked to each other. Each saves notes in that person's browser, and they send back the file from **Download notes.json**.

@@ -254,22 +254,69 @@ section.sec.pm-folded > :not(h2):not(.lede):not(.pm-fold):not(.pm-ui) { display:
 /* a reference whose sources changed after it was written */
 .pm-stale { margin: 16px 0 0; padding: 12px 14px; border-radius: 10px; background: color-mix(in srgb, var(--pm-warn) 10%, var(--pm-paper)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pm-warn) 35%, transparent); color: var(--pm-ink); font: 14px/1.5 var(--pm-sans); }
 .pm-stale b { color: var(--pm-warn); }
-#pm-rail { display: flex; align-items: center; gap: 2px; padding: 0 8px; border-left: 1px solid var(--pm-line); }
-#pm-rail[hidden] { display: none; }
-.pm-rail-lbl { margin-right: 4px; color: var(--pm-muted); font-weight: 500; }
-#pm-rail button { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--pm-ink-2); }
-#pm-rail button:hover { background: var(--pm-paper-2); color: var(--pm-ink); }
-#pm-rail button.pm-on { background: var(--pm-ink); color: var(--pm-paper); }
-#pm-rail button.pm-on .pm-ico { color: var(--pm-paper); }
-.pm-ico { width: 18px; height: 14px; flex: none; color: currentColor; }
-.pm-ico-arrow { background: linear-gradient(currentColor, currentColor) center / 100% 1.6px no-repeat; position: relative; }
-.pm-ico-arrow::after { content: ""; position: absolute; right: -1px; top: 3px; border: 4px solid transparent; border-left: 6px solid currentColor; border-right: 0; }
-.pm-ico-box { border: 1.6px solid currentColor; border-radius: 3px; }
-.pm-ico-circle { border: 1.6px solid currentColor; border-radius: 50%; }
-.pm-ico-point { width: 11px; height: 11px; margin: 0 3px; border-radius: 50%; background: currentColor; }
-.pm-ico-note { background: var(--pm-sticky); border: 1.6px solid currentColor; border-radius: 3px; }
+/* ---------- the floating toolbar: drawing tools, Comments, focus ----------
+   A vertical strip of icons docked at the left edge, centred top to bottom. Drag it anywhere by
+   its grip (kept in this browser); double-click the grip to dock it. On phones it lies along the
+   bottom. */
+#pm-tools { position: fixed; z-index: 9004; left: 12px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; max-height: calc(100vh - 24px); overflow-y: auto; padding: 6px; background: var(--pm-paper); color: var(--pm-ink-2); border: 1px solid var(--pm-line); border-radius: 12px; box-shadow: var(--pm-shadow); font: 13px/1 var(--pm-sans); }
+#pm-tools[hidden] { display: none; }
+#pm-tools.pm-moved { transform: none; }
+html.pm-has-top #pm-tools:not(.pm-moved) { top: calc(50% + var(--pm-top-h) / 2); }
+html.pm-focus #pm-tools:not(.pm-moved) { top: 50%; }
+#pm-tools svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+#pm-tools svg .pm-fill { fill: currentColor; stroke: none; }
+#pm-tools button { position: relative; display: grid; place-items: center; width: 34px; height: 34px; flex: none; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--pm-ink-2); cursor: pointer; }
+#pm-tools button:hover { background: var(--pm-paper-2); color: var(--pm-ink); }
+#pm-tools button[data-shape].pm-on { background: var(--pm-ink); color: var(--pm-paper); }
+#pm-tools button[aria-pressed="true"]:not([data-shape]) { background: var(--pm-paper-2); color: var(--pm-ink); }
+#pm-tools button:disabled { opacity: .4; cursor: default; background: none; }
+#pm-tools .pm-grip { height: 20px; color: var(--pm-muted); cursor: grab; touch-action: none; }
+#pm-tools.pm-dragging .pm-grip { cursor: grabbing; }
+.pm-tsep { width: 20px; height: 1px; margin: 3px 0; flex: none; background: var(--pm-line); }
+.pm-tcount { position: absolute; top: 1px; right: 0; display: grid; place-items: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: var(--pm-ink); color: var(--pm-paper); font: 700 10px/1 var(--pm-sans); font-variant-numeric: tabular-nums; }
+#pm-tools .pm-t-send:not(:disabled) { background: var(--pm-ink); color: var(--pm-paper); }
+#pm-tools .pm-t-send .pm-tcount { background: var(--pm-paper); color: var(--pm-ink); box-shadow: 0 0 0 1px var(--pm-ink); }
+/* Docked, the strip needs room at the left between the window's edge and a centred page. */
+@media (min-width: 761px) { html.pm-tools-docked:not(.pm-ro) body { padding-left: 56px; } }
+html.pm-locked #pm-tools button[data-shape] { opacity: .4; pointer-events: none; }
+
+/* ---------- Claude: the pill, Send, the lock, the toast ---------- */
+.pm-pill { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 999px; background: var(--pm-paper-2); color: var(--pm-ink-2); font-size: 13px; font-weight: 500; white-space: nowrap; }
+.pm-pill[hidden] { display: none; }
+.pm-pill-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; border: 1.5px solid var(--pm-muted); }
+.pm-pill[data-s="online"] .pm-pill-dot, .pm-pill[data-s="ready"] .pm-pill-dot { background: var(--pm-good); border-color: var(--pm-good); }
+.pm-pill[data-s="waiting"] .pm-pill-dot { background: var(--pm-muted); }
+.pm-pill[data-s="working"] { background: var(--pm-claude-tint); color: var(--pm-claude-ink); }
+.pm-pill[data-s="working"] .pm-pill-dot { background: var(--pm-claude); border-color: var(--pm-claude); animation: pm-pulse 1.4s ease-in-out infinite; }
+.pm-pill[data-s="error"] .pm-pill-dot { background: var(--pm-warn); border-color: var(--pm-warn); }
+@keyframes pm-pulse { 50% { opacity: .35; } }
+#pm-bar button:disabled { opacity: .5; cursor: default; }
+#pm-bar button.pm-primary:disabled:hover { background: var(--pm-ink); }
+.pm-send-n { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 8px; padding: 0 5px; border-radius: 999px; background: color-mix(in srgb, var(--pm-paper) 22%, transparent); font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#pm-reload { border-color: var(--pm-claude-line) !important; background: var(--pm-claude-tint) !important; color: var(--pm-claude-ink) !important; }
+#pm-lock { position: fixed; top: var(--pm-top-h); left: 0; right: 0; z-index: 8995; min-height: 44px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 9px 16px; background: var(--pm-claude-tint); color: var(--pm-claude-ink); border-bottom: 1px solid var(--pm-claude-line); font: 14px/1.4 var(--pm-sans); text-align: center; }
+#pm-lock[hidden] { display: none; }
+@media (min-width: 1100px) { html.pm-open #pm-lock { right: var(--pm-panel); } }
+html.pm-locked.pm-has-top { padding-top: calc(var(--pm-top-h) + 44px); }
+html.pm-locked.pm-focus.pm-has-top { padding-top: 44px; }
+.pm-lock-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--pm-claude); }
+#pm-lock[data-s="running"] .pm-lock-dot, #pm-lock[data-s="offered"] .pm-lock-dot { animation: pm-pulse 1.4s ease-in-out infinite; }
+.pm-lock-undo { height: 28px; padding: 0 12px; border: 1px solid var(--pm-claude-line); border-radius: 8px; background: var(--pm-paper); color: var(--pm-ink); font: 500 13px var(--pm-sans); cursor: pointer; }
+.pm-lock-undo:hover { border-color: var(--pm-claude); }
+html.pm-locked :is(.pm-ctl, .pm-sec-note, .pm-done-btn, .decision, .pm-kinds, .pm-del, #pm-general, #pm-panel .pm-note textarea) { pointer-events: none; }
+html.pm-locked :is(.pm-ctl, .pm-sec-note, .pm-done-btn, .decision label, .pm-kinds, .pm-del) { opacity: .55; }
+#pm-toast { position: fixed; z-index: 9010; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: min(560px, calc(100vw - 32px)); padding: 12px 16px; border-radius: 10px; background: var(--pm-ink); color: var(--pm-paper); font: 14px/1.45 var(--pm-sans); box-shadow: var(--pm-shadow-lg); }
+#pm-toast[hidden] { display: none; }
+
+/* ---------- focus (F): the page, and the toolbar ---------- */
+html.pm-focus.pm-has-top { padding-top: 0; scroll-padding-top: 16px; }
+html.pm-focus #pm-top { display: none; }
+html.pm-focus #pm-lock { top: 0; }
+html.pm-focus nav.toc { display: none; }
+html.pm-focus .desk { grid-template-columns: minmax(0, 860px); }
+@media (min-width: 1100px) { html.pm-focus.pm-has-top #pm-panel { top: 0; } }
+
 #pm-bar { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13.5px; }
-#pm-rail:not([hidden]) + #pm-bar { padding-left: 12px; border-left: 1px solid var(--pm-line); }
 #pm-status { color: var(--pm-muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 #pm-bar button { display: inline-flex; align-items: center; height: 34px; border: 1px solid var(--pm-line); background: var(--pm-paper); color: var(--pm-ink); border-radius: 8px; padding: 0 12px; font-size: 13.5px; font-weight: 500; white-space: nowrap; }
 #pm-bar button:hover { border-color: var(--pm-muted); }
@@ -338,7 +385,7 @@ html.pm-ro .pm-ctl button, html.pm-ro .pm-sec-note { opacity: 1 !important; }
 /* ---------- drawings ---------- */
 #pm-layer { position: absolute; top: 0; left: 0; width: 100%; height: 0; z-index: 8990; pointer-events: none; overflow: clip; }
 #pm-svg { position: absolute; top: 0; left: 0; overflow: visible; color: var(--pm-draw); pointer-events: none; }
-.pm-shape line, .pm-shape rect, .pm-shape ellipse { fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.pm-shape line, .pm-shape rect, .pm-shape ellipse, .pm-shape polyline { fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .pm-shape rect { rx: 6px; }
 .pm-shape { pointer-events: visiblePainted; cursor: pointer; }
 .pm-shape .pm-hit { stroke: transparent; stroke-width: 16; }
@@ -346,7 +393,8 @@ html.pm-ro .pm-ctl button, html.pm-ro .pm-sec-note { opacity: 1 !important; }
 .pm-shape-badge { fill: currentColor; }
 .pm-shape-n { fill: var(--pm-on-fill); font: 700 11px var(--pm-sans); pointer-events: none; }
 .pm-shape.pm-preview { opacity: .7; pointer-events: none; }
-.pm-shape.pm-hot-d line, .pm-shape.pm-hot-d rect, .pm-shape.pm-hot-d ellipse { stroke-width: 4.5; }
+.pm-shape polyline { stroke-linejoin: round; }
+.pm-shape.pm-hot-d line, .pm-shape.pm-hot-d rect, .pm-shape.pm-hot-d ellipse, .pm-shape.pm-hot-d polyline { stroke-width: 4.5; }
 #pm-pins { position: absolute; top: 0; left: 0; }
 .pm-pin { position: absolute; transform: translate(-50%, -50%); pointer-events: auto; border: 0; padding: 0; background: none; cursor: pointer; display: flex; align-items: flex-start; gap: 6px; }
 .pm-pin.pm-pin-flip { flex-direction: row-reverse; transform: translate(calc(-100% + 11px), -11px); }
@@ -364,20 +412,24 @@ pre.pm-has-copy { position: relative; }
 .pm-copy:hover { background: color-mix(in srgb, var(--pm-code-ink) 20%, transparent); }
 .pm-copy.pm-ok { color: #8ee09f; }
 
-@media (prefers-reduced-motion: reduce) { .pm-flash { animation: none; } .pm-rail-fold::after { transition: none; } .pm-prog-fill, .pm-ctl, .pm-ctl button, .pm-sec-note { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .pm-flash, .pm-pill-dot, .pm-lock-dot { animation: none !important; } .pm-rail-fold::after { transition: none; } .pm-prog-fill, .pm-ctl, .pm-ctl button, .pm-sec-note { transition: none !important; } }
 
 /* phones: the panel becomes a bottom sheet, the top bar takes two rows */
 @media (max-width: 760px) {
   #pm-panel { top: auto; left: 0; width: auto; height: 64vh; border-left: 0; border-top: 1px solid var(--pm-line); border-radius: 16px 16px 0 0; box-shadow: var(--pm-shadow-lg); }
-  :where(:root) { --pm-top-h: 96px; }
-  :where(html.pm-ro) { --pm-top-h: 48px; }
+  :where(:root) { --pm-top-h: 52px; }
   #pm-top { flex-wrap: wrap; align-content: flex-start; gap: 0 8px; padding: 0 8px 0 12px; }
   #pm-top > * { height: 48px; }
   .pm-title-name { max-width: 34vw; font-size: 14px; }
   .pm-top-sp { display: none; }
   #pm-bar .pm-wide { display: none; }
-  #pm-rail { order: 2; flex: 1 0 100%; margin-left: -12px; padding-left: 8px; border-left: 0; border-top: 1px solid var(--pm-line); }
-  #pm-rail:not([hidden]) + #pm-bar { padding-left: 0; border-left: 0; }
+  .pm-pill { width: 30px; padding: 0; justify-content: center; }
+  .pm-pill-t { display: none; }
+  #pm-tools, #pm-tools.pm-moved { left: 50%; right: auto; top: auto !important; bottom: 12px; transform: translateX(-50%); flex-direction: row; max-width: calc(100vw - 16px); max-height: none; overflow-x: auto; }
+  #pm-tools .pm-grip { display: none; }
+  .pm-tsep { width: 1px; height: 20px; margin: 0 3px; }
+  html.pm-has-tools:not(.pm-ro) body { padding-bottom: 64px; }
+  #pm-toast { bottom: 76px; }
   #pm-top #pm-status { display: none; }
   #pm-bar { gap: 6px; margin-left: auto; }
   #pm-bar button { padding: 0 10px; }

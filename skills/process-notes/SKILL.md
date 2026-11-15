@@ -1,6 +1,6 @@
 ---
 name: process-notes
-description: Use when the user says "process my notes", "I've reviewed the plan", "answer my questions", "make the guide I asked for", "refresh the reference" or is otherwise done with a round on a plan-maker page (a plan, guide or reference), to write its next version from notes.json. Applies their comments, answers their questions in place, adds the detail they asked for, writes the guides they requested from a plan's phases, and keeps what they ticked off.
+description: Use when a plan-maker listener prints a job ("the reader sent their notes on …"), or when the user says "process my notes", "I've reviewed the plan", "answer my questions", "make the guide I asked for", "refresh the reference" or is otherwise done with a round on a plan-maker page (a plan, guide or reference), to write its next version from notes.json. Applies their comments, answers their questions in place, adds the detail they asked for, writes the guides they requested from a plan's phases, and keeps what they ticked off.
 argument-hint: "[page path]"
 ---
 
@@ -15,6 +15,27 @@ Turns the user's round on a plan-maker page into its next version. It works the 
 - **Keep** what they ticked off.
 
 The previous version stays read-only, with the notes written on it, and the user can reopen it from the version switcher on the page.
+
+## 0. Sent from the page: work it as a job
+
+When the reader presses **Send to Claude**, the page's review server makes a **job** and the plan-maker listener (`review-plan`, step 3) prints a line:
+
+| Line | What to do |
+|---|---|
+| `connected to "<name>" at <url>` | Nothing. If it says its notes are waiting, the job line follows. |
+| `job <id>: the reader sent their notes on "<name>" (…). Run …` | Work it, as below. |
+| `the review server for … has stopped` | Nothing, unless the user is still reviewing: then start it again (`review-plan`). |
+
+For each job:
+
+1. **Claim it:** `node "${CLAUDE_PLUGIN_ROOT}/scripts/job.mjs" <page> start <id>`. The page shows "Claude is writing v<N+1>" and stays locked, so the notes can't change under you.
+2. **Start a background subagent** (Agent tool) with exactly the prompt the line gives: `Read <pack path> and do the job it describes.` The pack holds everything: the page, its notes, and steps 1 to 8 below with what's different for a worker. Don't add your own context: the pack is the contract.
+3. **When it finishes,** report its last line: `job.mjs <page> done <id> --summary "<its SUMMARY line>"`. The page reloads into the new version and shows the summary. If it ended with `FAILED:` instead, `job.mjs <page> fail <id> --error "<why>"`: the page unlocks and says why.
+4. **Tell the user** in a line or two what changed, and anything the worker said is waiting on them.
+
+Jobs on different pages run in parallel: start one subagent per job as they arrive. A page has one job at a time; the server holds the rest. Don't do a job's work in this conversation yourself.
+
+**"Process my notes" while a job waits.** If the user asks here instead, check first: `job.mjs <page> list`. If a job is `queued` or `offered`, claim it (`start`) before step 5, do the round in this conversation (steps 1 to 9), then close it (`done --summary "…"`), so the page unlocks and reloads. If nothing is waiting, go on as below.
 
 ## 1. Load
 
@@ -34,7 +55,7 @@ Account for every entry; skipping one silently loses the user's feedback.
 | `highlights[]` | The exact `quote` inside the element with `data-id = blockId`. `kind` is `note`, `question` or `detail`. |
 | `steps` | Progress, not feedback: `{ <id>: { done: true } }` for the user's steps (or phases) they ticked off. It tells you where they are. |
 | `decisions.<key>` | The `.decision[data-decision="<key>"]` block. `choice` and `label` are the answer, `recommended` was yours, `note` qualifies it. |
-| `drawings[]` | A mark the user drew: `shape` is `arrow`, `box`, `circle`, `point` or a sticky `note`. It sits on the block `blockId` (`null` = the page) at `x1,y1 → x2,y2`, fractions of that block's box; `where`/`excerpt` name it in words. Work out what it points at from its position in the block. A note on it is the feedback; a mark with no note means "look at this": treat it as a question about that spot, or list it under **Needs your call** if you can't tell what it wants. |
+| `drawings[]` | A mark the user drew: `shape` is `arrow`, `box`, `circle`, `point`, `pen` (a freehand stroke, its line in `points`, its bounds in `x1,y1 → x2,y2`) or a sticky `note`. It sits on the block `blockId` (`null` = the page) at `x1,y1 → x2,y2`, fractions of that block's box; `where`/`excerpt` name it in words. A pen stroke usually underlines, crosses out or circles what it's drawn over. Work out what it points at from its position in the block. A note on it is the feedback; a mark with no note means "look at this": treat it as a question about that spot, or list it under **Needs your call** if you can't tell what it wants. |
 
 `where` and `excerpt` name each spot in words. When `autoIds` is `true`, the ids were assigned in the browser (from headings: `goals`, `goals-1`, `goals-2`…, and `goals--2` for a repeated heading), so locate those elements by `where`, `excerpt` and `quote`.
 

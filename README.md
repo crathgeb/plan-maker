@@ -9,16 +9,16 @@ Ask Claude for a plan, to guide you through something, or to document how someth
 - tick off **your part** with **Mark done**, and watch **Claude's** move from to do, to in progress, to done (or mark Claude's done yourself)
 - see where you are at a glance: **Next step** under the progress bar jumps to what's next, the contents rail ticks off every step, and finished sections fold away
 - answer the pick-one **decisions** (Claude marks its recommendation)
-- **Draw** arrows, boxes, circles, points and sticky notes anywhere on the page, from tools always on screen in the top bar
+- **Draw** points, boxes, circles, arrows, freehand pen strokes and sticky notes anywhere on the page, from a floating toolbar (one key per tool) you can drag anywhere
 - write general notes
 
-A tiny local server saves everything to `notes.json` beside the page as you type. When you're done, press **Done for now** and say **"process my notes"**. Claude then writes the next version:
+A tiny local server saves everything to `notes.json` beside the page as you type. When you're done, press **Send to Claude**. The Claude Code session you're working in picks the notes up, hands them to a background subagent, and the page reloads into the next version while you carry on in the terminal. The top bar says whether Claude is connected and what it's doing. Claude:
 - it works through every comment and settles your decisions;
 - it answers each question right where you asked it, and adds the detail you asked for;
 - it writes the guides you requested and links them from their phases;
 - what you ticked off stays ticked.
 
-The new version opens with a **What changed** section, and every earlier version stays one click away, read-only, with the notes you wrote on it.
+The new version opens with a **What changed** section, and every earlier version stays one click away, read-only, with the notes you wrote on it. No session listening? Send still saves your notes and they wait, and saying **"process my notes"** to Claude works as before.
 
 ![A plan mid-review: a highlighted phrase with a numbered comment, a block's comment, and the comment panel](docs/screenshot.png)
 
@@ -75,6 +75,7 @@ Just ask ("plan the migration to the new billing provider", "guide me through se
 /plan-maker:guide move our DNS to Cloudflare
 /plan-maker:reference the docs build pipeline
 /plan-maker:plans
+/plan-maker:launch plans
 ```
 
 | Skill | When it runs | What it does |
@@ -82,9 +83,25 @@ Just ask ("plan the migration to the new billing provider", "guide me through se
 | `make-plan` | You ask for a plan, proposal, strategy or roadmap, or Claude is about to present a big one | Writes the plan to `plans/<slug>/index.html` (or a path you name) from the template, in parts: **Information** (what to know, including the risks), **Steps** (the phases, each owned by you or Claude, with guides for the ones you'll do soon), **Questions** (what only you can decide, while anything is open) and the **Decision log** (what's been decided, and the project's ADRs). The contents rail lists each part's sections under it, and every phase under Steps with a check once it's done. Then it registers the plan, starts the review server and gives you the URL |
 | `make-guide` | You ask to be guided or walked through something, want setup steps or a runbook, or ask for a guide for a plan's phase | Writes a guide from its template, inside the plan's folder when it's for a phase (`plans/<plan>/guides/<slug>/`), and links the phase to it |
 | `make-reference` | You ask for reference documentation of a system, API, config or pipeline | Writes a reference from its template, naming the files it describes so it can tell when it's out of date |
-| `review-plan` | You want to reopen a page, or share one for offline review | Starts the server for an existing page, or reuses the one already running |
-| `process-notes` | You say "process my notes", "I've reviewed the plan", "answer my questions" or "refresh the reference" | Maps every comment, question and request to its element and shows a short table of changes. Then it saves the reviewed version under `versions/` and writes the next version: it applies your notes, answers your questions where you asked them, adds the detail you asked for, writes the guides you requested, keeps what you ticked off, updates Claude's statuses and adds a "What changed" section |
+| `review-plan` | You want to reopen a page, connect Claude to your pages, or share one for offline review | Starts the server for an existing page (or reuses the one already running), and connects this session so **Send to Claude** reaches it |
+| `launch-pages` | You say "launch my plans", "launch my docs" or "launch everything" | Serves every active page in the repo from this session (plans and their guides, or references and standalone guides), registers them with the hub, takes finished pages off it, and connects Claude to all of them |
+| `process-notes` | You press **Send to Claude**, or say "process my notes", "I've reviewed the plan", "answer my questions" or "refresh the reference" | Maps every comment, question and request to its element and shows a short table of changes. Then it saves the reviewed version under `versions/` and writes the next version: it applies your notes, answers your questions where you asked them, adds the detail you asked for, writes the guides you requested, keeps what you ticked off, updates Claude's statuses and adds a "What changed" section |
 | `plan-registry` | You ask what you have, want the hub, say "register my plans" or tell Claude a page's status | Opens the hub, registers existing pages, records status, next action and progress. The other skills register and log as they go |
+
+### Send to Claude
+
+Pressing **Send to Claude** on a page works the way [design-driven-development](https://github.com/crathgeb/design-driven-development)'s board does ("Claude as a backend"):
+
+1. The page saves your notes, and its review server turns them into a **job**.
+2. The Claude session that serves the page hears of the job and starts a background subagent on it. Each session starts its page's server itself, as a background task (`review.mjs --replace` takes the page over from the hub or an older server, on the same port, and open tabs reconnect), and listens to it with `listen.mjs` under Claude Code's Monitor tool. The skills do both.
+3. While Claude has your notes the page is locked, with a strip saying what's happening: waiting, starting, or "Claude is writing v3". You can **Take them back** until it starts.
+4. When the subagent is done, the page reloads into the new version with a line on what changed. If it couldn't finish, the page unlocks and says why.
+
+Notes sent while no session listens wait on disk and go to the next one. (`listen.mjs --project` listens to every page in the project instead, for one session that takes everything.) Details are in [`docs/claude-backend.md`](docs/claude-backend.md).
+
+### The toolbar
+
+The drawing tools live in a floating strip docked at the left edge: **Select** (V), **Point** (P), **Box** (B), **Circle** (C), **Arrow** (A), **Pen** (D) and **Sticky note** (N), then **Comments** with its count and **Focus** (F). Drag it anywhere by its grip, and it stays there; double-click the grip to dock it again. **Focus** hides the top bar and the contents for just the page and the toolbar, which then carries **Send to Claude** too; F or Esc leaves. On a phone the strip lies along the bottom.
 
 ### Versions
 
@@ -118,7 +135,16 @@ The scripts work on their own:
 
 ```bash
 # Review any HTML file. Notes go to notes.json beside it.
-node scripts/review.mjs path/to/plan.html [--port 4478] [--host 127.0.0.1] [--trust tailnet] [--idle-hours 12] [--no-open]
+node scripts/review.mjs path/to/plan.html [--port 4478] [--host 127.0.0.1] [--trust tailnet] [--idle-hours 12] [--no-open] [--replace]
+
+# Claude's side of Send to Claude: listen (under the Monitor tool) and report on each job.
+node scripts/listen.mjs <page>            # one page; or --project DIR for every page in the project
+node scripts/job.mjs <page> start|done|fail <job-id> [--summary "…"] [--error "…"]
+node scripts/job.mjs <page> list
+
+# Every active page in the repo, served from one process (a session's background task):
+# registers new pages, takes finished ones off the hub, prints the URLs. --dry-run to look first.
+node scripts/launch.mjs [plans|docs|all] [--project DIR] [--host ADDR] [--dry-run]
 
 # Save the live plan as versions/v<N>.html and move its notes beside it.
 # Never overwrites an existing snapshot.
@@ -128,7 +154,7 @@ node scripts/snapshot.mjs path/to/plan.html
 node scripts/registry.mjs add path/to/plan.html --goal "…" [--name …] [--description …] [--status …] [--next …]
 node scripts/registry.mjs update <page|id> [--status in-progress] [--log "Phase 1 done"]
 node scripts/registry.mjs list [--all] [--project NAME] [--kind plan|guide|reference] [--json]
-node scripts/registry.mjs scan [dir]        # register every plan-maker page under dir
+node scripts/registry.mjs scan [dir]        # register every plan-maker page under dir, except those taken off the hub
 node scripts/hub.mjs [--port 4477] [--no-open]
 
 # Check a page after writing it: structure, leftover template example, WRITING.md rules.
@@ -154,16 +180,19 @@ While it runs, a server keeps a record in `~/.plan-maker/servers/` so the hub ca
 | `GET /` | The live plan with the annotation layer |
 | `GET /versions/v<N>` | Version N, read-only, with its notes |
 | `GET /api/versions` | Every version, newest first: `{ current, versions: [{ version, current, href, date, summary }] }` |
-| `GET /api/notes`, `PUT /api/notes` | The live plan's notes. Requests from a version page get that version's notes, and its saves are refused. |
+| `GET /api/notes`, `PUT /api/notes` | The live plan's notes. Requests from a version page get that version's notes, and its saves are refused. So are saves while Claude has the notes (409). |
 | `GET /api/status`, `PUT /api/status` | The page's kind, the statuses it can have, its registry status, and (for a reference) the source files changed since it was written. `PUT { status }` changes it. |
 | `GET /api/links` | Where the page's links lead: each phase's guide with its progress, and a guide's plan and phase |
 | `GET /api/open?href=…` | Starts (or reuses) the review server for a linked plan-maker page in the same project, and redirects to it |
+| `POST /api/send`, `GET /api/jobs`, `POST /api/jobs/<id>/start\|done\|fail\|cancel` | Send to Claude: the page's job and its progress ([`docs/claude-backend.md`](docs/claude-backend.md)) |
+| `GET /api/claude/events`, `POST /api/claude/state` | Claude's side: the listener's event stream, and what Claude says it's doing (this machine only) |
+| `GET /api/stream` | The page's event stream: Claude connected or not, its job, the page changed on disk |
 
 The bundled copy has the annotation layer inlined. Opened from disk, it saves in the browser and offers **Download notes.json**; put that file beside the page. Images the page links to are not inlined.
 
 ## How it works
 
-`lib/annotator.js` and `lib/annotator.css` are the whole review layer, for every kind of page. It reads the page's `<meta name="pm-kind">` and adjusts only what differs: the kind chip and statuses in the top bar, what counts as progress (a plan's phases, a guide's steps, nothing on a reference), Make a guide on phases, and the way back from a guide to its plan. The script builds its own notes panel, selection popover, toolbar and dialog, so a page is plain HTML with no script of its own. The server injects the layer before `</body>` on every request; the bundle command inlines it once. All the layer's classes start with `pm-`, so it sits on top of any page's styles. A page can recolour it by setting the `--pm-*` tokens (`--pm-you`, `--pm-claude`, `--pm-paper`, `--pm-ink`…) on `:root`. DESIGN.md describes the visual system.
+`lib/annotator.js` and `lib/annotator.css` are the whole review layer, for every kind of page. It reads the page's `<meta name="pm-kind">` and adjusts only what differs: the kind chip and statuses in the top bar, what counts as progress (a plan's phases, a guide's steps, nothing on a reference), Make a guide on phases, and the way back from a guide to its plan. The script builds its own notes panel, selection popover, top bar, floating toolbar and dialog, so a page is plain HTML with no script of its own. It also holds an event stream open to its review server (`/api/stream`), which tells it whether Claude is connected, how its notes' job is going, and when the page changes on disk ([`docs/claude-backend.md`](docs/claude-backend.md)). The server injects the layer before `</body>` on every request; the bundle command inlines it once. All the layer's classes start with `pm-`, so it sits on top of any page's styles. A page can recolour it by setting the `--pm-*` tokens (`--pm-you`, `--pm-claude`, `--pm-paper`, `--pm-ink`…) on `:root`. DESIGN.md describes the visual system.
 
 An older version saved with its own review script (from before plan-maker) is shown as it was: the server gives that script the version's notes, refuses its saves, and plan-maker adds only the read-only banner and the switcher.
 
@@ -236,10 +265,10 @@ Drawings are anchored to the block under where you start drawing (or the page), 
 | `items.<data-id>` | An entry, row, step, phase or section: `note` (the comment); `kind` (`note`; `question` for Claude to answer; `detail` for more detail; `guide`, on a plan's phase, for a guide of its own; the last two need no words); notes from older versions may carry a `verdict`; `where` (a readable location); `excerpt` (its text). `noteOpen` is UI state. |
 | `highlights[]` | A note on selected text: `quote` is the exact text inside the element whose `data-id` is `blockId`, at characters `start`–`end` of that element's text. `n` is the number shown on the page. `kind` is `note`, `question` or `detail`. `orphaned` is set when the text can no longer be found. |
 | `decisions.<key>` | `question`, the `choice` (radio value), its `label`, Claude's `recommended` value, and an optional `note` |
-| `drawings[]` | A mark drawn on the page: `shape` (`arrow`, `box`, `circle`, `point`, `note` for a sticky note), the block it sits on (`blockId`, `null` for the page, with `where` and `excerpt`), `x1, y1, x2, y2` as fractions of that block's box (an arrow points from 1 to 2), `n` (shared numbering with highlights) and `note` |
+| `drawings[]` | A mark drawn on the page: `shape` (`arrow`, `box`, `circle`, `point`, `pen` for a freehand stroke with its line in `points`, `note` for a sticky note), the block it sits on (`blockId`, `null` for the page, with `where` and `excerpt`), `x1, y1, x2, y2` as fractions of that block's box (an arrow points from 1 to 2), `n` (shared numbering with highlights) and `note` |
 | `steps` | `steps.<data-id>` is `{ done, doneAt, where }` for each step or phase marked done: yours, or one of Claude's you marked done yourself. It carries over to the next version. |
 | `autoIds` | `true` when the ids were assigned in the browser |
-| `doneAt` | When **Done for now** was last pressed |
+| `doneAt` | When **Send to Claude** (or, in a bundled copy, **Done for now**) was last pressed |
 
 After a revision, the notes move to `versions/v<N>.notes.json` (plan-maker 0.1 archived them as `notes-v<N>.json` beside the plan; that name is still read).
 
@@ -251,7 +280,7 @@ npm test             # end-to-end tests in Chrome
 npm run screenshot   # regenerates the screenshots in docs/
 ```
 
-The tests drive the system Chrome (`/Applications/Google Chrome.app/…` on macOS; set `CHROME_PATH` elsewhere). They cover: selecting text and saving a note, highlights restored after a reload, comments on blocks and sections, questions, general notes, your steps and Claude's with both lanes, decisions, the server's host, content-type and path checks, reusing a running server, no horizontal scroll at phone width, no console errors, ids assigned to plain HTML, and the standalone bundle. For versions: snapshots (and refusing to overwrite one), the switcher, an old version read-only with its notes and disabled controls, a stale tab unable to save, the current version still saving, links between versions, an older page with its own review script, and `bundle --all-versions`. For kinds: the three templates sharing one style block, each kind's top bar, statuses and progress, phases following their guide, Make a guide and More detail, the links between a plan and its guides (on the server and in bundles), stale references, the hub's nesting and filter, and plans from before kinds still working (`test/fixtures/steps-plan.html`). For running servers: the record a server keeps, stopping itself when idle (and not while a tab pings it), reuse on any port, the hub's list, orphans and Stop, and the page saying when its server has stopped. For the reading experience: Next step, the rail's step list and its checks, folding finished work, marking Claude's work done yourself, pinned projects, Copy inside the hub, Remove from hub, and `check.mjs` (a page pasted twice, the template's example left in, a plan's parts, a box on the cover). These tests set `PLAN_MAKER_SCAN=off` so the hub only sees their own servers, never yours.
+The tests drive the system Chrome (`/Applications/Google Chrome.app/…` on macOS; set `CHROME_PATH` elsewhere). They cover: selecting text and saving a note, highlights restored after a reload, comments on blocks and sections, questions, general notes, your steps and Claude's with both lanes, decisions, the server's host, content-type and path checks, reusing a running server, no horizontal scroll at phone width, no console errors, ids assigned to plain HTML, and the standalone bundle. For versions: snapshots (and refusing to overwrite one), the switcher, an old version read-only with its notes and disabled controls, a stale tab unable to save, the current version still saving, links between versions, an older page with its own review script, and `bundle --all-versions`. For kinds: the three templates sharing one style block, each kind's top bar, statuses and progress, phases following their guide, Make a guide and More detail, the links between a plan and its guides (on the server and in bundles), stale references, the hub's nesting and filter, and plans from before kinds still working (`test/fixtures/steps-plan.html`). For running servers: the record a server keeps, stopping itself when idle (and not while a tab pings it), reuse on any port, the hub's list, orphans and Stop, and the page saying when its server has stopped. For Claude as a backend (`test/claude.test.mjs`): Send making one job, the notes locked while it's active, the listener (one page, and a whole project including servers started later) printing the job, `job.mjs` start, done and fail with and without a server, an unstarted offer going back to the queue, Take them back, and the page following along: the lock strip, "Writing v2", reloading into v2 with its summary, and offering a reload when the file changes outside a round. For the toolbar: keys, the pen's stroke, typing not picking tools, drag, keep and dock, and focus. For the reading experience: Next step, the rail's step list and its checks, folding finished work, marking Claude's work done yourself, pinned projects, Copy inside the hub, Remove from hub, and `check.mjs` (a page pasted twice, the template's example left in, a plan's parts, a box on the cover). These tests set `PLAN_MAKER_SCAN=off` so the hub only sees their own servers, never yours.
 
 ## License
 
