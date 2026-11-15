@@ -46,7 +46,7 @@ node "$R" update <page|id> [--status S] [--next "…"] [--goal "…"] [--log "wh
 node "$R" list [--all] [--project NAME] [--kind plan|guide|reference] [--json]     # active only, unless --all
 node "$R" show <page|id>
 node "$R" scan [dir]       # register every plan-maker page under dir (HTML with a plan-version or pm-kind meta), guides inside plans included
-node "$R" remove <page|id> # drops the entry; the page is untouched
+node "$R" remove <page|id> # drops the entry; the page is untouched, and scan leaves it off (add brings it back)
 node "$R" prune            # drops entries whose page is gone
 ```
 
@@ -69,6 +69,8 @@ Its **Running servers** view lists every review server running on this machine a
 Give the user the URL and a short summary from `list`: what's waiting on them first, then what's in progress or blocked.
 
 ## Register existing plans
+
+("Launch my plans" or "launch my docs" registers the repo's pages and serves them too: that's `launch-pages`.)
 
 When the user says "register my plans", or the hub is missing pages they have:
 

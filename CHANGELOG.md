@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.0.0 (2026-11-14)
+
+Claude as a backend: **Send to Claude** on any page hands your notes to the Claude Code session you're working in, which writes the next version in the background while the page follows along. Each session runs the servers for the pages it works, and "launch my plans" brings up a whole repo's pages at once, with finished ones cleaned off the hub. And a new toolbar: the drawing tools float beside the page, one key each, with a pen.
+
+**Upgrading:** update the plugin and start a new Claude Code session. Review servers already running are an older build: the first session to serve or launch a page replaces them on the same port. Reload any tab opened before the update once, to get the new toolbar and the Claude pill.
+
+- **Send to Claude replaces Done for now.** The page saves your notes and its review server turns them into a job; the session listening to the page (`scripts/listen.mjs`, under Claude Code's Monitor tool) starts a background subagent on it with a self-contained context pack; the page reloads into the new version with a line on what changed. Notes sent while no session listens wait on disk for the next one, and "process my notes" in a session picks up a waiting job too. The pattern, its API and its limits are in `docs/claude-backend.md`, after design-driven-development's "Claude as a backend".
+- **Claude, online or offline, on every page.** The top bar's pill says whether a session is listening, and what it's doing: waiting, writing v3, ready, or that it couldn't finish.
+- **The page locks while Claude has your notes,** with a strip saying where it's up to, so the notes can't change under Claude or land on the wrong version (the server refuses saves while a job is active). **Take them back** before Claude starts to keep editing.
+- **Each session runs its own server.** The skills start the page's server as a background task of the session that works its notes, and listen to it, so the server and the Claude listening to it end together. `review.mjs --replace` takes a page over from the hub, a link or another session on the same port (open tabs reconnect within seconds); a server from an older build is replaced without it, and a listener that reaches one says how to replace it. `listen.mjs --project` listens to every page in a project, for one session that takes everything.
+- **"Launch my plans", "launch my docs".** A new `launch-pages` skill and `scripts/launch.mjs` bring up a repo's pages from one session. The launcher registers every page in the project that isn't on the hub yet and takes finished ones off it: done or archived, every phase and step done, or a guide whose plan is finished. It then serves the rest (`plans`: plans and their guides; `docs`: references and standalone guides) as its own children, with `--replace`. One `listen.mjs --project` connects them all. The servers stop with the session, even if the launcher is killed outright. `--dry-run` shows what it would do.
+- **Pages taken off the hub stay off.** Removing a page from the hub, or a launch cleaning up a finished one, is remembered, so `registry.mjs scan` doesn't register it again. `registry.mjs add` brings one back.
+- **`job.mjs`** for the session: `start`, `done --summary`, `fail --error`, `list` and `pack`, through the server when it runs, on the files when it doesn't.
+- **The page notices when its file changes** outside a round (Claude editing it in conversation) and offers **Page updated · Reload**.
+- **A floating toolbar.** The drawing tools moved out of the top bar into a strip docked at the left edge: Select (V), Point (P), Box (B), Circle (C), Arrow (A), Pen (D), Sticky note (N), then Comments with its count and Focus (F). Drag it anywhere by its grip and it stays there; double-click the grip to dock it. On phones it lies along the bottom, and the top bar is one row again.
+- **Pen.** Freehand strokes, anchored to the block they start on like every other mark (`shape: "pen"`, its line in `points`, fractions of the block's box). `process-notes` reads them.
+- **Focus (F):** just the page and the toolbar, full screen, with Send to Claude on the toolbar.
+- **Skills:** new `launch-pages` (and `/plan-maker:launch`); `review-plan` starts the server in the session and connects it (steps 2 and 3); `make-plan`, `make-guide` and `make-reference` connect after starting the server; `process-notes` works job lines (its new step 0) and claims a waiting job when asked in conversation.
+- **Server:** new `POST /api/send`, `GET /api/jobs`, `POST /api/jobs/<id>/start|done|fail|cancel`, `GET /api/claude/events`, `POST /api/claude/state` and `GET /api/stream`. `/api/health` from this machine says whether Claude is connected. Event streams end with a `bye` when the server stops. Jobs live in `~/.plan-maker/jobs/`, never in the repo.
+- notes.json only grows: older notes and pages work unchanged, and a bundled copy keeps **Done for now** and **Download notes.json**.
+
 ## 0.3.0 (2026-11-14)
 
 Three kinds of page, one hub, and pages that show you where you are: plans, guides and references on one engine; a hub across every project; plans split into Information, Steps, Questions and a Decision log; a contents rail that ticks off every step; finished work that folds away; and writing rules every page is checked against.

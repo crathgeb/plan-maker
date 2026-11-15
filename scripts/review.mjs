@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // plan-maker review server. Node built-ins only.
 //
-//   node review.mjs <plan.html | plan-dir> [--port 4478] [--host 127.0.0.1] [--trust tailnet] [--idle-hours 12] [--no-open]
+//   node review.mjs <plan.html | plan-dir> [--port 4478] [--host 127.0.0.1] [--trust tailnet] [--idle-hours 12] [--no-open] [--replace]
 //
 // Serves the plan with the annotation layer injected and saves the review to
 // notes.json next to the plan as the reader works. Binds to 127.0.0.1 unless
@@ -14,7 +14,10 @@
 // server by an IP, a *.ts.net name or this machine's hostname, so a DNS
 // rebinding page (which sends its own domain as Host) is still refused.
 // If the port is taken it tries the next 19, then any free port. If a plan-maker server is
-// already reviewing the same plan, it reuses that one and exits.
+// already reviewing the same plan, it reuses that one and exits, unless that server is an older
+// build without Send to Claude, or --replace is given: then it stops that server and takes its
+// place on the same port, so the page's open tabs reconnect to this one. A Claude Code session
+// runs it with --replace so the server it listens to is its own.
 //
 // While it runs it leaves a record in ~/.plan-maker/servers/ (lib/servers.mjs) so the hub
 // can list and stop it. An open tab pings it every minute; once no tab has spoken to it
@@ -36,10 +39,20 @@
 //   DELETE /api/status     remove the page from the hub (the registry entry only)
 //   GET  /api/links        where the page's links lead: a plan's guides (by phase) and a guide's plan
 //   GET  /api/open?href=…  start (or reuse) the review server for a linked page, then redirect to it
+//
+// Claude as a backend (docs/claude-backend.md): the reader's Send to Claude becomes a job
+// (lib/jobs.mjs) that a Claude Code session, listening through scripts/listen.mjs, picks up.
+//   POST /api/send               { message? } hand the notes to Claude: a job (or the one already waiting)
+//   GET  /api/jobs               { jobs (newest first, up to 10), active, claude }
+//   POST /api/jobs/<id>/start | done { summary } | fail { error } | cancel   (cancel: from the page, before it starts)
+//   GET  /api/claude/events      SSE for the listener (this machine only): hello, then the job when there is one
+//   POST /api/claude/state       { phase: idle|working|ready|error, message }
+//   GET  /api/stream             SSE for the page: claude, job, page (the HTML changed on disk)
+// While the page has an active job, PUT /api/notes is refused (409): Claude is working from them.
 
 import { spawn } from 'node:child_process';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { existsSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync, statSync, unlinkSync, watch, writeFileSync } from 'node:fs';
 import { createServer, get } from 'node:http';
 import { hostname, networkInterfaces, tmpdir } from 'node:os';
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
@@ -48,6 +61,7 @@ import { currentVersion, isLegacy, listVersions, readJson, readVersion, snapshot
 import { readKind, readMeta, statusesFor } from '../lib/kinds.mjs';
 import { startReview } from '../lib/launch.mjs';
 import { pageHash, readRecords, removeRecord, writeRecord } from '../lib/servers.mjs';
+import { ACTIVE, activeJob, cancelJob, describeJob, failJob, finishJob, loadJob, loadJobs, packFile, saveJob, sendRound, startJob, tally, writePack } from '../lib/jobs.mjs';
 import { find, guideProgress, linkTarget, load as loadRegistry, projectOf, readPage, readPhases, remove as removeEntry, save as saveRegistry, staleSources, upsert } from '../lib/registry.mjs';
 
 const LOOPBACK = '127.0.0.1';
@@ -64,7 +78,7 @@ const TYPES = {
 
 function usage(msg) {
   if (msg) console.error(`review: ${msg}`);
-  console.error('usage: node review.mjs <plan.html | plan-dir> [--port N] [--host ADDR] [--trust tailnet,CIDR] [--idle-hours H] [--no-open]');
+  console.error('usage: node review.mjs <plan.html | plan-dir> [--port N] [--host ADDR] [--trust tailnet,CIDR] [--idle-hours H] [--no-open] [--replace]');
   process.exit(2);
 }
 
@@ -75,6 +89,7 @@ let open = true;
 let host = process.env.PLAN_MAKER_HOST || LOOPBACK;
 let trustArg = process.env.PLAN_MAKER_TRUST || '';
 let idleHours = process.env.PLAN_MAKER_IDLE_HOURS ? Number(process.env.PLAN_MAKER_IDLE_HOURS) : 12;
+let replace = false;
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
   if (a === '--port') port = Number(argv[++i]);
@@ -86,6 +101,7 @@ for (let i = 0; i < argv.length; i++) {
   else if (a === '--idle-hours') idleHours = Number(argv[++i]);
   else if (a.startsWith('--idle-hours=')) idleHours = Number(a.slice(13));
   else if (a === '--no-open') open = false;
+  else if (a === '--replace') replace = true;
   else if (a === '-h' || a === '--help') usage();
   else if (a.startsWith('-')) usage(`unknown option ${a}`);
   else if (!planArg) planArg = a;
@@ -129,7 +145,7 @@ function probe(p) {
       res.on('end', () => {
         try {
           const j = JSON.parse(body);
-          ok(j.app === 'plan-maker' && (j.planHash === planHash || j.plan === planPath) ? p : null);
+          ok(j.app === 'plan-maker' && (j.planHash === planHash || j.plan === planPath) ? { port: p, health: j } : null);
         } catch {
           ok(null);
         }
@@ -142,8 +158,30 @@ function probe(p) {
 
 // The usual ports, then any port a server for this page recorded (one the system picked).
 const tryPorts = [...new Set([...Array.from({ length: PORT_TRIES }, (_, i) => port + i), ...readRecords().filter((r) => r.page === planPath).map((r) => r.port)])];
-const found = (await Promise.all(tryPorts.map(probe))).find(Boolean);
+let found = (await Promise.all(tryPorts.map(probe))).find(Boolean);
+// An older build (no Send to Claude), or --replace: stop it and take its port.
+if (found && (replace || !found.health.backend)) {
+  const { pid } = found.health;
+  const why = found.health.backend ? 'started elsewhere' : 'an older build, without Send to Claude';
+  if (!pid) {
+    console.error(`review: a server for this page runs on port ${found.port} (${why}), but it doesn't say its process; stop it and run this again`);
+    process.exit(1);
+  }
+  // A current server hears it's being replaced (SIGUSR2), so its tabs look for this one at once.
+  try {
+    process.kill(pid, found.health.backend && process.platform !== 'win32' ? 'SIGUSR2' : 'SIGTERM');
+  } catch {}
+  for (let i = 0; i < 50 && (await probe(found.port)); i++) {
+    if (i === 30) try { process.kill(pid, 'SIGKILL'); } catch {}
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  console.log(`plan-maker: replaced the server on port ${found.port} (pid ${pid}, ${why})`);
+  port = found.port;
+  open = false; // its tabs reconnect to this one
+  found = null;
+}
 if (found) {
+  found = found.port;
   const run = readJson(runFile);
   const mine = run && run.port === found;
   const url = `http://${local}:${found}/`;
@@ -163,8 +201,8 @@ async function handle(req, res) {
       // (Addressed to 127.0.0.1 by name, as in the check below, so a DNS-rebinding page can't read it.)
       const asker = req.socket.remoteAddress?.replace(/^::ffff:/, '') || '';
       const named = ['127.0.0.1', 'localhost'].includes((req.headers.host || '').replace(/:\d+$/, ''));
-      const more = isLoopback(asker) && named ? { pid: process.pid, page: planPath, started, idle: Math.floor((performance.now() - lastActive) / 1000), network } : {};
-      return send(res, 200, JSON.stringify({ app: 'plan-maker', planHash, ...more }), TYPES['.json']);
+      const more = isLoopback(asker) && named ? { pid: process.pid, page: planPath, started, idle: Math.floor((performance.now() - lastActive) / 1000), network, claude: claude().connected } : {};
+      return send(res, 200, JSON.stringify({ app: 'plan-maker', planHash, backend: 1, ...more }), TYPES['.json']);
     }
     // Loopback: only requests addressed to this machine by name (blocks DNS rebinding).
     // Network mode: anything else must carry the key (rebinding pages never have it).
@@ -184,6 +222,9 @@ async function handle(req, res) {
     }
     lastActive = performance.now();
     if (url.pathname === '/api/ping') return send(res, 204, '');
+    if (url.pathname.startsWith('/api/claude/') || url.pathname === '/api/stream' || url.pathname === '/api/send' || url.pathname.startsWith('/api/jobs')) {
+      return await claudeRoute(req, res, url.pathname, fromHere);
+    }
     // A relative link from one version page to another ("versions/v1" from
     // /versions/v2) resolves to /versions/versions/v1: treat it as /versions/v1.
     const path = decodeURIComponent(url.pathname).replace(/^(\/versions)+\//, '/versions/');
@@ -286,6 +327,7 @@ async function handle(req, res) {
         // A JSON content type forces a CORS preflight, which other sites fail.
         if (!(req.headers['content-type'] || '').startsWith('application/json')) return send(res, 415, 'expected JSON');
         if (from) return send(res, 409, `v${from} is read-only`);
+        if (activeJob(planPath)) return send(res, 409, 'Claude has these notes: they unlock when it is done, or when you take them back');
         const body = await readBody(req);
         const parsed = JSON.parse(body);
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return send(res, 400, 'expected a JSON object');
@@ -352,6 +394,174 @@ const started = new Date().toISOString();
 const server = createServer(handle);
 const loopbackServer = network && !wildcard ? createServer(handle) : null;
 let boundPort = null;
+
+// ---------- Claude as a backend ----------
+// One writer at a time for jobs, so a Send, a start and a done can't interleave.
+let chain = Promise.resolve();
+const serial = (fn) => {
+  const p = chain.then(fn);
+  chain = p.catch(() => {});
+  return p;
+};
+const GRACE_MS = Number(process.env.PLAN_MAKER_CLAUDE_GRACE_MS) || 60_000;
+const listeners = new Map(); // a listener's response → the job ids offered to it
+const tabs = new Set(); // the page's own event streams
+let lastSeen = 0;
+let claudeState = { phase: 'idle', message: '' };
+const claude = () => ({ connected: listeners.size > 0 || (lastSeen > 0 && Date.now() - lastSeen < GRACE_MS), listening: listeners.size > 0, ...claudeState });
+const toTabs = (ev) => {
+  const frame = `data: ${JSON.stringify(ev)}\n\n`;
+  for (const r of tabs) r.write(frame);
+};
+const claudeChanged = () => toTabs({ type: 'claude', claude: claude() });
+const recentJobs = () => loadJobs(planPath).reverse().slice(0, 10);
+const jobChanged = () => toTabs({ type: 'job', job: activeJob(planPath) || recentJobs()[0] || null });
+
+/** Offer the page's waiting job to the newest listener. */
+function kick() {
+  const target = [...listeners.keys()].pop();
+  if (!target) return;
+  const job = activeJob(planPath);
+  if (!job || job.status !== 'queued') return;
+  const pack = writePack(planPath, job); // fresh: the page may have changed since it was sent
+  job.status = 'offered';
+  job.offeredAt = new Date().toISOString();
+  saveJob(planPath, job);
+  listeners.get(target).add(job.id);
+  target.write(`data: ${JSON.stringify({ type: 'job', id: job.id, line: describeJob(job, pack), pack, page: planPath })}\n\n`);
+  jobChanged();
+}
+
+function attachListener(req, res) {
+  res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-store', connection: 'keep-alive' });
+  serial(() => {
+    // A new session is offered what's waiting, including an offer a session that left never started.
+    const j = activeJob(planPath);
+    if (j?.status === 'offered') saveJob(planPath, { ...j, status: 'queued' });
+    const html = readFileSync(planPath, 'utf8');
+    const name = find(loadRegistry(), planPath)?.name || html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim() || basename(planDir);
+    res.write(`data: ${JSON.stringify({ type: 'hello', page: planPath, name, url: `http://${local}:${boundPort}/`, waiting: activeJob(planPath) ? 1 : 0 })}\n\n`);
+    listeners.set(res, new Set());
+    lastSeen = Date.now();
+    kick();
+    claudeChanged();
+  });
+  req.on('close', () => {
+    const offered = listeners.get(res) || new Set();
+    listeners.delete(res);
+    lastSeen = Date.now();
+    serial(() => {
+      // An offer this session never started goes back to the queue for the next one.
+      for (const id of offered) {
+        const j = loadJob(planPath, id);
+        if (j?.status === 'offered') saveJob(planPath, { ...j, status: 'queued' });
+      }
+      kick();
+      jobChanged();
+      claudeChanged();
+    });
+    setTimeout(claudeChanged, GRACE_MS + 50).unref();
+  });
+}
+
+async function claudeRoute(req, res, path, fromHere) {
+  const m = req.method;
+  const json = (status, obj) => send(res, status, JSON.stringify(obj), TYPES['.json']);
+  const body = async () => {
+    if (!(req.headers['content-type'] || '').startsWith('application/json')) throw Object.assign(new Error('expected JSON'), { status: 415 });
+    const text = await readBody(req);
+    return text ? JSON.parse(text) : {};
+  };
+  const from = versionOf(req.headers.referer);
+  try {
+    if (m === 'GET' && path === '/api/stream') {
+      res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-store', connection: 'keep-alive' });
+      res.write(`data: ${JSON.stringify({ type: 'hello', claude: claude(), job: activeJob(planPath) || recentJobs()[0] || null })}\n\n`);
+      tabs.add(res);
+      req.on('close', () => tabs.delete(res));
+      return;
+    }
+    if (m === 'GET' && path === '/api/claude/events') {
+      // Claude connects from this machine, by name: never from another device, even with the key.
+      if (!fromHere) return send(res, 403, 'Claude connects from this machine only');
+      return attachListener(req, res);
+    }
+    if (m === 'POST' && path === '/api/claude/state') {
+      const { phase, message = '' } = await body();
+      if (!['idle', 'working', 'ready', 'error'].includes(phase)) return send(res, 400, 'phase must be idle, working, ready or error');
+      claudeState = { phase, message: String(message).slice(0, 300) };
+      claudeChanged();
+      return send(res, 204, '');
+    }
+    if (m === 'GET' && path === '/api/jobs') return json(200, { jobs: recentJobs(), active: activeJob(planPath), claude: claude() });
+    if (m === 'POST' && path === '/api/send') {
+      if (from) return send(res, 409, `v${from} is read-only`);
+      const { message = '' } = await body();
+      const out = await serial(() => {
+        if (!activeJob(planPath) && !tally(readJson(notesPath)).total && !String(message).trim()) {
+          throw Object.assign(new Error('nothing to send yet: comment, ask or mark something first'), { status: 400 });
+        }
+        const name = find(loadRegistry(), planPath)?.name || null;
+        const r = sendRound(planPath, { message, name });
+        kick();
+        return r;
+      });
+      jobChanged();
+      return json(200, { job: loadJob(planPath, out.job.id) || out.job, created: out.created, claude: claude() });
+    }
+    const jm = path.match(/^\/api\/jobs\/(j_[a-z0-9]+)(?:\/(start|done|fail|cancel))?$/);
+    if (jm && m === 'GET' && !jm[2]) {
+      const job = loadJob(planPath, jm[1]);
+      return job ? json(200, { ...job, pack: packFile(planPath, job.id) }) : send(res, 404, 'no such job');
+    }
+    if (jm && m === 'POST' && jm[2]) {
+      const [, id, verb] = jm;
+      // Start, done and fail come from Claude's session on this machine; the page may only take its notes back.
+      if (verb !== 'cancel' && !fromHere) return send(res, 403, 'only Claude, on this machine, reports on a job');
+      const b = await body();
+      const job = await serial(() => {
+        const j = verb === 'start' ? startJob(planPath, id) : verb === 'done' ? finishJob(planPath, id, b) : verb === 'fail' ? failJob(planPath, id, b) : cancelJob(planPath, id);
+        if (verb !== 'start') for (const set of listeners.values()) set.delete(id);
+        if (verb === 'start') claudeState = { phase: 'working', message: `Writing v${j.next || j.version + 1}` };
+        if (verb === 'done') claudeState = { phase: 'ready', message: j.summary || `v${j.version} is ready` };
+        if (verb === 'fail') claudeState = { phase: 'error', message: j.error };
+        if (verb === 'cancel') claudeState = { phase: 'idle', message: '' };
+        return j;
+      });
+      jobChanged();
+      claudeChanged();
+      return json(200, job);
+    }
+    return send(res, 404, 'not found');
+  } catch (err) {
+    const status = err.status || (err instanceof SyntaxError ? 400 : 500);
+    if (!res.headersSent) send(res, status, String(err.message || err));
+    else res.end();
+  }
+}
+
+// Keep both kinds of stream alive through proxies and sleeping tabs.
+setInterval(() => {
+  for (const r of [...tabs, ...listeners.keys()]) r.write(': ping\n\n');
+}, 20_000).unref();
+
+// The page changed on disk (Claude wrote a new version, or edited it in conversation): tell the tabs.
+let pageTimer = null;
+try {
+  const w = watch(planDir, (_ev, name) => {
+    if (name !== basename(planPath)) return;
+    clearTimeout(pageTimer);
+    pageTimer = setTimeout(() => {
+      let version = null;
+      try {
+        version = readVersion(readFileSync(planPath, 'utf8'));
+      } catch {}
+      toTabs({ type: 'page', version });
+    }, 150);
+  });
+  w.on('error', () => {});
+  w.unref?.();
+} catch {}
 
 function redirect(res, location) {
   res.writeHead(302, { location, 'cache-control': 'no-store' });
@@ -432,7 +642,13 @@ async function listen(p, triesLeft) {
 }
 listen(port, PORT_TRIES);
 
-function shutdown() {
+function shutdown(replaced = false) {
+  // End the event streams cleanly, saying why, so tabs and listeners don't treat it as a dropped line.
+  for (const r of [...tabs, ...listeners.keys()]) {
+    try {
+      r.end(`data: ${JSON.stringify({ type: 'bye', replaced })}\n\n`);
+    } catch {}
+  }
   if (network) try { unlinkSync(runFile); } catch {}
   removeRecord();
   loopbackServer?.close();
@@ -442,8 +658,20 @@ function shutdown() {
   loopbackServer?.closeAllConnections?.();
   setTimeout(() => process.exit(0), 1000).unref();
 }
-for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, shutdown);
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => shutdown());
+if (process.platform !== 'win32') process.on('SIGUSR2', () => shutdown(true)); // review.mjs --replace
 process.on('exit', () => removeRecord());
+// Started by launch.mjs: stop with it, even if it was killed outright and couldn't say so.
+const parent = Number(process.env.PLAN_MAKER_PARENT_PID);
+if (parent) {
+  setInterval(() => {
+    try {
+      process.kill(parent, 0);
+    } catch (err) {
+      if (err.code !== 'EPERM') shutdown();
+    }
+  }, 2000).unref();
+}
 
 // ---------- helpers ----------
 /** "tailnet,192.168.1.0/24" → [{label, test(addr)}]. Exits on anything it can't read. */

@@ -17,7 +17,7 @@ after(async () => {
 
 /** Drag on the page with a drawing tool, from one block's point to another's (fractions of each block's box). */
 async function draw(page, shape, from, to = from) {
-  await page.click(`#pm-rail button[data-shape="${shape}"]`);
+  await page.click(`#pm-tools button[data-shape="${shape}"]`);
   const at = async ([id, fx, fy]) => {
     const el = page.locator(`[data-id="${id}"]`);
     await el.scrollIntoViewIfNeeded();
@@ -54,7 +54,9 @@ describe('steps and lanes on the plan template', () => {
     assert.equal(await page.locator('[data-id="s1-pages-project"] .pm-note-btn').count(), 1);
     assert.equal(await page.locator('[data-id="sum-goal"] .pm-note-btn').count(), 1);
     assert.equal(await page.locator('[data-id="sum-goal"] .pm-done-btn').count(), 0);
-    assert.equal((await page.locator('#pm-done').textContent()).replace(/\s+/g, ' ').trim(), 'Done for now');
+    // Served, the main action hands the notes to Claude; Done for now is for a bundled copy.
+    assert.equal((await page.locator('#pm-send').innerText()).replace(/\s+/g, ' ').trim(), 'Send to Claude');
+    assert.equal(await page.locator('#pm-done').isVisible(), false);
   });
 
   test("marking Claude's step done yourself counts it, and undoing it doesn't", async () => {

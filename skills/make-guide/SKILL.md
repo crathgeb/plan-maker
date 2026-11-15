@@ -78,10 +78,10 @@ Fix every **error** and run it again until it prints `ok` or only warnings. An e
 Run it in the background from the project root:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/review.mjs" <guide path>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/review.mjs" <guide path> --replace
 ```
 
-It prints the URL and reuses a server already serving this guide. `--no-open`, `--host` and the network defaults work as in `make-plan`. If the user is starting from the plan, they can also open the guide from the phase's card.
+It prints the URL, taking over any server already serving this guide (`review-plan`, step 2). `--no-open`, `--host` and the network defaults work as in `make-plan`. If the user is starting from the plan, they can also open the guide from the phase's card. Then **connect Claude** (`review-plan`, step 3) so this session listens to the page it just served.
 
 ## 6. Register it
 
@@ -100,6 +100,6 @@ Tell the user, briefly:
 - the URL and the guide's path;
 - how long it takes and what they need ready;
 - that they tick each step with **Mark done** (the next one scrolls into view), use **Copy** on every block, and can select text to **Ask Claude** or ask for **More detail** wherever they get stuck;
-- to press **Done for now** and say **"process my notes"** when they want the guide fixed or their questions answered.
+- to press **Send to Claude** when they want the guide fixed or their questions answered: you write the next version and the page reloads into it.
 
-Done when `check.mjs` passes on the page, the guide exists, follows the conventions, is linked from its plan's phase (if it has one), is registered, the server is running, and the user has the URL.
+Done when `check.mjs` passes on the page, the guide exists, follows the conventions, is linked from its plan's phase (if it has one), is registered, the server is running, Claude is listening, and the user has the URL.

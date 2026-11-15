@@ -58,10 +58,10 @@ Fix every **error** and run it again until it prints `ok` or only warnings. An e
 ## 4. Start the review server
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/review.mjs" <reference path>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/review.mjs" <reference path> --replace
 ```
 
-Run it in the background from the project root; `--no-open`, `--host` and the network defaults work as in `make-plan`.
+Run it in the background from the project root; `--no-open`, `--host` and the network defaults work as in `make-plan`. Then **connect Claude** (`review-plan`, step 3) so this session listens to the page it just served.
 
 ## 5. Register it
 
@@ -75,10 +75,10 @@ It starts as `reviewing`. Once the user is happy with it, set `--status current`
 
 ## 6. Hand over
 
-Tell the user the URL and path, the scope in a line, and how to review it: select text to **Comment**, **Ask Claude** or ask for **More detail**; **Done for now**, then **"process my notes"**.
+Tell the user the URL and path, the scope in a line, and how to review it: select text to **Comment**, **Ask Claude** or ask for **More detail**, then **Send to Claude** for the next version.
 
 ## Keeping it current
 
 When the user says the reference is out of date, or "refresh the reference", or the hub shows it stale: re-read every `pm-source` file, then revise it as a new version with `process-notes` (it snapshots first), even if there are no notes. Say in "What changed" which source changes you followed.
 
-Done when `check.mjs` passes on the page, the reference exists, follows the conventions, names its sources, is registered, the server is running, and the user has the URL.
+Done when `check.mjs` passes on the page, the reference exists, follows the conventions, names its sources, is registered, the server is running, Claude is listening, and the user has the URL.

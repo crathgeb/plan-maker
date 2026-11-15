@@ -16,7 +16,7 @@ People who install the plan-maker plugin for Claude Code from the marketplace. T
 
 ## Jobs
 
-- **Review any page**: read it quickly, comment on anything (select text, or the buttons on a block), ask Claude questions, ask for more detail, answer the pick-one decisions and draw on the page. Then press Done for now and ask Claude to "process my notes", which writes the next version: notes applied, questions answered where they were asked, detail added, a "What changed" section.
+- **Review any page**: read it quickly, comment on anything (select text, or the buttons on a block), ask Claude questions, ask for more detail, answer the pick-one decisions and draw on the page. Then press **Send to Claude**: the Claude Code session listening to the project writes the next version in the background (notes applied, questions answered where they were asked, detail added, a "What changed" section) and the page reloads into it. Saying "process my notes" in the session does the same.
 - **Shape a plan**: judge the approach, phase by phase, and pick which phases need a guide (**Make a guide**).
 - **Do your part**: follow a guide step by step, ticking each off, copying what to paste, checking what you should see. Claude's phases and steps show the status Claude sets. The user always knows what's waiting on them.
 - **Look things up**: a reference, current with the code it describes, or saying plainly when it isn't.
@@ -31,6 +31,7 @@ People who install the plan-maker plugin for Claude Code from the marketplace. T
 - The annotation layer sits on top of any page, including plain HTML and plans made from older templates, and must stay legible over styles it doesn't control. Its classes start with `pm-`, and pages can recolour it through `--pm-*` tokens.
 - Statuses, by kind: a plan is draft, reviewing, approved, in-progress, blocked, done or archived; a guide is draft, reviewing, not-started, in-progress, blocked, done or archived; a reference is draft, reviewing, current or archived (and out of date is worked out, not set).
 - Everything runs locally. Nothing is sent anywhere unless the user starts a server with `--host`.
+- Claude is the backend, not the server: the review server never calls a model. It turns Send into a job; a Claude Code session the user started picks it up (docs/claude-backend.md). With no session listening, notes still save and wait.
 
 ## Constraints
 

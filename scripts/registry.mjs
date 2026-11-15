@@ -7,7 +7,8 @@
 //   node registry.mjs list [--all] [--project NAME] [--kind plan|guide|reference] [--json]
 //   node registry.mjs show <page|id>
 //   node registry.mjs remove <page|id>
-//   node registry.mjs scan [dir]      register every plan-maker page under dir (default .): HTML with plan-version or pm-kind
+//   node registry.mjs scan [dir]      register every plan-maker page under dir (default .): HTML with plan-version or pm-kind,
+//                                     except pages taken off the hub (remove, or launch.mjs cleaning up finished ones)
 //   node registry.mjs prune           drop entries whose page no longer exists
 //
 // The kind (plan, guide, reference) comes from the page's <meta name="pm-kind">.
@@ -20,10 +21,10 @@
 // staleness and the reasons a page is waiting on you are read live from the
 // page and its notes.json.
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join, relative, resolve, sep } from 'node:path';
+import { existsSync } from 'node:fs';
+import { relative, resolve, sep } from 'node:path';
 import { ACTIVE, KINDS, STATUSES_BY_KIND } from '../lib/kinds.mjs';
-import { describe, find, load, registryPath, remove, save, touched, upsert } from '../lib/registry.mjs';
+import { describe, find, findPages, forgetMissing, load, registryPath, remove, save, touched, upsert, wasRemoved } from '../lib/registry.mjs';
 
 const fail = (msg, code = 1) => {
   console.error(`registry: ${msg}`);
@@ -152,33 +153,23 @@ switch (cmd) {
     break;
   }
   case 'scan': {
-    // Every plan-maker page under dir: HTML declaring plan-version or pm-kind,
-    // skipping snapshots (versions/), shared bundles (*.review*.html) and dependency folders.
-    const root = resolve(args[0] || '.');
-    const SKIP = new Set(['node_modules', 'versions', 'dist', 'build', 'vendor']);
-    const found = [];
-    const walk = (dir, depth) => {
-      let names;
-      try { names = readdirSync(dir, { withFileTypes: true }); } catch { return; }
-      for (const d of names) {
-        if (d.name.startsWith('.')) continue;
-        const p = join(dir, d.name);
-        if (d.isDirectory()) { if (depth < 6 && !SKIP.has(d.name)) walk(p, depth + 1); continue; }
-        if (!d.isFile() || !/\.html$/.test(d.name) || /\.review(\.v\d+)?\.html$/.test(d.name)) continue;
-        const head = readFileSync(p, 'utf8').slice(0, 4000);
-        if (/<meta\s+name=["'](?:plan-version|pm-kind)["']/i.test(head)) found.push(p);
-      }
-    };
-    walk(root, 0);
+    // Every plan-maker page under dir. A page taken off the hub (removed, or finished and
+    // cleaned up by launch.mjs) stays off: `add` brings one back.
+    const found = findPages(args[0] || '.');
     let added = 0;
+    let skipped = 0;
     for (const page of found) {
       if (find(reg, page)) continue;
+      if (wasRemoved(reg, page)) {
+        skipped++;
+        continue;
+      }
       const e = upsert(reg, page);
       added++;
       console.log(`registry: registered "${e.name}"  ${show(page)}  id ${e.id}`);
     }
     if (added) save(reg);
-    console.log(`registry: ${found.length} page${found.length === 1 ? '' : 's'} found, ${added} newly registered`);
+    console.log(`registry: ${found.length} page${found.length === 1 ? '' : 's'} found, ${added} newly registered${skipped ? `, ${skipped} left off (taken off the hub earlier; \`add\` brings one back)` : ''}`);
     break;
   }
   case 'prune': {
@@ -187,8 +178,9 @@ switch (cmd) {
       remove(reg, e.id);
       console.log(`registry: dropped "${e.name}" (${e.path} is gone)`);
     }
-    if (gone.length) save(reg);
-    else console.log('registry: every page still exists');
+    const forgot = forgetMissing(reg);
+    if (gone.length || forgot) save(reg);
+    if (!gone.length) console.log('registry: every page still exists');
     break;
   }
   default:
