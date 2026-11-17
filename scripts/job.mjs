@@ -41,7 +41,7 @@ if (!existsSync(page)) fail(`no such page: ${pageArg}`, 2);
 if (verb === 'list') {
   const jobs = loadJobs(page).reverse();
   if (!jobs.length) console.log('No jobs yet.');
-  for (const j of jobs) console.log(`${j.id}  ${j.status.padEnd(9)}  v${j.version}  ${describeTally(j.asks || {})}${j.summary ? `  — ${j.summary}` : ''}${j.error ? `  — ${j.error}` : ''}`);
+  for (const j of jobs) console.log(`${j.id}  ${j.status.padEnd(9)}  v${j.version}  ${j.kind === 'run' ? `run “${j.step?.title}”` : describeTally(j.asks || {})}${j.summary ? `  — ${j.summary}` : ''}${j.error ? `  — ${j.error}` : ''}`);
   process.exit(0);
 }
 if (!['start', 'done', 'fail', 'pack'].includes(verb)) fail(`unknown action ${verb}\n${USAGE}`, 2);
@@ -51,7 +51,7 @@ if (verb === 'pack') {
   process.stdout.write(readFileSync(packFile(page, id), 'utf8'));
   process.exit(0);
 }
-if (verb === 'done' && !o.summary) console.error('job: no --summary; the page will say the new version is ready without one');
+if (verb === 'done' && !o.summary) console.error('job: no --summary; the page will say it is done without one');
 
 const body = verb === 'done' ? { summary: o.summary || '' } : verb === 'fail' ? { error: o.error || '' } : {};
 let job;

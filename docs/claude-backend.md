@@ -35,10 +35,19 @@ The session that works a page's notes starts that page's server itself, as a bac
 
 If no listener is connected, the job waits on disk and the page says so: "Your notes are saved and waiting for Claude". The next listener to connect is offered it. The reader can also **Take them back** before Claude starts, and saying "process my notes" in a session claims a waiting job and does the round there.
 
+## Run it: Claude's own steps
+
+A Claude step or phase that isn't done has a **Run it** button: the reader telling Claude it's time to do its part. It's the same loop as a round, with a different job:
+
+- **`POST /api/run { step }`** makes a `run` job for that step (a second press while it waits returns the same job). It's refused for a step that isn't Claude's (400), one already done (409), or while the page has another job (409).
+- **The listener line** tells the session to claim it, read its pack and do the step **in the session itself**, not a subagent. It's real work in the project, and the user may need to answer questions.
+- **The pack** says: read the step and what it depends on; set its `data-status="doing"`; do the work; set it to `"done"`; log it with `registry.mjs update --log`; end with `SUMMARY:` or `FAILED:`. There's no snapshot and no new version.
+- **The page isn't locked:** notes still save. Send and the other Run it buttons wait, since a page has one job at a time. The button reads **Waiting for Claude · Cancel** while the job waits (pressing it cancels), then **Claude is on it…**. On done the page reloads with the summary; on fail it says why.
+
 ## What keeps it reliable
 
 - **The context pack is the whole interface** between Claude and a worker: absolute paths, what the notes ask for, the skill to follow and what's different for a worker, and the required last line. A worker needs nothing else.
-- **The page is locked while Claude has the notes.** `PUT /api/notes` answers 409 while the page has an active job (queued, offered or running), so the notes the worker reads can't change under it, and nothing lands on the wrong version.
+- **The page is locked while Claude has the notes.** `PUT /api/notes` answers 409 while the page has an active round (queued, offered or running; a run doesn't lock), so the notes the worker reads can't change under it, and nothing lands on the wrong version.
 - **State lives in files.** Notes, versions and jobs can be read, diffed and snapshotted by anyone; every round leaves `versions/v<N>.html` and its notes behind.
 - **Jobs persist on disk.** An offer a session never started goes back to the queue when its listener drops, for the next one.
 - **Only this machine reports on a job.** `/api/claude/events` and a job's start, done and fail accept only requests from this machine, addressed by name; a page on another device (network mode) can send and take back its notes, nothing more.
@@ -55,6 +64,7 @@ If no listener is connected, the job waits on disk and the page says so: "Your n
 | Method and path | From | Does |
 |---|---|---|
 | `POST /api/send` `{ message? }` | the page | A job for the page's notes, or the active one. 400 when there's nothing to send. |
+| `POST /api/run` `{ step, message? }` | the page | Run it: a `run` job for one of Claude's steps or phases, or the one already waiting for it. 404 for no such step, 400 if it isn't Claude's, 409 if it's done or the page has another job. |
 | `GET /api/jobs` | anyone | `{ jobs` (newest first, up to 10)`, active, claude }` |
 | `GET /api/jobs/<id>` | anyone | The job, with its pack's path |
 | `POST /api/jobs/<id>/start` · `done { summary }` · `fail { error }` | this machine | The job's progress (job.mjs) |
@@ -63,7 +73,7 @@ If no listener is connected, the job waits on disk and the page says so: "Your n
 | `POST /api/claude/state` `{ phase, message }` | this machine | `idle`, `working`, `ready` or `error`, shown on the page (job.mjs sets these itself) |
 | `GET /api/stream` | the page | SSE: `hello`, `claude` (connected, phase), `job` (the page's latest), `page` (the file changed on disk), `bye` |
 
-A job record: `{ id, kind: "round", page, pageKind, name, version, next, status: queued|offered|running|done|failed|cancelled, message, asks: { comments, questions, details, guides, marks, decisions, general, total }, createdAt, offeredAt, startedAt, doneAt, summary, error }`.
+A job record: `{ id, kind: "round" | "run", step? { id, title, unit } (a run), page, pageKind, name, version, next, status: queued|offered|running|done|failed|cancelled, message, asks: { comments, questions, details, guides, marks, decisions, general, total }, createdAt, offeredAt, startedAt, doneAt, summary, error }`.
 
 ## Scripts
 

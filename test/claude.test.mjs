@@ -126,6 +126,51 @@ describe('the server and the scripts', () => {
     lis.stop();
   });
 
+  test('Run it: a job for one of Claude\'s phases, which doesn\'t lock the notes', async () => {
+    const { page } = pageAt('run');
+    const srv = await startServer(page);
+    stops.push(srv.stop);
+
+    assert.equal((await http(srv.url, '/api/run', 'POST', { step: 'nope' })).status, 404);
+    assert.equal((await http(srv.url, '/api/run', 'POST', { step: 'ph-review' })).status, 400, 'the reader\'s own phase');
+    let r = await http(srv.url, '/api/run', 'POST', { step: 'ph-retire' });
+    assert.equal(r.status, 200);
+    const { job } = r.json();
+    assert.equal(job.kind, 'run');
+    assert.deepEqual(job.step, { id: 'ph-retire', title: 'Retire the CMS', unit: 'phase' });
+    assert.equal(job.status, 'queued');
+    assert.equal((await http(srv.url, '/api/run', 'POST', { step: 'ph-retire' })).json().created, false, 'pressed twice: the same job');
+    assert.equal((await http(srv.url, '/api/run', 'POST', { step: 'ph-scaffold' })).status, 409, 'one at a time');
+    assert.equal((await http(srv.url, '/api/notes', 'PUT', NOTES)).status, 204, 'a run doesn\'t lock the notes');
+    r = await http(srv.url, '/api/send', 'POST', {});
+    assert.equal(r.status, 409);
+    assert.match(r.body, /Claude is running “Retire the CMS”/);
+
+    const lis = watchProc([join(repo, 'scripts/listen.mjs'), page]);
+    stops.push(lis.stop);
+    const line = (await lis.until(/plan-maker: job (j_[a-z0-9]+): .*\n/))[0];
+    assert.match(line, /pressed Run it on your phase "Retire the CMS"/);
+    assert.match(line, /yourself, in this session/);
+    const pack = line.match(/read (\S+\.md) and do what it says/)[1];
+    const text = readFileSync(pack, 'utf8');
+    assert.match(text, /data-id="ph-retire"/);
+    assert.match(text, /data-status="doing"/);
+    assert.match(text, /data-status="done"/);
+    assert.match(text, /registry\.mjs update/);
+    assert.match(text, /SUMMARY:/);
+
+    node('job.mjs', [page, 'start', job.id]);
+    assert.equal((await http(srv.url, '/api/jobs')).json().claude.message, 'Running “Retire the CMS”');
+    assert.match(node('job.mjs', [page, 'list']), /run “Retire the CMS”/);
+    node('job.mjs', [page, 'done', job.id, '--summary', 'Shut the CMS down.']);
+    assert.equal((await http(srv.url, '/api/jobs')).json().active, null);
+
+    // A phase already done can't be run.
+    writeFileSync(page, readFileSync(page, 'utf8').replace('data-id="ph-retire" data-who="claude" data-status="todo"', 'data-id="ph-retire" data-who="claude" data-status="done"'));
+    assert.equal((await http(srv.url, '/api/run', 'POST', { step: 'ph-retire' })).status, 409);
+    lis.stop();
+  });
+
   test('an offer a session never started goes back to the queue when it leaves', async () => {
     const { page } = pageAt('two');
     const srv = await startServer(page);
@@ -297,6 +342,48 @@ describe('the page', () => {
     assert.equal(await page.locator('html.pm-locked').count(), 0);
     assert.equal(await page.locator('#pm-claude').getAttribute('data-s'), 'ready');
     assert.ok(existsSync(join(proj, 'plans/ui/versions/v1.notes.json')));
+    lis.stop();
+    await page.close();
+  });
+
+  test('Run it on a Claude phase: waits, can be cancelled, shows Claude on it, and reloads when done', async () => {
+    const { page: file } = pageAt('ui-run');
+    const srv = await startServer(file);
+    stops.push(srv.stop);
+    const page = await newPage(browser, errors);
+    await open(page, srv.url);
+    const run = (id) => page.locator(`[data-id="${id}"] .pm-run-btn`);
+    assert.equal(await run('ph-retire').isVisible(), true);
+    assert.equal(await run('ph-scaffold').isVisible(), true);
+    assert.equal(await page.locator('[data-id="ph-review"] .pm-run-btn').count(), 0, 'the reader\'s phase has none');
+
+    // Offline: it waits, and pressing it again cancels.
+    await run('ph-retire').click();
+    await page.waitForFunction(() => document.querySelector('[data-id="ph-retire"] .pm-run-btn').textContent.includes('Waiting for Claude'));
+    assert.equal(await run('ph-scaffold').isDisabled(), true, 'one at a time');
+    assert.equal(await page.locator('html.pm-locked').count(), 0, 'the page stays editable');
+    assert.equal(await page.locator('#pm-claude').getAttribute('data-s'), 'waiting');
+    await run('ph-retire').click();
+    await page.waitForFunction(() => document.querySelector('[data-id="ph-retire"] .pm-run-btn').textContent === 'Run it');
+    assert.equal(await run('ph-scaffold').isDisabled(), false);
+
+    // Connected: Claude hears it, starts, and the page reloads when it's done.
+    const lis = watchProc([join(repo, 'scripts/listen.mjs'), file]);
+    stops.push(lis.stop);
+    await page.waitForSelector('#pm-claude[data-s="online"]');
+    await run('ph-retire').click();
+    const id = (await lis.until(/plan-maker: job (j_[a-z0-9]+): the reader pressed Run it/))[1];
+    node('job.mjs', [file, 'start', id]);
+    await page.waitForFunction(() => document.querySelector('[data-id="ph-retire"] .pm-run-btn').textContent === 'Claude is on it…');
+    assert.match(await page.textContent('#pm-claude'), /Running “Retire the CMS”/);
+    writeFileSync(file, readFileSync(file, 'utf8').replace('data-id="ph-retire" data-who="claude" data-status="todo"', 'data-id="ph-retire" data-who="claude" data-status="done"'));
+    const reloaded = page.waitForEvent('load');
+    node('job.mjs', [file, 'done', id, '--summary', 'SUMMARY: The CMS is shut down.']);
+    await reloaded;
+    await page.waitForSelector('html[data-pm-ready]');
+    await page.waitForSelector('#pm-toast:not([hidden])');
+    assert.match(await page.textContent('#pm-toast'), /Claude finished “Retire the CMS”: The CMS is shut down\./);
+    assert.equal(await run('ph-retire').count(), 0, 'done: no Run it');
     lis.stop();
     await page.close();
   });

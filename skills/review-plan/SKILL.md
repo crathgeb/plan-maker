@@ -54,7 +54,7 @@ A page made before the registry existed gets registered here, so it shows in the
 ## 5. Tell the user
 
 Give the URL, then, in a few lines:
-- select text → **Comment**, **Ask Claude** or **More detail**, or the same buttons on any block; **Make a guide** on a plan's phase; **Mark done** on their steps and phases; answer the decisions;
+- select text → **Comment**, **Ask Claude** or **More detail**, or the same buttons on any block; **Make a guide** on a plan's phase; **Mark done** on their steps and phases, **Run it** on Claude's when it's time for Claude to do one; answer the decisions;
 - draw from the toolbar at the left: Point (P), Box (B), Circle (C), Arrow (A), Pen (D), Sticky note (N), Select (V) to stop; drag it anywhere by its grip; **F** for focus (just the page);
 - press **Send to Claude** when they're done: you write the next version in the background, and the page reloads into it with a line on what changed. Saying **"process my notes"** here does the same.
 

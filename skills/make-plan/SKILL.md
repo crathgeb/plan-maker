@@ -113,7 +113,7 @@ Tell the user, briefly:
 
 - the URL and the plan's path;
 - the gist in three to five lines: the phases, which are theirs, and which have guides;
-- how to use it: select text to **Comment**, **Ask Claude** or ask for **More detail**, or use the buttons on any block; **Make a guide** on a phase they want walked through; **Mark done** on their phases; answer the decisions;
+- how to use it: select text to **Comment**, **Ask Claude** or ask for **More detail**, or use the buttons on any block; **Make a guide** on a phase they want walked through; **Mark done** on their phases, **Run it** on Claude's to have Claude do one now; answer the decisions;
 - to press **Send to Claude** when they're done: you write the next version and the page reloads into it (or they can say **"process my notes"**).
 
 Done when `check.mjs` passes on the page, the plan exists, follows the conventions, is registered, the server is running, Claude is listening, and the user has the URL.

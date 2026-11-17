@@ -43,12 +43,13 @@
 // Claude as a backend (docs/claude-backend.md): the reader's Send to Claude becomes a job
 // (lib/jobs.mjs) that a Claude Code session, listening through scripts/listen.mjs, picks up.
 //   POST /api/send               { message? } hand the notes to Claude: a job (or the one already waiting)
+//   POST /api/run                { step, message? } Run it: Claude does one of its steps or phases now
 //   GET  /api/jobs               { jobs (newest first, up to 10), active, claude }
 //   POST /api/jobs/<id>/start | done { summary } | fail { error } | cancel   (cancel: from the page, before it starts)
 //   GET  /api/claude/events      SSE for the listener (this machine only): hello, then the job when there is one
 //   POST /api/claude/state       { phase: idle|working|ready|error, message }
 //   GET  /api/stream             SSE for the page: claude, job, page (the HTML changed on disk)
-// While the page has an active job, PUT /api/notes is refused (409): Claude is working from them.
+// While the page has an active round, PUT /api/notes is refused (409): Claude is working from them.
 
 import { spawn } from 'node:child_process';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
@@ -61,7 +62,7 @@ import { currentVersion, isLegacy, listVersions, readJson, readVersion, snapshot
 import { readKind, readMeta, statusesFor } from '../lib/kinds.mjs';
 import { startReview } from '../lib/launch.mjs';
 import { pageHash, readRecords, removeRecord, writeRecord } from '../lib/servers.mjs';
-import { ACTIVE, activeJob, cancelJob, describeJob, failJob, finishJob, loadJob, loadJobs, packFile, saveJob, sendRound, startJob, tally, writePack } from '../lib/jobs.mjs';
+import { ACTIVE, activeJob, cancelJob, describeJob, failJob, finishJob, loadJob, loadJobs, locks, packFile, runStep, saveJob, sendRound, startJob, tally, writePack } from '../lib/jobs.mjs';
 import { find, guideProgress, linkTarget, load as loadRegistry, projectOf, readPage, readPhases, remove as removeEntry, save as saveRegistry, staleSources, upsert } from '../lib/registry.mjs';
 
 const LOOPBACK = '127.0.0.1';
@@ -222,7 +223,7 @@ async function handle(req, res) {
     }
     lastActive = performance.now();
     if (url.pathname === '/api/ping') return send(res, 204, '');
-    if (url.pathname.startsWith('/api/claude/') || url.pathname === '/api/stream' || url.pathname === '/api/send' || url.pathname.startsWith('/api/jobs')) {
+    if (url.pathname.startsWith('/api/claude/') || url.pathname === '/api/stream' || url.pathname === '/api/send' || url.pathname === '/api/run' || url.pathname.startsWith('/api/jobs')) {
       return await claudeRoute(req, res, url.pathname, fromHere);
     }
     // A relative link from one version page to another ("versions/v1" from
@@ -327,7 +328,7 @@ async function handle(req, res) {
         // A JSON content type forces a CORS preflight, which other sites fail.
         if (!(req.headers['content-type'] || '').startsWith('application/json')) return send(res, 415, 'expected JSON');
         if (from) return send(res, 409, `v${from} is read-only`);
-        if (activeJob(planPath)) return send(res, 409, 'Claude has these notes: they unlock when it is done, or when you take them back');
+        if (locks(activeJob(planPath))) return send(res, 409, 'Claude has these notes: they unlock when it is done, or when you take them back');
         const body = await readBody(req);
         const parsed = JSON.parse(body);
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return send(res, 400, 'expected a JSON object');
@@ -509,6 +510,18 @@ async function claudeRoute(req, res, path, fromHere) {
       jobChanged();
       return json(200, { job: loadJob(planPath, out.job.id) || out.job, created: out.created, claude: claude() });
     }
+    if (m === 'POST' && path === '/api/run') {
+      if (from) return send(res, 409, `v${from} is read-only`);
+      const { step, message = '' } = await body();
+      const out = await serial(() => {
+        const name = find(loadRegistry(), planPath)?.name || null;
+        const r = runStep(planPath, { step, message, name });
+        kick();
+        return r;
+      });
+      jobChanged();
+      return json(200, { job: loadJob(planPath, out.job.id) || out.job, created: out.created, claude: claude() });
+    }
     const jm = path.match(/^\/api\/jobs\/(j_[a-z0-9]+)(?:\/(start|done|fail|cancel))?$/);
     if (jm && m === 'GET' && !jm[2]) {
       const job = loadJob(planPath, jm[1]);
@@ -522,8 +535,9 @@ async function claudeRoute(req, res, path, fromHere) {
       const job = await serial(() => {
         const j = verb === 'start' ? startJob(planPath, id) : verb === 'done' ? finishJob(planPath, id, b) : verb === 'fail' ? failJob(planPath, id, b) : cancelJob(planPath, id);
         if (verb !== 'start') for (const set of listeners.values()) set.delete(id);
-        if (verb === 'start') claudeState = { phase: 'working', message: `Writing v${j.next || j.version + 1}` };
-        if (verb === 'done') claudeState = { phase: 'ready', message: j.summary || `v${j.version} is ready` };
+        const run = j.kind === 'run';
+        if (verb === 'start') claudeState = { phase: 'working', message: run ? `Running “${j.step.title}”` : `Writing v${j.next || j.version + 1}` };
+        if (verb === 'done') claudeState = { phase: 'ready', message: j.summary || (run ? `“${j.step.title}” is done` : `v${j.version} is ready`) };
         if (verb === 'fail') claudeState = { phase: 'error', message: j.error };
         if (verb === 'cancel') claudeState = { phase: 'idle', message: '' };
         return j;

@@ -18,14 +18,22 @@ export function planCopy(src) {
 }
 
 let nextPort = 4700 + Math.floor(Math.random() * 500);
+// Ports Chrome refuses to open (ERR_UNSAFE_PORT). A server may move up to 19 ports past the one
+// it's given, so keep each server's whole range clear of them.
+const UNSAFE = [5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668, 6669, 6679, 6697, 10080];
+function claimPort() {
+  let p = nextPort;
+  for (let hit; (hit = UNSAFE.filter((u) => u >= p && u < p + 25)).length; ) p = Math.max(...hit) + 1;
+  nextPort = p + 25;
+  return p;
+}
 
 /** Start review.mjs on a plan; resolves once it prints its URL. */
 export function startServer(plan, extra = []) {
-  const proc = spawn(process.execPath, [join(repo, 'scripts/review.mjs'), plan, '--no-open', '--port', String(nextPort), ...extra], {
+  const proc = spawn(process.execPath, [join(repo, 'scripts/review.mjs'), plan, '--no-open', '--port', String(claimPort()), ...extra], {
     cwd: dirname(plan),
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  nextPort += 25;
   let out = '';
   return new Promise((ok, bad) => {
     const timer = setTimeout(() => bad(new Error('server did not start:\n' + out)), 5000);

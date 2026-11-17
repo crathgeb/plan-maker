@@ -1,6 +1,6 @@
 ---
 name: process-notes
-description: Use when a plan-maker listener prints a job ("the reader sent their notes on …"), or when the user says "process my notes", "I've reviewed the plan", "answer my questions", "make the guide I asked for", "refresh the reference" or is otherwise done with a round on a plan-maker page (a plan, guide or reference), to write its next version from notes.json. Applies their comments, answers their questions in place, adds the detail they asked for, writes the guides they requested from a plan's phases, and keeps what they ticked off.
+description: Use when a plan-maker listener prints a job ("the reader sent their notes on …", or "the reader pressed Run it on your step …"), or when the user says "process my notes", "I've reviewed the plan", "answer my questions", "make the guide I asked for", "refresh the reference" or is otherwise done with a round on a plan-maker page (a plan, guide or reference), to write its next version from notes.json. Applies their comments, answers their questions in place, adds the detail they asked for, writes the guides they requested from a plan's phases, and keeps what they ticked off.
 argument-hint: "[page path]"
 ---
 
@@ -24,6 +24,7 @@ When the reader presses **Send to Claude**, the page's review server makes a **j
 |---|---|
 | `connected to "<name>" at <url>` | Nothing. If it says its notes are waiting, the job line follows. |
 | `job <id>: the reader sent their notes on "<name>" (…). Run …` | Work it, as below. |
+| `job <id>: the reader pressed Run it on your step (or phase) "<title>" …` | Do that step now, as in **Run it** below. |
 | `the review server for … has stopped` | Nothing, unless the user is still reviewing: then start it again (`review-plan`). |
 
 For each job:
@@ -33,7 +34,14 @@ For each job:
 3. **When it finishes,** report its last line: `job.mjs <page> done <id> --summary "<its SUMMARY line>"`. The page reloads into the new version and shows the summary. If it ended with `FAILED:` instead, `job.mjs <page> fail <id> --error "<why>"`: the page unlocks and says why.
 4. **Tell the user** in a line or two what changed, and anything the worker said is waiting on them.
 
-Jobs on different pages run in parallel: start one subagent per job as they arrive. A page has one job at a time; the server holds the rest. Don't do a job's work in this conversation yourself.
+Jobs on different pages run in parallel: start one subagent per job as they arrive. A page has one job at a time; the server holds the rest. Don't do a round's work in this conversation yourself (a Run it job is different: see below).
+
+**Run it.** The reader pressed **Run it** on one of Claude's steps or phases: it's time for your part of the work. This is real work in the project, not a new version of the page, so **do it yourself, in this conversation** (not in a subagent), where the user can follow along and answer questions:
+1. `job.mjs <page> start <id>`. The button on the page reads "Claude is on it…".
+2. Read the pack the line names, and follow it: set the step's `data-status="doing"`, do the work, set it to `"done"`, then log it in the registry. Don't snapshot the page or write a new version for this.
+3. `job.mjs <page> done <id> --summary "<one sentence on what you did>"`. The page reloads with that line. If you can't finish (a decision only the user can take and they aren't answering, or a step it depends on isn't done), `job.mjs <page> fail <id> --error "<why>"`.
+
+The page isn't locked during a run, and the reader can't Send or run another step until it's over: close it either way.
 
 **"Process my notes" while a job waits.** If the user asks here instead, check first: `job.mjs <page> list`. If a job is `queued` or `offered`, claim it (`start`) before step 5, do the round in this conversation (steps 1 to 9), then close it (`done --summary "…"`), so the page unlocks and reloads. If nothing is waiting, go on as below.
 

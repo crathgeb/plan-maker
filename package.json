@@ -1,6 +1,6 @@
 {
   "name": "plan-maker",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Plans as interactive HTML pages you review in the browser, with notes saved to notes.json for Claude to process.",
   "license": "MIT",

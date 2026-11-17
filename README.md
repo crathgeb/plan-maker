@@ -6,7 +6,7 @@ Ask Claude for a plan, to guide you through something, or to document how someth
 
 - **select any text → Comment**, **Ask Claude** or **More detail**, or use the same buttons on any block or section
 - on a plan, press **Make a guide** on any phase you want walked through
-- tick off **your part** with **Mark done**, and watch **Claude's** move from to do, to in progress, to done (or mark Claude's done yourself)
+- tick off **your part** with **Mark done**, press **Run it** on **Claude's** when it's time for Claude to do it, and watch it move from to do, to in progress, to done (or mark Claude's done yourself)
 - see where you are at a glance: **Next step** under the progress bar jumps to what's next, the contents rail ticks off every step, and finished sections fold away
 - answer the pick-one **decisions** (Claude marks its recommendation)
 - **Draw** points, boxes, circles, arrows, freehand pen strokes and sticky notes anywhere on the page, from a floating toolbar (one key per tool) you can drag anywhere
@@ -97,6 +97,8 @@ Pressing **Send to Claude** on a page works the way [design-driven-development](
 3. While Claude has your notes the page is locked, with a strip saying what's happening: waiting, starting, or "Claude is writing v3". You can **Take them back** until it starts.
 4. When the subagent is done, the page reloads into the new version with a line on what changed. If it couldn't finish, the page unlocks and says why.
 
+**Run it** on one of Claude's steps or phases goes over the same connection: it tells the session to do that step now. The session marks it in progress, does the work, marks it done, and the page reloads with a line on what it did. The page isn't locked meanwhile.
+
 Notes sent while no session listens wait on disk and go to the next one. (`listen.mjs --project` listens to every page in the project instead, for one session that takes everything.) Details are in [`docs/claude-backend.md`](docs/claude-backend.md).
 
 ### The toolbar
@@ -184,7 +186,7 @@ While it runs, a server keeps a record in `~/.plan-maker/servers/` so the hub ca
 | `GET /api/status`, `PUT /api/status` | The page's kind, the statuses it can have, its registry status, and (for a reference) the source files changed since it was written. `PUT { status }` changes it. |
 | `GET /api/links` | Where the page's links lead: each phase's guide with its progress, and a guide's plan and phase |
 | `GET /api/open?href=…` | Starts (or reuses) the review server for a linked plan-maker page in the same project, and redirects to it |
-| `POST /api/send`, `GET /api/jobs`, `POST /api/jobs/<id>/start\|done\|fail\|cancel` | Send to Claude: the page's job and its progress ([`docs/claude-backend.md`](docs/claude-backend.md)) |
+| `POST /api/send`, `POST /api/run`, `GET /api/jobs`, `POST /api/jobs/<id>/start\|done\|fail\|cancel` | Send to Claude: the page's job and its progress ([`docs/claude-backend.md`](docs/claude-backend.md)) |
 | `GET /api/claude/events`, `POST /api/claude/state` | Claude's side: the listener's event stream, and what Claude says it's doing (this machine only) |
 | `GET /api/stream` | The page's event stream: Claude connected or not, its job, the page changed on disk |
 
@@ -208,7 +210,7 @@ Highlights are stored as character offsets within a block, counting only the pla
 | `data-id="…"` | Makes a block annotatable. Selected text is attributed to the nearest block with a `data-id`. Use unique, stable, kebab-case ids. |
 | `class="item"` | Adds **Comment** and **More detail**: entries, table rows (`<tr>`), list items, whole tables, code blocks. |
 | `<div class="part" id="information\|steps\|questions\|log">` | A plan's parts, in that order, each opening with a `div.part-h`. Information holds the content, Steps the phases, Questions the open decisions (left out when there are none), the log what's been decided; `a.toc-part` links head each group in the contents rail. `check.mjs` warns when something is in the wrong part. |
-| `class="phase" data-who="you\|claude\|both"` | A plan's phase and its owner, inside `<div class="phases">`. Yours get **Mark done** and **Make a guide**; Claude's show their status. Each counts toward its owner's lane. A `.phase` without `data-who` is an ordinary block. |
+| `class="phase" data-who="you\|claude\|both"` | A plan's phase and its owner, inside `<div class="phases">`. Yours get **Mark done** and **Make a guide**; Claude's show their status and **Run it**. Each counts toward its owner's lane. A `.phase` without `data-who` is an ordinary block. |
 | `data-guide="guides/<slug>/index.html"` | On a phase: it's done through that guide. The card links there, shows the guide's progress, and counts as done when the guide is. |
 | `<ul class="tasks">`, `<li data-status>` | A short checklist inside one of Claude's phases. |
 | `<meta name="pm-parent">`, `<meta name="pm-parent-phase">` | On a guide made from a plan: the plan's relative path and the phase's `data-id`. Shown as "Part of <plan> › <phase>". |
@@ -216,7 +218,7 @@ Highlights are stored as character offsets within a block, counting only the pla
 | `<meta name="pm-source">` | On a reference: the files it describes, relative to the project root. |
 | `.contents`, `dl.defs`, `p.sig` | In a reference: contents on the cover, terms and options, signatures. |
 | `<pre data-label="Terminal">` | A code block; the label shows in its header beside **Copy**. |
-| `class="step" data-who="you\|claude\|both"` | A guide's step and its owner. Yours (and both) are blue cards with **Mark done**; Claude's are gold cards with their status. Each counts toward its owner's lane in the top bar. Older pages with `.who.you` / `.who.claude` tags inside steps still work. |
+| `class="step" data-who="you\|claude\|both"` | A guide's step and its owner. Yours (and both) are blue cards with **Mark done**; Claude's are gold cards with their status and **Run it**. Each counts toward its owner's lane in the top bar. Older pages with `.who.you` / `.who.claude` tags inside steps still work. |
 | `data-status="todo\|doing\|done"` | On Claude's step or phase: its status, set by Claude. |
 | `aside.explain[data-q]` | Claude's answer to your question, written where you asked it. |
 | `<section data-id>` | Adds a section note after the section's heading. |

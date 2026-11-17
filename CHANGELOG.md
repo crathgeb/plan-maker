@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0 (2026-11-16)
+
+Run it: tell Claude when it's time to do its part of a plan.
+
+**Upgrading:** update the plugin and start a new Claude Code session, so it knows what to do with a run job. Then serve or launch your pages again (they're taken over on the same port) and reload any open tab once to get the button.
+
+- **Run it, on Claude's steps and phases.** A Claude step or phase that isn't done has a gold **Run it** button. Press it to tell the Claude Code session serving the page that it's time to do its part. The session hears it over the same connection as Send to Claude. It marks the step in progress, does the work in this session (so you can follow along and answer questions), marks it done, and the page reloads with a line on what it did. While it waits for Claude, the button reads **Waiting for Claude · Cancel**; while Claude works, **Claude is on it…**. A run doesn't lock the page: keep commenting while Claude works. A page runs one job at a time, so Send and the other Run it buttons wait until it's done. New `POST /api/run { step }`, and a `run` kind of job with its own context pack.
+- Tests no longer pick ports Chrome refuses to open (5060, 5061…), the cause of an occasional failure.
+
 ## 1.0.0 (2026-11-14)
 
 Claude as a backend: **Send to Claude** on any page hands your notes to the Claude Code session you're working in, which writes the next version in the background while the page follows along. Each session runs the servers for the pages it works, and "launch my plans" brings up a whole repo's pages at once, with finished ones cleaned off the hub. And a new toolbar: the drawing tools float beside the page, one key each, with a pen.
