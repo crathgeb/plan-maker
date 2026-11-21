@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0 (2026-11-20)
+
+Do it for me: Claude does a guide's section for you, in your own Chrome.
+
+**Upgrading:** update the plugin, then restart the pages' review servers ("launch my plans", or serve the page again; they're taken over on the same port) and reload any open tab. Existing guides need no changes: the button is added when the page is served.
+
+- **Do it for me, on a guide's sections.** Each section with steps has a gold **Do it for me** button at its top right. It opens a Terminal window with a new Claude Code session (`claude --chrome --remote-control …`) that does the section's steps in your own Chrome, checks each one, and ticks it off on the page as it goes (the step reads **Done by Claude**, live). Logins, passwords, purchases and anything irreversible come back to you in that window. The button shows only on macOS with Claude Code and Claude in Chrome installed, on the computer serving the page; `PLAN_MAKER_DOIT=on|off` overrides. After the command center's Do it for me.
+- New `scripts/step.mjs <page> done|undo <step> | show`, for a session to tick a guide's steps off; through the review server when one runs (`POST /api/steps/<id>`, a `steps` event to the tabs), on notes.json when not.
+- New `GET /api/doit` and `POST /api/doit { section }`; the prompts are `prompts/doit.md` and `prompts/doit-rules.md`.
+
 ## 1.1.0 (2026-11-16)
 
 Run it: tell Claude when it's time to do its part of a plan.

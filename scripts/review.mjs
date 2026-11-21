@@ -48,7 +48,11 @@
 //   POST /api/jobs/<id>/start | done { summary } | fail { error } | cancel   (cancel: from the page, before it starts)
 //   GET  /api/claude/events      SSE for the listener (this machine only): hello, then the job when there is one
 //   POST /api/claude/state       { phase: idle|working|ready|error, message }
-//   GET  /api/stream             SSE for the page: claude, job, page (the HTML changed on disk)
+//   GET  /api/stream             SSE for the page: claude, job, steps, page (the HTML changed on disk)
+// Do it for me (lib/doit.mjs), from this machine only: a guide's section done by a new Claude session in Terminal.
+//   GET  /api/doit               { available, why }: macOS, Claude Code and Claude in Chrome installed
+//   POST /api/doit               { section } open Terminal with Claude doing that section in Chrome
+//   POST /api/steps/<id>         { done, note? } tick a step off (scripts/step.mjs): the tabs show it at once
 // While the page has an active round, PUT /api/notes is refused (409): Claude is working from them.
 
 import { spawn } from 'node:child_process';
@@ -62,6 +66,7 @@ import { currentVersion, isLegacy, listVersions, readJson, readVersion, snapshot
 import { readKind, readMeta, statusesFor } from '../lib/kinds.mjs';
 import { startReview } from '../lib/launch.mjs';
 import { pageHash, readRecords, removeRecord, writeRecord } from '../lib/servers.mjs';
+import { doItAvailable, doSection, tickStep } from '../lib/doit.mjs';
 import { ACTIVE, activeJob, cancelJob, describeJob, failJob, finishJob, loadJob, loadJobs, locks, packFile, runStep, saveJob, sendRound, startJob, tally, writePack } from '../lib/jobs.mjs';
 import { find, guideProgress, linkTarget, load as loadRegistry, projectOf, readPage, readPhases, remove as removeEntry, save as saveRegistry, staleSources, upsert } from '../lib/registry.mjs';
 
@@ -223,7 +228,7 @@ async function handle(req, res) {
     }
     lastActive = performance.now();
     if (url.pathname === '/api/ping') return send(res, 204, '');
-    if (url.pathname.startsWith('/api/claude/') || url.pathname === '/api/stream' || url.pathname === '/api/send' || url.pathname === '/api/run' || url.pathname.startsWith('/api/jobs')) {
+    if (url.pathname.startsWith('/api/claude/') || url.pathname === '/api/stream' || url.pathname === '/api/send' || url.pathname === '/api/run' || url.pathname.startsWith('/api/jobs') || url.pathname === '/api/doit' || url.pathname.startsWith('/api/steps/')) {
       return await claudeRoute(req, res, url.pathname, fromHere);
     }
     // A relative link from one version page to another ("versions/v1" from
@@ -521,6 +526,30 @@ async function claudeRoute(req, res, path, fromHere) {
       });
       jobChanged();
       return json(200, { job: loadJob(planPath, out.job.id) || out.job, created: out.created, claude: claude() });
+    }
+    if (path === '/api/doit') {
+      // The window opens on this machine, so the button is offered here only.
+      const html = readFileSync(planPath, 'utf8');
+      const kind = readKind(html);
+      if (m === 'GET') {
+        const a = doItAvailable();
+        return json(200, !fromHere ? { available: false, why: 'it opens on the computer serving this page' } : kind !== 'guide' ? { available: false, why: 'for guides only' } : a);
+      }
+      if (m !== 'POST') return send(res, 405, 'method not allowed');
+      if (!fromHere) return send(res, 403, 'Do it for me starts Claude on the computer serving this page: press it there');
+      if (from) return send(res, 409, `v${from} is read-only`);
+      const { section } = await body();
+      const name = find(loadRegistry(), planPath)?.name || html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim() || basename(planDir);
+      const out = await doSection({ page: planPath, url: `http://${local}:${boundPort}/`, name, project: projectOf(planPath), kind, html, notes: readJson(notesPath), section });
+      return json(200, { session: out.session, remote: out.remote, section: out.section });
+    }
+    const sm = path.match(/^\/api\/steps\/([^/]+)$/);
+    if (sm && m === 'POST') {
+      if (!fromHere) return send(res, 403, 'only Claude, on this machine, ticks steps this way');
+      const { done = true, note = '' } = await body();
+      const out = await serial(() => tickStep(planPath, decodeURIComponent(sm[1]), { done: !!done, note }));
+      toTabs({ type: 'steps', steps: out.steps, step: out.step.id, done: !!done, by: 'claude' });
+      return json(200, { step: out.step, steps: out.steps });
     }
     const jm = path.match(/^\/api\/jobs\/(j_[a-z0-9]+)(?:\/(start|done|fail|cancel))?$/);
     if (jm && m === 'GET' && !jm[2]) {

@@ -71,7 +71,10 @@ A Claude step or phase that isn't done has a **Run it** button: the reader telli
 | `POST /api/jobs/<id>/cancel` | the page | Take the notes back, before Claude starts (409 once it has) |
 | `GET /api/claude/events` | this machine | SSE for the listener: `hello`, then `job` with the line to print, `bye` when the server stops |
 | `POST /api/claude/state` `{ phase, message }` | this machine | `idle`, `working`, `ready` or `error`, shown on the page (job.mjs sets these itself) |
-| `GET /api/stream` | the page | SSE: `hello`, `claude` (connected, phase), `job` (the page's latest), `page` (the file changed on disk), `bye` |
+| `GET /api/stream` | the page | SSE: `hello`, `claude` (connected, phase), `job` (the page's latest), `steps` (a step ticked by a Claude session), `page` (the file changed on disk), `bye` |
+| `GET /api/doit` | the page | Do it for me: `{ available, why }`. True on a guide, opened on this machine, which has Claude Code and Claude in Chrome. |
+| `POST /api/doit` `{ section }` | this machine | Open Terminal with a new Claude session doing that guide section in Chrome (lib/doit.mjs). 409 when it isn't available, every step is done, or it started less than a minute ago. |
+| `POST /api/steps/<id>` `{ done, note? }` | this machine | Tick a step off, or untick it, in notes.json, marked `by: "claude"` (scripts/step.mjs); open tabs get a `steps` event |
 
 A job record: `{ id, kind: "round" | "run", step? { id, title, unit } (a run), page, pageKind, name, version, next, status: queued|offered|running|done|failed|cancelled, message, asks: { comments, questions, details, guides, marks, decisions, general, total }, createdAt, offeredAt, startedAt, doneAt, summary, error }`.
 

@@ -7,6 +7,7 @@ Ask Claude for a plan, to guide you through something, or to document how someth
 - **select any text → Comment**, **Ask Claude** or **More detail**, or use the same buttons on any block or section
 - on a plan, press **Make a guide** on any phase you want walked through
 - tick off **your part** with **Mark done**, press **Run it** on **Claude's** when it's time for Claude to do it, and watch it move from to do, to in progress, to done (or mark Claude's done yourself)
+- on a guide, press **Do it for me** at the top right of a section, and Claude does its steps for you in your own Chrome, from a new Terminal window (shown when Claude in Chrome is installed)
 - see where you are at a glance: **Next step** under the progress bar jumps to what's next, the contents rail ticks off every step, and finished sections fold away
 - answer the pick-one **decisions** (Claude marks its recommendation)
 - **Draw** points, boxes, circles, arrows, freehand pen strokes and sticky notes anywhere on the page, from a floating toolbar (one key per tool) you can drag anywhere
@@ -98,6 +99,20 @@ Pressing **Send to Claude** on a page works the way [design-driven-development](
 4. When the subagent is done, the page reloads into the new version with a line on what changed. If it couldn't finish, the page unlocks and says why.
 
 **Run it** on one of Claude's steps or phases goes over the same connection: it tells the session to do that step now. The session marks it in progress, does the work, marks it done, and the page reloads with a line on what it did. The page isn't locked meanwhile.
+
+### Do it for me
+
+Each section of a guide that has steps gets a gold **Do it for me** button at its top right. Press it and a Terminal window opens with a new Claude Code session that does that section for you in your own Chrome (with your logins), through [Claude in Chrome](https://claude.com/chrome):
+
+```bash
+claude --chrome --remote-control "<guide>: <section>" -n <guide>-<section> \
+  --allowedTools "Bash(node …/scripts/step.mjs <page> *)" \
+  --append-system-prompt "$(cat <rules>)" "$(cat <prompt>)"
+```
+
+It works the steps in order in a new tab, checks each one's **You should see**, and ticks it off on the page as it goes (`scripts/step.mjs`): the step turns **Done by Claude** in the open tab without a reload. Steps only you can do (logins, passwords, two-factor codes, purchases, anything public or irreversible) it hands back to you in the Terminal window, one at a time. Permissions stay normal; follow along in Terminal, or from the Claude app with Remote Control. The prompt is `prompts/doit.md`, the hard stops `prompts/doit-rules.md`, and the session's files go in `~/.plan-maker/sessions/`.
+
+The button only shows where it can work: on macOS, with Claude Code installed and Claude in Chrome installed (Claude Code's own record of it, else Chrome's native host for it), and on the computer serving the page, since that's where the window opens. It goes once every step in the section is done. `PLAN_MAKER_DOIT=off` hides it, `on` shows it regardless; `PLAN_MAKER_CLAUDE_BIN` and `PLAN_MAKER_CLAUDE_FLAGS` (default `--chrome`) choose the Claude Code and its flags.
 
 Notes sent while no session listens wait on disk and go to the next one. (`listen.mjs --project` listens to every page in the project instead, for one session that takes everything.) Details are in [`docs/claude-backend.md`](docs/claude-backend.md).
 

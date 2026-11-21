@@ -56,6 +56,8 @@ Copy `${CLAUDE_PLUGIN_ROOT}/templates/guide.html` and replace every piece of exa
 | `<p class="slug">` | Under the `<h1>` | `<span>Guide v1</span><span>Ready to follow</span><span>DATE</span>`, matching `plan-version` and `plan-date`. |
 | `<div class="progress" data-pm-progress></div>` | The hero, after the lede | Keep it empty: the review layer draws the steps' progress there. |
 
+Write each section so it can be done on its own: **Do it for me** hands one section to a fresh Claude session in the reader's Chrome, which knows only the page. Put the URLs, account names and values a step needs in the step itself, not only in an earlier section.
+
 Write the steps in the second person, present tense, and lead with the verb. Put warnings right before the action they're about. Write no step numbers yourself (they're drawn for you). End with an "If something goes wrong" table: "You see" → "Do this". Use sentence case in `<title>`.
 
 ## 4. Link it to its plan
@@ -100,6 +102,7 @@ Tell the user, briefly:
 - the URL and the guide's path;
 - how long it takes and what they need ready;
 - that they tick each step with **Mark done** (the next one scrolls into view), use **Copy** on every block, and can select text to **Ask Claude** or ask for **More detail** wherever they get stuck;
+- if the page shows **Do it for me** on a section (it does when Claude in Chrome is installed), pressing it opens a Terminal window where Claude does that section in their Chrome and ticks the steps off, handing back logins and anything irreversible;
 - to press **Send to Claude** when they want the guide fixed or their questions answered: you write the next version and the page reloads into it.
 
 Done when `check.mjs` passes on the page, the guide exists, follows the conventions, is linked from its plan's phase (if it has one), is registered, the server is running, Claude is listening, and the user has the URL.
